@@ -6,7 +6,7 @@ import { appRouter } from '@/server/routers/_app'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const app = new Hono().basePath('/api')
 
