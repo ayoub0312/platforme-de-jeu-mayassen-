@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  phone        String?
+  name         String?
+  role         Role         @default(PLAYER)
+  
+  // Parrainage
+  referralCode String       @unique @default(cuid())
+  referredById String?
+  referredBy   User?        @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]       @relation("Referrals")
+
+  // Relations
+  playTokens   PlayToken[]
+  wonPrizes    UserPrize[]
+  leads        LeadCapture[]
+  
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum Role {
+  SUPERADMIN
+  PARTNER
+  PLAYER
+}
+
+model Partner {
+  id             String        @id @default(cuid())
+  name           String
+  allowedDomains String        // Ex: "supermarche.com,boutique.fr"
+  campaigns      Campaign[]
+  capturedLeads  LeadCapture[]
+}
+
+model Campaign {
+  id          String        @id @default(cuid())
+  partnerId   String?
+  partner     Partner?      @relation(fields: [partnerId], references: [id])
+  title       String
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean       @default(true)
+  prizes      Prize[]
+  leads       LeadCapture[]
+  tokens      PlayToken[]
+
+  // Ads & Promos (Manageable from Dashboard)
+  adBadge1    String?
+  adTitle1    String?
+  adDesc1     String?
+  adBadge2    String?
+  adTitle2    String?
+  adDesc2     String?
+  adBadge3    String?
+  adTitle3    String?
+  adDesc3     String?
+  promoTitle  String?
+  promoCode   String?
+  promoDesc   String?
+  promoUrl    String?
+
+  @@index([isActive, startDate, endDate])
+}
+
+model Prize {
+  id               String      @id @default(cuid())
+  campaignId       String
+  campaign         Campaign    @relation(fields: [campaignId], references: [id])
+  name             String
+  type             PrizeType
+  totalStock       Int         // -1 pour illimité
+  remainingStock   Int         // Doit être synchronisé avec Redis
+  winProbability   Float       // Ex: 0.05
+  fallbackPrizeId  String?     // ID du lot de consolation
+  winners          UserPrize[]
+  
+  drawDate         DateTime?   // Date du tirage au sort (Kor3a)
+}
+
+enum PrizeType {
+  PHYSICAL
+  DIGITAL
+}
+
+model UserPrize {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  prizeId   String
+  prize     Prize    @relation(fields: [prizeId], references: [id])
+  claimedAt DateTime @default(now())
+  status    String   @default("PENDING") // PENDING, DELIVERED
+}
+
+model PlayToken {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  campaignId String
+  campaign   Campaign    @relation(fields: [campaignId], references: [id])
+  status     TokenStatus @default(UNUSED)
+  earnedVia  EarnMethod
+  createdAt  DateTime    @default(now())
+}
+
+enum TokenStatus {
+  UNUSED
+  USED
+  EXPIRED
+}
+
+enum EarnMethod {
+  SIGNUP
+  REFERRAL
+  RECEIPT_UPLOAD
+  ADMIN_GRANT
+  VISIT_WEBSITE
+  FOLLOW_SOCIAL
+}
+
+model LeadCapture {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  partnerId  String
+  partner    Partner  @relation(fields: [partnerId], references: [id])
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  source     String   // "WIDGET", "QR_CODE", "LINK"
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, campaignId]) // Garantit un seul lead par utilisateur et par campagne
+}
