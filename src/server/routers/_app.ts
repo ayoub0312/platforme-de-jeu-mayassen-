@@ -56,7 +56,7 @@ export const appRouter = router({
       if (user.role === Role.PARTNER) {
         const domainPart = user.email.split('@')[1] || ''
         const domainPrefix = domainPart.split('.')[0]?.toLowerCase() || ''
-        
+
         const partner = await prisma.partner.findFirst({
           where: {
             OR: [
@@ -94,17 +94,42 @@ export const appRouter = router({
     return { success: true }
   }),
 
-  // 1. Get all active campaigns
-  getCampaigns: publicProcedure.query(async () => {
-    return prisma.campaign.findMany({
-      where: { isActive: true },
-      include: {
-        partner: { select: { name: true } },
-        prizes: true,
-      },
-      orderBy: { startDate: 'desc' },
-    })
-  }),
+  getCampaigns: publicProcedure
+    .input(z.object({
+      partnerId: z.string().optional(),
+      partnerName: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      let partnerFilter: any = {}
+      if (input?.partnerId) {
+        partnerFilter = { partnerId: input.partnerId }
+      } else if (input?.partnerName) {
+        const partner = await prisma.partner.findFirst({
+          where: {
+            name: {
+              equals: input.partnerName.toLowerCase().replace(/-/g, ' ')
+            }
+          }
+        })
+        if (partner) {
+          partnerFilter = { partnerId: partner.id }
+        } else {
+          return []
+        }
+      }
+
+      return prisma.campaign.findMany({
+        where: {
+          isActive: true,
+          ...partnerFilter
+        },
+        include: {
+          partner: { select: { name: true } },
+          prizes: true,
+        },
+        orderBy: { startDate: 'desc' },
+      })
+    }),
 
   // 2. Get single campaign with its prizes
   getCampaignDetails: publicProcedure
@@ -244,7 +269,7 @@ export const appRouter = router({
               },
             ],
           })
-          
+
           // Clear cached stats for referrer
           console.log(`Referral successfully rewarded for user code ${input.referredByCode}`)
         }
@@ -417,11 +442,11 @@ export const appRouter = router({
           // If prize has limited stock, decrement remaining stock in database
           ...(selectedPrize.totalStock !== -1
             ? [
-                prisma.prize.update({
-                  where: { id: selectedPrize.id },
-                  data: { remainingStock: { decrement: 1 } },
-                }),
-              ]
+              prisma.prize.update({
+                where: { id: selectedPrize.id },
+                data: { remainingStock: { decrement: 1 } },
+              }),
+            ]
             : []),
         ])
       } catch (err) {
@@ -587,7 +612,7 @@ export const appRouter = router({
           userId: user.id,
           campaignId: input.campaignId,
           earnedVia: {
-            in: [EarnMethod.VISIT_WEBSITE, EarnMethod.FOLLOW_SOCIAL, EarnMethod.RECEIPT_UPLOAD],
+            in: [EarnMethod.VISIT_WEBSITE, EarnMethod.FOLLOW_SOCIAL, EarnMethod.RECEIPT_UPLOAD, EarnMethod.JOIN_DRAW],
           },
         },
         select: {
@@ -610,7 +635,7 @@ export const appRouter = router({
       z.object({
         email: z.string().email(),
         campaignId: z.string(),
-        taskType: z.enum(['VISIT_WEBSITE', 'FOLLOW_SOCIAL', 'RECEIPT_UPLOAD']),
+        taskType: z.enum(['VISIT_WEBSITE', 'FOLLOW_SOCIAL', 'RECEIPT_UPLOAD', 'JOIN_DRAW']),
       })
     )
     .mutation(async ({ input }) => {
@@ -641,18 +666,31 @@ export const appRouter = router({
         })
       }
 
-      // Determine how many tokens to award
-      const tokensCount = input.taskType === 'RECEIPT_UPLOAD' ? 5 : 1
+      // Determine if it is a Tirage task that should not award roulette spins
+      const isTirageTask = input.taskType === 'RECEIPT_UPLOAD' || input.taskType === 'JOIN_DRAW'
 
-      // Create the play tokens
-      await prisma.playToken.createMany({
-        data: Array.from({ length: tokensCount }).map(() => ({
-          userId: user.id,
-          campaignId: input.campaignId,
-          earnedVia: input.taskType as EarnMethod,
-          status: TokenStatus.UNUSED,
-        })),
-      })
+      if (isTirageTask) {
+        // Create a single used token to record completion without awarding any roulette spins
+        await prisma.playToken.create({
+          data: {
+            userId: user.id,
+            campaignId: input.campaignId,
+            earnedVia: input.taskType as EarnMethod,
+            status: TokenStatus.USED,
+          },
+        })
+      } else {
+        // Roulette tasks award unused tokens (spins)
+        const tokensCount = 1
+        await prisma.playToken.createMany({
+          data: Array.from({ length: tokensCount }).map(() => ({
+            userId: user.id,
+            campaignId: input.campaignId,
+            earnedVia: input.taskType as EarnMethod,
+            status: TokenStatus.UNUSED,
+          })),
+        })
+      }
 
       // Get updated total unused spins count
       const totalUnusedSpins = await prisma.playToken.count({
@@ -665,9 +703,11 @@ export const appRouter = router({
 
       return {
         success: true,
-        tokensAwarded: tokensCount,
+        tokensAwarded: isTirageTask ? 0 : 1,
         totalTokens: totalUnusedSpins,
-        message: `Félicitations ! Vous avez obtenu +${tokensCount} lancers.`,
+        message: isTirageTask
+          ? 'Défi validé avec succès pour le tirage au sort !'
+          : 'Félicitations ! Vous avez obtenu +1 lancer.',
       }
     }),
 
@@ -895,12 +935,70 @@ export const appRouter = router({
 
   // Prizes CRUD
   getAllPrizes: superAdminProcedure.query(async () => {
-    return prisma.prize.findMany({
+    const prizes = await prisma.prize.findMany({
       include: {
-        campaign: { select: { title: true, id: true } },
+        campaign: {
+          select: {
+            title: true,
+            id: true,
+            partnerId: true,
+            partner: { select: { name: true } }
+          }
+        },
+        winners: { include: { user: { select: { name: true, email: true } } } }
       },
       orderBy: { name: 'asc' },
     })
+
+    const prizesWithCounts = await Promise.all(
+      prizes.map(async (p) => {
+        let participantCount = 0
+        let participants: { id: string; name: string | null; email: string; phone: string | null; createdAt: Date }[] = []
+        if (p.drawDate) {
+          const tokens = await prisma.playToken.findMany({
+            where: {
+              campaignId: p.campaignId,
+              earnedVia: EarnMethod.JOIN_DRAW,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'desc',
+            }
+          })
+
+          const seen = new Set()
+          for (const t of tokens) {
+            if (!seen.has(t.user.id)) {
+              seen.add(t.user.id)
+              participants.push({
+                id: t.user.id,
+                name: t.user.name,
+                email: t.user.email,
+                phone: t.user.phone,
+                createdAt: t.createdAt,
+              })
+            }
+          }
+          participantCount = participants.length
+        }
+        return {
+          ...p,
+          participantCount,
+          participants,
+        }
+      })
+    )
+
+    return prizesWithCounts
   }),
 
   createPrize: superAdminProcedure
@@ -1043,6 +1141,88 @@ export const appRouter = router({
           where: { id: input.id },
         })
       })
+    }),
+
+  runDraw: superAdminProcedure
+    .input(z.object({ prizeId: z.string() }))
+    .mutation(async ({ input }) => {
+      const prize = await prisma.prize.findUnique({
+        where: { id: input.prizeId },
+        include: { winners: { include: { user: true } } }
+      })
+      if (!prize) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: "Le lot n'existe pas.",
+        })
+      }
+      if (!prize.drawDate) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: "Ce lot n'est pas configuré pour un tirage au sort  .",
+        })
+      }
+      if (prize.winners.length > 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: "Le tirage au sort a déjà été effectué pour ce lot.",
+        })
+      }
+
+      // 1. Fetch all participants for this campaign who completed JOIN_DRAW
+      const participants = await prisma.playToken.findMany({
+        where: {
+          campaignId: prize.campaignId,
+          earnedVia: EarnMethod.JOIN_DRAW
+        },
+        include: { user: true }
+      })
+
+      if (participants.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: "Aucun participant n'est inscrit à ce tirage au sort pour le moment.",
+        })
+      }
+
+      // Extract unique users to prevent double draw entries if any
+      const uniqueUsersMap = new Map<string, typeof participants[0]['user']>()
+      for (const p of participants) {
+        uniqueUsersMap.set(p.user.id, p.user)
+      }
+      const eligibleUsers = Array.from(uniqueUsersMap.values())
+
+      // 2. Determine number of winners to draw based on stock (minimum 1, up to remaining stock or number of eligible users)
+      const countToDraw = prize.totalStock > 0 ? Math.min(prize.totalStock, eligibleUsers.length) : 1
+
+      // 3. Select random winner(s)
+      const shuffled = [...eligibleUsers].sort(() => Math.random() - 0.5)
+      const winners = shuffled.slice(0, countToDraw)
+
+      // 4. Create UserPrize records and update stock
+      await prisma.$transaction(async (tx) => {
+        for (const winner of winners) {
+          await tx.userPrize.create({
+            data: {
+              userId: winner.id,
+              prizeId: prize.id,
+              status: 'DELIVERED',
+            }
+          })
+        }
+
+        await tx.prize.update({
+          where: { id: prize.id },
+          data: {
+            remainingStock: prize.totalStock > 0 ? Math.max(0, prize.totalStock - winners.length) : 0
+          }
+        })
+      })
+
+      return {
+        success: true,
+        winners: winners.map(w => ({ id: w.id, name: w.name, email: w.email }))
+      }
     }),
 
   // Users & Tokens CRUD

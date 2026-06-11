@@ -4,7 +4,7 @@
 ### 1. Contexte et Objectifs Business
 L'objectif est de créer une "machine à leads" virale permettant à une agence de voyage de déployer des mécaniques de jeu (Roulette, Tirage au sort) chez des partenaires B2B (ex: supermarchés). 
 - **Valeur :** Les utilisateurs obtiennent des lots attractifs en échange de leurs données (leads), partagées entre l'agence et le partenaire.
-- **Mécanique :** Gamification, boucles de viralité (parrainage), validation de tâches (preuve d'achat, social) et widget d'intégration.
+- **Mécanique :** Gamification, boucles de viralité ( partage), validation de tâches (preuve d'achat, social) et widget d'intégration.
 
 ---
 
@@ -22,7 +22,7 @@ Pour gérer des scénarios à haute densité (ex: 500 utilisateurs pour 1 lot), 
 ### 3. Modèle de Données (Prisma)
 Le schéma est optimisé pour les accès rapides (index sur `isActive`, `startDate`, `endDate`).
 
-* **User :** Gestion des rôles (SUPERADMIN, PARTNER, PLAYER) et parrainage.
+* **User :** Gestion des rôles (SUPERADMIN, PARTNER, PLAYER) et  partage.
 * **Partner :** Restriction par domaines autorisés (CORS).
 * **Campaign :** Configuration des dates et stocks.
 * **Prize :** Distinction `PHYSICAL` / `DIGITAL`, gestion des probabilités et fallback.
@@ -76,7 +76,7 @@ model User {
   name         String?
   role         Role         @default(PLAYER)
   
-  // Parrainage
+  //  partage
   referralCode String       @unique @default(cuid())
   referredById String?
   referredBy   User?        @relation("Referrals", fields: [referredById], references: [id])

@@ -40,7 +40,7 @@ async function main() {
     data: {
       email: 'manager@obooking.com',
       name: 'Obooking Campaign Manager',
-      role: Role.PARTNER,
+      role: Role.SUPERADMIN,
       referralCode: 'obooking-ref-code',
     },
   })
@@ -71,14 +71,14 @@ async function main() {
   const partner1 = await prisma.partner.create({
     data: {
       name: 'obooking',
-      allowedDomains: 'localhost:3000,obooking.com,play.obooking.com',
+      allowedDomains: 'localhost:3000,localhost:3001,obooking.com,play.obooking.com',
     },
   })
 
   const partner2 = await prisma.partner.create({
     data: {
       name: 'tout est la',
-      allowedDomains: 'localhost:3000,toutestla.com,play.toutestla.com',
+      allowedDomains: 'localhost:3000,localhost:3001,toutestla.com,play.toutestla.com',
     },
   })
 
@@ -164,6 +164,20 @@ async function main() {
     },
   })
 
+  // Obooking Scheduled Draw Prize
+  const drawPrizeObooking = await prisma.prize.create({
+    data: {
+      campaignId: campaign1.id,
+      name: '🏝️ Grand Séjour tout compris à Djerba',
+      type: PrizeType.PHYSICAL,
+      totalStock: 1,
+      remainingStock: 1,
+      winProbability: 0,
+      fallbackPrizeId: obookingConsolation.id,
+      drawDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+    },
+  })
+
   // -- Tout est la Consolation Prize First --
   const toutEstLaConsolation = await prisma.prize.create({
     data: {
@@ -210,6 +224,20 @@ async function main() {
       remainingStock: 20,
       winProbability: 0.2,
       fallbackPrizeId: toutEstLaConsolation.id,
+    },
+  })
+
+  // Tout est la Scheduled Draw Prize
+  const drawPrizeToutEstLa = await prisma.prize.create({
+    data: {
+      campaignId: campaign2.id,
+      name: '🌴 Voyage Exceptionnel à Zanzibar (Valeur 4000TND)',
+      type: PrizeType.PHYSICAL,
+      totalStock: 1,
+      remainingStock: 1,
+      winProbability: 0,
+      fallbackPrizeId: toutEstLaConsolation.id,
+      drawDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days from now
     },
   })
 

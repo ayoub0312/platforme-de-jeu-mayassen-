@@ -18,7 +18,7 @@ interface RouletteWheelProps {
   campaignId: string
   prizes: Prize[]
   email: string
-  onSpinSuccess: (prizeName: string, remainingSpins: number) => void
+  onSpinSuccess: (prize: Prize, remainingSpins: number) => void
 }
 
 // Custom CSS Confetti Component
@@ -53,6 +53,87 @@ function Confetti() {
       ))}
     </div>
   )
+}
+
+// Helper function to split text into 2 or 3 lines of roughly equal length,
+// keeping parentheses (like value description) on a separate line.
+function splitTextIntoLines(text: string): string[] {
+  // 1. If there's a parenthesis, separate it
+  const parenIndex = text.indexOf('(')
+  if (parenIndex !== -1) {
+    const mainText = text.substring(0, parenIndex).trim()
+    const parenText = text.substring(parenIndex).trim()
+    
+    // Now split the main text into 1 or 2 lines
+    if (mainText.length > 16) {
+      const words = mainText.split(/\s+/)
+      let bestSplit = Math.ceil(words.length / 2)
+      let minDiff = Infinity
+      for (let i = 1; i < words.length; i++) {
+        const line1 = words.slice(0, i).join(' ')
+        const line2 = words.slice(i).join(' ')
+        const diff = Math.abs(line1.length - line2.length)
+        if (diff < minDiff) {
+          minDiff = diff
+          bestSplit = i
+        }
+      }
+      const line1 = words.slice(0, bestSplit).join(' ')
+      const line2 = words.slice(bestSplit).join(' ')
+      return [line1, line2, parenText]
+    } else {
+      return [mainText, parenText]
+    }
+  }
+
+  // 2. If there are no parentheses, but the text is long (> 15 characters)
+  if (text.length > 15) {
+    const words = text.split(/\s+/)
+    if (text.length > 25 && words.length >= 3) {
+      // Split into 3 lines
+      let bestSplits = [Math.floor(words.length / 3), Math.floor((2 * words.length) / 3)]
+      let minDiff = Infinity
+      for (let i = 1; i < words.length - 1; i++) {
+        for (let j = i + 1; j < words.length; j++) {
+          const line1 = words.slice(0, i).join(' ')
+          const line2 = words.slice(i, j).join(' ')
+          const line3 = words.slice(j).join(' ')
+          const maxLen = Math.max(line1.length, line2.length, line3.length)
+          const minLen = Math.min(line1.length, line2.length, line3.length)
+          const diff = maxLen - minLen
+          if (diff < minDiff) {
+            minDiff = diff
+            bestSplits = [i, j]
+          }
+        }
+      }
+      return [
+        words.slice(0, bestSplits[0]).join(' '),
+        words.slice(bestSplits[0], bestSplits[1]).join(' '),
+        words.slice(bestSplits[1]).join(' ')
+      ]
+    } else {
+      // Split into 2 lines
+      let bestSplit = 1
+      let minDiff = Infinity
+      for (let i = 1; i < words.length; i++) {
+        const line1 = words.slice(0, i).join(' ')
+        const line2 = words.slice(i).join(' ')
+        const diff = Math.abs(line1.length - line2.length)
+        if (diff < minDiff) {
+          minDiff = diff
+          bestSplit = i
+        }
+      }
+      return [
+        words.slice(0, bestSplit).join(' '),
+        words.slice(bestSplit).join(' ')
+      ]
+    }
+  }
+
+  // 3. For short text, keep it as 1 line
+  return [text]
 }
 
 export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: RouletteWheelProps) {
@@ -122,7 +203,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
   }
 
   const handleSpin = () => {
-    if (isSpinning) return
+    if (isSpinning || spinMutation.isPending) return
     setIsSpinning(true)
     setShowResult(false)
     setWinningPrize(null)
@@ -174,7 +255,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
             setShowResult(true)
             playWinSound()
             // Callback to update parent layout
-            onSpinSuccess(data.prize.name, data.remainingSpins)
+            onSpinSuccess(data.prize, data.remainingSpins)
           }, animationDuration)
         },
         onError: (err) => {
@@ -196,35 +277,54 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
       {/* Sound toggle button */}
       <button
         onClick={() => setMuteSound(!muteSound)}
-        className="self-end px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5 cursor-pointer"
+        className="self-end h-8 w-8 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-100 transition-all active:scale-95 cursor-pointer"
+        title={muteSound ? "Activer le son" : "Désactiver le son"}
       >
         {muteSound ? (
-          <>
-            <VolumeX className="h-3.5 w-3.5 text-slate-400" /> Son désactivé
-          </>
+          <VolumeX className="h-4 w-4 text-slate-400" />
         ) : (
-          <>
-            <Volume2 className="h-3.5 w-3.5 text-[#FF8C00]" /> Son activé
-          </>
+          <Volume2 className="h-4 w-4 text-[#FF8C00]" />
         )}
       </button>
 
       {/* Wheel wrapper container */}
-      <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center select-none">
+      <div 
+        onClick={handleSpin}
+        className={`relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center select-none transition-all duration-300 ${
+          isSpinning || spinMutation.isPending 
+            ? 'cursor-default pointer-events-none' 
+            : 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+        }`}
+      >
         
         {/* Pointer Indicator */}
-        <div className="absolute -top-3.5 z-30 drop-shadow-[0_4px_8px_rgba(255,140,0,0.35)]">
-          <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-[#FF8C00] rounded-sm"></div>
-        </div>
+        <div 
+          className="absolute -top-4.5 z-30 drop-shadow-[0_4px_8px_rgba(255,140,0,0.35)] pointer-events-none"
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: '14px solid transparent',
+            borderRight: '14px solid transparent',
+            borderTop: '20px solid #FF8C00',
+          }}
+        />
 
-        {/* Outer frame */}
-        <div className="absolute inset-0 rounded-full border-[6px] border-white shadow-[0_8px_30px_rgba(0,0,0,0.06),_0_0_1px_rgba(0,0,0,0.2)] bg-slate-50 pointer-events-none"></div>
+        {/* Conic gradient rotating glow */}
+        <div 
+          className="absolute -inset-1 rounded-full opacity-35 blur-xs pointer-events-none"
+          style={{
+            background: 'conic-gradient(from 0deg, #FF8C00, #FFFFFF, #FF8C00, #FFFFFF, #FF8C00)',
+            animation: 'rotateGlow 8s linear infinite'
+          }}
+        />
 
         {/* Interactive SVG Wheel */}
         <svg
-          className="w-[94%] h-[94%] rounded-full transform transition-transform duration-[4000ms] cubic-bezier(0.1, 0.8, 0.2, 1)"
+          className="w-[91%] h-[91%] rounded-full transform transition-transform"
           style={{
             transform: `rotate(${rotation}deg)`,
+            transitionProperty: 'transform',
+            transitionDuration: '4000ms',
             transitionTimingFunction: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
           }}
           viewBox="0 0 200 200"
@@ -249,7 +349,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
               const end = polarToCartesian(100, 100, 95, startAngle)
               const largeArcFlag = segmentAngle <= 180 ? '0' : '1'
 
-              // White & Orange alternating theme colors (supporting odd counts to avoid adjacent duplicates)
+              // White & Orange alternating theme colors
               let fillColor = '#FFFFFF'
               if (numPrizes % 2 === 0) {
                 fillColor = index % 2 === 0 ? '#FFFFFF' : '#FFF6EE'
@@ -258,25 +358,25 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
               }
               const textColor = fillColor === '#FFFFFF' ? '#1A1A1A' : '#FF8C00'
 
-              // Label placement coordinates for radial text (aligned with radius)
+              // Label placement coordinates for radial text
               const labelAngle = startAngle + segmentAngle / 2
-              const labelRadius = 55 // Optimal radius to place the label in the center of the segment length
+              const labelRadius = 55
               const labelAngleRad = ((labelAngle - 90) * Math.PI) / 180.0
               const textX = 100 + labelRadius * Math.cos(labelAngleRad)
               const textY = 100 + labelRadius * Math.sin(labelAngleRad)
 
-              // No truncation - show the full prize name
               const displayName = prize.name
+              const lines = splitTextIntoLines(displayName)
 
-              // Calculate font size dynamically based on length of text and number of prizes
-              // so that the full text always fits radially without needing truncation
-              const baseMaxFontSize = numPrizes <= 4 ? 7.2 : numPrizes <= 6 ? 6.2 : numPrizes <= 8 ? 5.2 : 4.5
-              const dynamicFontSize = 125 / displayName.length
+              // Calculate font size dynamically based on length of the longest line
+              const maxLineLength = Math.max(...lines.map(l => l.length))
+              const baseMaxFontSize = numPrizes <= 4 ? 8.5 : numPrizes <= 6 ? 7.2 : numPrizes <= 8 ? 6.0 : 5.0
+              const dynamicFontSize = 115 / maxLineLength
               const fontSize = Math.min(baseMaxFontSize, dynamicFontSize)
 
               return (
                 <g key={prize.id}>
-                  {/* Segment path - with distinct warm border for clear compartment separation */}
+                  {/* Segment path */}
                   <path
                     d={`M 100 100 L ${start.x} ${start.y} A 95 95 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`}
                     fill={fillColor}
@@ -296,37 +396,78 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess }: Roul
                     transform={`rotate(${labelAngle - 90}, ${textX}, ${textY})`}
                     className="tracking-wide"
                   >
-                    {displayName}
+                    {lines.map((line, idx) => (
+                      <tspan
+                        key={idx}
+                        x={textX}
+                        dy={idx === 0 ? `${-((lines.length - 1) * 0.6)}em` : '1.2em'}
+                      >
+                        {line}
+                      </tspan>
+                    ))}
                   </text>
                 </g>
               )
             })}
           </g>
 
-          {/* White Center Hub */}
-          <circle cx="100" cy="100" r="18" fill="#FFFFFF" className="stroke-[2.5] stroke-[#FF8C00] shadow-sm" />
-          <circle cx="100" cy="100" r="15" fill="#FFEFE0" />
         </svg>
 
-        {/* Spin Center Button overlay (Static) */}
-        <button
-          onClick={handleSpin}
-          disabled={isSpinning || spinMutation.isPending}
-          className={`absolute h-16 w-16 rounded-full flex flex-col items-center justify-center border-4 border-white shadow-xl transition-all duration-200 ${
-            isSpinning 
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-              : 'bg-[#FF8C00] hover:bg-[#e07b00] text-white hover:scale-105 active:scale-95 cursor-pointer'
-          }`}
+        {/* Static Bezel & LED Light Overlay (Does NOT rotate) */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-10"
+          viewBox="0 0 200 200"
         >
-          {spinMutation.isPending ? (
-            <RefreshCw className="h-5 w-5 animate-spin text-white" />
-          ) : (
-            <>
-              <Gift className="h-5 w-5 text-white mb-0.5" />
-              <span className="text-[9px] font-black tracking-wider leading-none uppercase">TOURNER</span>
-            </>
-          )}
-        </button>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes rotateGlow {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes ledPulse {
+              0%, 100% { opacity: 0.35; transform: scale(0.9); }
+              50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 2.5px #FF8C00); }
+            }
+            .animate-led {
+              animation: ledPulse 0.8s infinite ease-in-out;
+            }
+          `}} />
+
+          {/* Outer Glass Bezel Ring */}
+          <circle cx="100" cy="100" r="95.5" fill="none" stroke="#FFFFFF" strokeWidth="6" />
+          <circle cx="100" cy="100" r="98.5" fill="none" stroke="#FFE4CC" strokeWidth="0.8" />
+          <circle cx="100" cy="100" r="92.5" fill="none" stroke="#FFE4CC" strokeWidth="0.8" />
+
+          {/* LED light bulbs marquee chase */}
+          {Array.from({ length: 20 }).map((_, i) => {
+            const angle = (i * 360) / 20
+            const rad = ((angle - 90) * Math.PI) / 180
+            const cx = 100 + 95.5 * Math.cos(rad)
+            const cy = 100 + 95.5 * Math.sin(rad)
+            const delay = `${(i % 4) * 0.12}s`
+            return (
+              <circle
+                key={i}
+                cx={cx}
+                cy={cy}
+                r="1.8"
+                fill={i % 2 === 0 ? '#FF8C00' : '#FFD700'}
+                className="animate-led"
+                style={{
+                  animationDelay: delay,
+                  transformOrigin: `${cx}px ${cy}px`
+                }}
+              />
+            )
+          })}
+        </svg>
+
+        {/* Decorative Center Cap (Static, does not block clicks) */}
+        <div className="absolute h-12 w-12 rounded-full bg-white border-4 border-orange-100 flex items-center justify-center shadow-lg z-20 pointer-events-none">
+          <div className="h-7 w-7 rounded-full bg-[#FF8C00] flex items-center justify-center">
+            <Gift className="h-4 w-4 text-white" />
+          </div>
+        </div>
       </div>
 
       {/* Result overlay modal (White & Orange) */}

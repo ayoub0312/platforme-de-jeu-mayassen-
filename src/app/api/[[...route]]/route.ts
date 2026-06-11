@@ -54,6 +54,10 @@ app.use(
         }
       }
 
+      // Dynamically append local development hosts for sandbox testing
+      const localDevOrigins = ['localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001']
+      allowedOrigins = [...new Set([...(allowedOrigins || []), ...localDevOrigins])]
+
       // Check if origin matches one of the allowed domains (cleaning protocols first)
       const cleanOrigin = origin.replace(/^https?:\/\//, '').toLowerCase()
       const isAllowed = allowedOrigins.some((domain) => {

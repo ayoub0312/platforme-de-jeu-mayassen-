@@ -35,17 +35,17 @@ export default async function PartnerPage({ searchParams }: PartnerPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col justify-between">
-      <div className="flex-grow">
+    <main className="min-h-screen bg-[#F8FAFC] text-[#1A1A1A] flex flex-col justify-between">
+      <div className="">
         
         {/* Navigation Bar */}
         <header className="border-b border-[#F0F0F0] bg-white/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between sm:px-6 lg:px-8">
+          <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between sm:px-6 lg:px-8">
             <div className="flex items-center gap-6">
               <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#FF8C00] transition-all">
                 <ArrowLeft className="h-4 w-4" /> Retour au jeu
               </Link>
-              <span className="h-4 w-[1px] bg-slate-200"></span>
+              <span className="h-4 w-1px bg-slate-200"></span>
               <span className="font-extrabold text-[#1A1A1A] text-lg tracking-tight">
                 Portail Analytique Partenaire
               </span>
@@ -63,7 +63,7 @@ export default async function PartnerPage({ searchParams }: PartnerPageProps) {
                       className={`px-3 py-1.5 rounded-lg text-xxs font-bold border transition-all ${
                         p.id === selectedId
                           ? 'bg-[#FF8C00] border-[#FF8C00] text-white shadow-sm shadow-orange-500/10'
-                          : 'bg-white border-slate-200 text-slate-650 hover:bg-slate-50 hover:text-slate-900'
+                          : 'bg-white border-slate-200 text-slate-655 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
                       {p.name}
@@ -81,7 +81,7 @@ export default async function PartnerPage({ searchParams }: PartnerPageProps) {
 
       {/* Footer */}
       <footer className="border-t border-[#F0F0F0] py-8 bg-white/60">
-        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto px-4 text-center text-xs text-slate-400 sm:px-6 lg:px-8">
           Espace sécurisé de partage de leads | Protégé par whitelists CORS dynamiques B2B.
         </div>
       </footer>

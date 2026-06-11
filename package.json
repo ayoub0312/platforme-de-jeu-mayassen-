@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build:widget": "vite build -c vite.config.widget.ts && npx @tailwindcss/cli -i src/widget/widget.css -o public/widget.css --minify",
+    "build": "prisma generate && npm run build:widget && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -31,11 +32,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.0.16"
   }
 }

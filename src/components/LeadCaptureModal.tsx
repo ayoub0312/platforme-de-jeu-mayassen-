@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { trpc } from '@/utils/trpc'
-import { Mail, User, Phone, Sparkles, Send, RefreshCw, AlertCircle } from 'lucide-react'
+import { Mail, User, Phone, Gift, Send, RefreshCw, AlertCircle } from 'lucide-react'
 
 interface LeadCaptureModalProps {
   campaignId: string
@@ -15,7 +15,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  
+
   const leadMutation = trpc.captureLead.useMutation()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,7 +44,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
     <div className="w-full bg-white p-6 relative overflow-hidden">
       <div className="relative text-center mb-6">
         <div className="inline-flex p-3 rounded-2xl bg-orange-50 border border-orange-100 text-[#FF8C00] mb-3">
-          <Sparkles className="h-6 w-6" />
+          <Gift className="h-6 w-6" />
         </div>
         <h3 className="text-xl font-extrabold text-[#1A1A1A] tracking-tight">Tentez votre chance !</h3>
         <p className="text-slate-500 text-xs mt-2 leading-relaxed">
@@ -53,13 +53,13 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
 
         {referredByCode && (
           <div className="mt-3 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-xxs font-semibold text-[#FF8C00] inline-flex items-center gap-1.5">
-            🎁 Parrainage actif : 2 lancers bonus offerts au parrain !
+            🎁  partage actif : 2 lancers bonus offerts au parrain !
           </div>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        
+
         {/* Name input */}
         <div className="relative">
           <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />

@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { trpc } from '@/utils/trpc'
 import type { UserSession } from '@/lib/auth'
-import { 
-  Users, 
-  Play, 
-  Package, 
-  ArrowUpRight, 
-  Download, 
-  Link, 
+import {
+  Users,
+  Play,
+  Package,
+  ArrowUpRight,
+  Download,
+  Link,
   CheckCircle,
   AlertTriangle,
   RefreshCw,
@@ -28,7 +28,9 @@ import {
   ChevronRight,
   Globe,
   Sliders,
-  UserCheck
+  UserCheck,
+  BarChart3,
+  Gift
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
@@ -63,7 +65,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       // Set cookie
       document.cookie = `admin_session=${res.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`
-      
+
       // Reload page to apply auth context
       window.location.reload()
     } catch (err: any) {
@@ -87,6 +89,10 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   const [campaignSearch, setCampaignSearch] = useState('')
   const [prizeSearch, setPrizeSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
+
+  // Filter States
+  const [campaignPartnerFilter, setCampaignPartnerFilter] = useState<string>('all')
+  const [prizePartnerFilter, setPrizePartnerFilter] = useState<string>('all')
 
   // 1. Fetch data from tRPC queries
   const { data: stats, refetch: refetchStats, isLoading: statsLoading } = trpc.getPartnerStats.useQuery(
@@ -123,6 +129,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   const createPrizeMut = trpc.createPrize.useMutation()
   const updatePrizeMut = trpc.updatePrize.useMutation()
   const deletePrizeMut = trpc.deletePrize.useMutation()
+  const runDrawMut = trpc.runDraw.useMutation()
 
   const createUserMut = trpc.createUser.useMutation()
   const updateUserMut = trpc.updateUser.useMutation()
@@ -148,6 +155,11 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     open: false,
     mode: 'create',
     data: null,
+  })
+  const [participantsModal, setParticipantsModal] = useState<{ open: boolean; prizeName: string; list: any[] }>({
+    open: false,
+    prizeName: '',
+    list: [],
   })
 
   // 4. Modal Form Inputs
@@ -179,7 +191,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
   // Combined Loading States
   const isLoading = isAuthenticated && (
-    (!!partnerId && statsLoading) || 
+    (!!partnerId && statsLoading) ||
     (isSuperAdmin && (partnersLoading || campaignsLoading || prizesLoading || usersLoading))
   )
 
@@ -207,7 +219,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
             <form onSubmit={handleLoginSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-655 uppercase mb-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
                   Adresse email
                 </label>
                 <input
@@ -221,7 +233,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-655 uppercase mb-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
                   Mot de passe
                 </label>
                 <input
@@ -418,6 +430,29 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     }
   }
 
+  const handleExecuteDraw = (prize: any) => {
+    const participantCount = prize.participantCount || 0
+    if (!participantCount) {
+      alert("Aucun participant n'est encore inscrit à ce tirage au sort.")
+      return
+    }
+    const confirmMessage = `Voulez-vous effectuer le tirage au sort pour le lot "${prize.name}" ?\n\nUn gagnant sera sélectionné au hasard parmi les ${participantCount} participant(s) inscrit(s).`
+    if (window.confirm(confirmMessage)) {
+      runDrawMut.mutate(
+        { prizeId: prize.id },
+        {
+          onSuccess: (data) => {
+            refetchAll()
+            alert(`Félicitations ! Le tirage au sort a été effectué.\n\nGagnant(s) :\n${data.winners.map((w: any) => `- ${w.name || 'Joueur'} (${w.email})`).join('\n')}`)
+          },
+          onError: (err) => {
+            alert(err.message)
+          }
+        }
+      )
+    }
+  }
+
   const handleDeleteUser = async (id: string, email: string) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${email}" ? Tous ses jetons de jeu, leads et gains de lots seront définitivement supprimés.`)) {
       try {
@@ -431,75 +466,99 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      
+    <div className="w-full max-w-[1600px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
       {/* Admin Title Banner */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-6 border-b border-slate-100">
         <div>
-          <span className="text-[#FF8C00] font-black text-xs tracking-wider uppercase flex items-center gap-1.5">
-            <ShieldAlert className="h-4 w-4" /> {isSuperAdmin ? 'Administration Centrale' : 'Espace Partenaire'}
+          <span className="text-[#FF8C00] font-black text-xs tracking-wider uppercase block">
+            {isSuperAdmin ? 'Administration Centrale' : 'Espace Partenaire'}
           </span>
           <h2 className="text-3xl font-black text-slate-800 mt-1">
             {isSuperAdmin ? "Console d'Administration" : "Statistiques & Activité"}
           </h2>
           <p className="text-slate-400 text-sm mt-1.5">
-            {isSuperAdmin 
+            {isSuperAdmin
               ? 'Gérez globalement vos Partenaires, Campagnes, Cadeaux (Lots) et Utilisateurs tout en visualisant le suivi analytique.'
               : 'Visualisez les leads capturés et exportez vos statistiques de campagne.'}
           </p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
-          <div className="flex flex-col items-end text-slate-500 text-xs font-semibold mr-1">
+          <div className="flex flex-col items-end text-slate-550 text-xs font-semibold mr-1">
             <span className="text-slate-700">{initialSession?.email}</span>
             <span className="text-xxs text-[#FF8C00] uppercase font-bold">{initialSession?.role}</span>
           </div>
-          <button 
+          <button
             onClick={refetchAll}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95 focus:outline-none"
           >
             <RefreshCw className="h-4 w-4" /> Actualiser
           </button>
-          <button 
+          <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200/80 text-red-650 hover:text-red-700 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200/80 text-red-650 hover:text-red-700 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95 focus:outline-none"
           >
             Se déconnecter
           </button>
         </div>
       </div>
 
-      {/* Admin Tabs */}
-      <div className="flex flex-wrap gap-2 mt-8 border-b border-slate-100 pb-4">
-        {[
-          { id: 'leads', label: '📊 Leads & Stats', desc: 'Analytique & Exports' },
-          ...(isSuperAdmin
-            ? [
-                { id: 'partners', label: '🤝 Partenaires', desc: 'Whitelists CORS & Noms' },
-                { id: 'campaigns', label: '✈️ Campagnes', desc: 'Périodes & Statuts' },
-                { id: 'prizes', label: '🎁 Cadeaux / Lots', desc: 'RNG Probabilités & Stocks' },
-                { id: 'users', label: '👥 Utilisateurs', desc: 'Rôles & Crédits Lancers' }
-              ]
-            : [])
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as TabType)}
-            className={`flex flex-col items-start px-5 py-3 rounded-2xl border text-left transition-all duration-350 cursor-pointer w-full sm:w-[220px] ${
-              activeTab === t.id
-                ? 'bg-white border-[#FF8C00] shadow-md shadow-orange-500/5 text-[#FF8C00]'
-                : 'bg-white border-slate-100 text-slate-500 hover:border-slate-350 hover:bg-slate-50/50'
-            }`}
-          >
-            <span className="text-sm font-black tracking-tight">{t.label}</span>
-            <span className="text-[10px] text-slate-400 mt-0.5 font-medium">{t.desc}</span>
-          </button>
-        ))}
-      </div>
+      {/* Main Layout Grid/Flex: Sidebar on the left, Content on the right */}
+      <div className="flex flex-col lg:flex-row gap-8 mt-8 items-start">
+        {/* Left Sidebar Navigation */}
+        <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-24">
+          <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-sm space-y-2">
+            {[
+              { id: 'leads', label: 'Leads & Stats', desc: 'Analytique & Exports', icon: BarChart3 },
+              ...(isSuperAdmin
+                ? [
+                  { id: 'partners', label: 'Partenaires', desc: 'Whitelists CORS & Noms', icon: Globe },
+                  { id: 'campaigns', label: 'Campagnes', desc: 'Périodes & Statuts', icon: Sliders },
+                  { id: 'prizes', label: 'Cadeaux / Lots', desc: 'RNG Probabilités & Stocks', icon: Gift },
+                  { id: 'users', label: 'Utilisateurs', desc: 'Rôles & Crédits Lancers', icon: UserCheck }
+                ]
+                : [])
+            ].map((t) => {
+              const Icon = t.icon
+              const isActive = activeTab === t.id
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id as TabType)}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl border transition-all duration-300 text-left cursor-pointer focus:outline-none group ${
+                    isActive
+                      ? 'bg-orange-50/60 border-l-4 border-l-[#FF8C00] border-t-transparent border-r-transparent border-b-transparent text-[#FF8C00] rounded-l-none pl-3 font-extrabold shadow-sm shadow-orange-500/5'
+                      : 'bg-white border-l-4 border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:border-l-slate-200 pl-4'
+                  }`}
+                >
+                  <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                    isActive
+                      ? 'bg-[#FF8C00] text-white shadow-sm shadow-orange-500/10'
+                      : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
+                  }`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-extrabold tracking-tight ${isActive ? 'text-[#FF8C00]' : 'text-slate-700'}`}>
+                      {t.label}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium mt-0.5 line-clamp-1">
+                      {t.desc}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </aside>
 
-      {/* TAB CONTENT: LEADS & ANALYTICS */}
-      {activeTab === 'leads' && (
-        <div className="mt-8">
+        {/* Right Content Panel */}
+        <div className="flex-1 min-w-0 w-full">
+
+          {/* TAB CONTENT: LEADS & ANALYTICS */}
+          {activeTab === 'leads' && (
+            <div className="mt-0">
           {!stats || stats.campaigns.length === 0 ? (
             <div className="text-center py-16 border border-slate-100 rounded-3xl bg-white shadow-sm max-w-xl mx-auto">
               <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
@@ -513,14 +572,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
             const activeCampaign = stats.campaigns.find(c => c.id === activeCampaignIdVal)
             if (!activeCampaign) return null
 
-            const filteredLeads = activeCampaign.leads.filter(lead => 
+            const filteredLeads = activeCampaign.leads.filter(lead =>
               lead.name?.toLowerCase().includes(leadSearch.toLowerCase()) ||
               lead.email?.toLowerCase().includes(leadSearch.toLowerCase()) ||
               lead.source?.toLowerCase().includes(leadSearch.toLowerCase())
             )
 
-            const conversionRate = activeCampaign.totalLeads > 0 
-              ? Math.round((activeCampaign.totalSpinsUsed / activeCampaign.totalLeads) * 100) 
+            const conversionRate = activeCampaign.totalLeads > 0
+              ? Math.round((activeCampaign.totalSpinsUsed / activeCampaign.totalLeads) * 100)
               : 0
 
             return (
@@ -608,18 +667,17 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                       const isOutOfStock = prize.totalStock !== -1 && prize.remainingStock === 0
 
                       return (
-                        <div 
-                          key={prize.id} 
-                          className={`p-4 rounded-xl border flex flex-col justify-between ${
-                            isOutOfStock 
-                              ? 'bg-red-50 border-red-150 text-red-800'
-                              : isLowStock
-                                ? 'bg-amber-50 border-amber-150 text-amber-800'
-                                : 'bg-slate-50 border-slate-150 text-slate-700'
-                          }`}
+                        <div
+                          key={prize.id}
+                          className={`p-4 rounded-xl border flex flex-col justify-between ${isOutOfStock
+                            ? 'bg-red-50/70 border-red-200 text-red-800'
+                            : isLowStock
+                              ? 'bg-amber-50/70 border-amber-200 text-amber-800'
+                              : 'bg-slate-50/70 border-slate-200 text-slate-700'
+                            }`}
                         >
                           <div>
-                            <div className="font-extrabold text-slate-850 text-sm line-clamp-1">{prize.name}</div>
+                            <div className="font-extrabold text-slate-800 text-sm line-clamp-1">{prize.name}</div>
                             <div className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">
                               Probabilité : {Math.round(prize.winProbability * 100)}% | Type : {prize.type}
                             </div>
@@ -647,7 +705,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                       <h3 className="text-xl font-bold text-slate-800">Leads Capturés</h3>
                       <p className="text-slate-400 text-xs mt-1">Visualisation et export des contacts de la campagne.</p>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -737,13 +795,13 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       {/* TAB CONTENT: PARTNERS CRUD */}
       {activeTab === 'partners' && (
-        <div className="mt-8 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-slate-800">Gestion des Partenaires</h3>
               <p className="text-slate-450 text-xs mt-1">Créez et configurez les comptes B2B autorisés à intégrer les widgets.</p>
             </div>
-            
+
             <div className="flex items-center gap-3 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -792,7 +850,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openPartnerModal('edit', p)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-150 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -818,14 +876,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       {/* TAB CONTENT: CAMPAIGNS CRUD */}
       {activeTab === 'campaigns' && (
-        <div className="mt-8 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-slate-800">Gestion des Campagnes</h3>
               <p className="text-slate-450 text-xs mt-1">Associez des campagnes à vos partenaires et déterminez les périodes de validité.</p>
             </div>
-            
-            <div className="flex items-center gap-3 shrink-0">
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
@@ -833,13 +891,25 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   placeholder="Rechercher une campagne..."
                   value={campaignSearch}
                   onChange={(e) => setCampaignSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-52 sm:w-64"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-48 sm:w-56"
                 />
               </div>
 
+              <select
+                value={campaignPartnerFilter}
+                onChange={(e) => setCampaignPartnerFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer shadow-sm w-44"
+              >
+                <option value="all">Toutes les entreprises</option>
+                <option value="system">Système Général</option>
+                {partners?.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
               <button
                 onClick={() => openCampaignModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
               >
                 <Plus className="h-4 w-4" /> Ajouter
               </button>
@@ -848,7 +918,13 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
           <div className="overflow-x-auto">
             {campaigns && campaigns.length > 0 ? (() => {
-              const filtered = campaigns.filter(c => c.title.toLowerCase().includes(campaignSearch.toLowerCase()))
+              const filtered = campaigns.filter(c => {
+                const matchesSearch = c.title.toLowerCase().includes(campaignSearch.toLowerCase())
+                const matchesPartner = campaignPartnerFilter === 'all' ||
+                  (campaignPartnerFilter === 'system' && !c.partnerId) ||
+                  c.partnerId === campaignPartnerFilter
+                return matchesSearch && matchesPartner
+              })
               return (
                 <table className="w-full text-left text-sm text-slate-500">
                   <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
@@ -892,11 +968,10 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                               }
                             }}
                             disabled={toggleCampaignActiveMut.isPending}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 select-none ${
-                              c.isActive 
-                                ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/10' 
-                                : 'bg-slate-800 hover:bg-slate-900 border-slate-900 text-white shadow-slate-800/10'
-                            }`}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 select-none ${c.isActive
+                              ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/10'
+                              : 'bg-slate-800 hover:bg-slate-900 border-slate-900 text-white shadow-slate-800/10'
+                              }`}
                             title={c.isActive ? "Désactiver le lancement" : "Activer le lancement"}
                           >
                             {toggleCampaignActiveMut.isPending && toggleCampaignActiveMut.variables?.id === c.id ? (
@@ -911,7 +986,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openCampaignModal('edit', c)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-150 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -937,14 +1012,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       {/* TAB CONTENT: PRIZES CRUD */}
       {activeTab === 'prizes' && (
-        <div className="mt-8 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-slate-800">Gestion des Lots</h3>
               <p className="text-slate-450 text-xs mt-1">Configurez les récompenses de la roulette, ajustez les probabilités de gain et le stock disponible.</p>
             </div>
-            
-            <div className="flex items-center gap-3 shrink-0">
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
@@ -952,13 +1027,25 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   placeholder="Rechercher un lot..."
                   value={prizeSearch}
                   onChange={(e) => setPrizeSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-52 sm:w-64"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-48 sm:w-56"
                 />
               </div>
 
+              <select
+                value={prizePartnerFilter}
+                onChange={(e) => setPrizePartnerFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer shadow-sm w-44"
+              >
+                <option value="all">Toutes les entreprises</option>
+                <option value="system">Système Général</option>
+                {partners?.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
               <button
                 onClick={() => openPrizeModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
               >
                 <Plus className="h-4 w-4" /> Ajouter
               </button>
@@ -967,7 +1054,13 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
           <div className="overflow-x-auto">
             {prizes && prizes.length > 0 ? (() => {
-              const filtered = prizes.filter(p => p.name.toLowerCase().includes(prizeSearch.toLowerCase()))
+              const filtered = prizes.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(prizeSearch.toLowerCase())
+                const matchesPartner = prizePartnerFilter === 'all' ||
+                  (prizePartnerFilter === 'system' && !p.campaign.partnerId) ||
+                  p.campaign.partnerId === prizePartnerFilter
+                return matchesSearch && matchesPartner
+              })
               return (
                 <table className="w-full text-left text-sm text-slate-500">
                   <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
@@ -995,14 +1088,23 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                                 <RefreshCw className="h-2.5 w-2.5 animate-spin-slow" /> Consolation : {fallbackPrize?.name || p.fallbackPrizeId}
                               </div>
                             )}
+                            {p.drawDate && p.winners && p.winners.length > 0 && (
+                              <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-xl mt-2 font-bold w-max max-w-xs flex flex-col gap-0.5 shadow-sm">
+                                <span className="flex items-center gap-1">🏆 Gagnant(s) :</span>
+                                {p.winners.map((w: any, idx: number) => (
+                                  <span key={idx} className="font-semibold text-slate-700 ml-1 text-xxs leading-normal">
+                                    • {w.user.name || 'Joueur'} ({w.user.email})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 font-bold text-slate-600">{p.campaign.title}</td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                              p.type === 'DIGITAL' 
-                                ? 'bg-blue-50 border-blue-100 text-blue-600'
-                                : 'bg-purple-50 border-purple-100 text-purple-600'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${p.type === 'DIGITAL'
+                              ? 'bg-blue-50 border-blue-100 text-blue-600'
+                              : 'bg-purple-50 border-purple-100 text-purple-600'
+                              }`}>
                               {p.type}
                             </span>
                           </td>
@@ -1010,26 +1112,32 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                             {p.totalStock === -1 ? (
                               <span className="text-emerald-600 font-bold text-xs">Illimité (Fallback)</span>
                             ) : (
-                              <span className={`font-mono text-xs font-bold ${
-                                isOutOfStock 
-                                  ? 'text-red-650'
-                                  : isLowStock
-                                    ? 'text-amber-650'
-                                    : 'text-slate-700'
-                              }`}>
+                              <span className={`font-mono text-xs font-bold ${isOutOfStock
+                                ? 'text-red-650'
+                                : isLowStock
+                                  ? 'text-amber-650'
+                                  : 'text-slate-700'
+                                }`}>
                                 {p.remainingStock} / {p.totalStock}
                               </span>
                             )}
                           </td>
                           <td className="px-6 py-4">
                             {p.drawDate ? (
-                              <div className="flex flex-col">
+                              <div className="flex flex-col gap-1">
                                 <span className="bg-orange-50 text-[#FF8C00] border border-orange-100 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide inline-block w-max">
-                                  Tirage (Kor3a)
+                                  Tirage
                                 </span>
-                                <span className="text-[10px] text-slate-550 font-semibold mt-1">
+                                <span className="text-[10px] text-slate-550 font-semibold">
                                   {new Date(p.drawDate).toLocaleString('fr-FR')}
                                 </span>
+                                <button
+                                  onClick={() => setParticipantsModal({ open: true, prizeName: p.name, list: p.participants || [] })}
+                                  className="text-[10px] text-slate-550 hover:text-[#FF8C00] hover:border-[#FF8C00] hover:bg-orange-50/20 font-bold bg-slate-100 border border-slate-200/50 px-1.5 py-0.5 rounded w-max transition-all cursor-pointer flex items-center gap-0.5"
+                                  title="Cliquez pour voir la liste des inscrits"
+                                >
+                                  🎫 {p.participantCount || 0} inscrit(s)
+                                </button>
                               </div>
                             ) : (
                               <span className="font-mono font-bold text-slate-800">
@@ -1039,9 +1147,30 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              {p.drawDate && (!p.winners || p.winners.length === 0) && (
+                                <button
+                                  onClick={() => handleExecuteDraw(p)}
+                                  disabled={runDrawMut.isPending || !p.participantCount}
+                                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xxs font-extrabold transition-all border shadow-sm ${p.participantCount
+                                    ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white cursor-pointer active:scale-95'
+                                    : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                                    }`}
+                                  title={p.participantCount ? "Effectuer le tirage au sort" : "Aucun inscrit pour le moment"}
+                                >
+                                  {runDrawMut.isPending ? (
+                                    <>
+                                      <RefreshCw className="h-3 w-3 animate-spin" /> Tirage...
+                                    </>
+                                  ) : (
+                                    <>
+                                      🏆 Tirage
+                                    </>
+                                  )}
+                                </button>
+                              )}
                               <button
                                 onClick={() => openPrizeModal('edit', p)}
-                                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-150 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
@@ -1068,13 +1197,13 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       {/* TAB CONTENT: USERS CRUD */}
       {activeTab === 'users' && (
-        <div className="mt-8 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-slate-800">Membres & Joueurs</h3>
               <p className="text-slate-450 text-xs mt-1">Créez des utilisateurs, ajustez leurs rôles (Superadmin, Partenaire, Joueur) et attribuez manuellement des lancers.</p>
             </div>
-            
+
             <div className="flex items-center gap-3 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -1098,7 +1227,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
           <div className="overflow-x-auto">
             {users && users.length > 0 ? (() => {
-              const filtered = users.filter(u => 
+              const filtered = users.filter(u =>
                 (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
                 u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
                 (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
@@ -1109,7 +1238,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     <tr>
                       <th className="px-6 py-4 font-bold">Membre</th>
                       <th className="px-6 py-4 font-bold">Rôle</th>
-                      <th className="px-6 py-4 font-bold">Code Parrainage</th>
+                      <th className="px-6 py-4 font-bold">Code  partage</th>
                       <th className="px-6 py-4 font-bold">Lancers par Campagne (Dispo)</th>
                       <th className="px-6 py-4 font-bold">Gains</th>
                       <th className="px-6 py-4 font-bold text-right">Actions</th>
@@ -1126,13 +1255,12 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${
-                            u.role === 'SUPERADMIN'
-                              ? 'bg-red-50 border-red-100 text-red-650'
-                              : u.role === 'PARTNER'
-                                ? 'bg-amber-50 border-amber-100 text-amber-650'
-                                : 'bg-slate-50 border-slate-200 text-slate-500'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${u.role === 'SUPERADMIN'
+                            ? 'bg-red-50 border-red-100 text-red-650'
+                            : u.role === 'PARTNER'
+                              ? 'bg-amber-50 border-amber-100 text-amber-650'
+                              : 'bg-slate-50 border-slate-200 text-slate-500'
+                            }`}>
                             {u.role === 'SUPERADMIN'
                               ? 'SUPERADMIN'
                               : u.role === 'PARTNER'
@@ -1140,7 +1268,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                                 : 'JOUEUR'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-slate-655">
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-slate-600">
                           {u.referralCode}
                         </td>
                         <td className="px-6 py-4">
@@ -1179,7 +1307,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openUserModal('edit', u)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-150 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -1203,11 +1331,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
         </div>
       )}
 
-      {/* PARTNER MODAL */}
+    </div> {/* closes flex-1 */}
+  </div> {/* closes outer flex container */}
+
+  {/* PARTNER MODAL */}
       {partnerModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setPartnerModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
             >
@@ -1222,7 +1353,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               Les paramètres CORS limitent les domaines d'appels autorisés pour capturer des leads.
             </p>
 
-            <form 
+            <form
               onSubmit={async (e) => {
                 e.preventDefault()
                 try {
@@ -1296,7 +1427,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       {campaignModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-xl p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <button 
+            <button
               onClick={() => setCampaignModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
             >
@@ -1311,7 +1442,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               Associez une période de validité, liez-la à un partenaire B2B et personnalisez les annonces de la bannière.
             </p>
 
-            <form 
+            <form
               onSubmit={async (e) => {
                 e.preventDefault()
                 try {
@@ -1600,7 +1731,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       {prizeModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setPrizeModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
             >
@@ -1615,7 +1746,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               Les probabilités de gain de l'ensemble des lots d'une même campagne doivent être cohérentes (RNG cumulatif).
             </p>
 
-            <form 
+            <form
               onSubmit={async (e) => {
                 e.preventDefault()
                 try {
@@ -1648,7 +1779,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                 <select
                   value={prizeForm.campaignId}
                   onChange={(e) => setPrizeForm(p => ({ ...p, campaignId: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
                 >
                   {campaigns?.map(c => (
                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -1674,7 +1805,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   <select
                     value={prizeForm.type}
                     onChange={(e) => setPrizeForm(p => ({ ...p, type: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-855 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
                   >
                     <option value="PHYSICAL">Lot Physique (Stock limité)</option>
                     <option value="DIGITAL">Lot Digital (Code / Bon d'achat)</option>
@@ -1713,7 +1844,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   <select
                     value={prizeForm.fallbackPrizeId}
                     onChange={(e) => setPrizeForm(p => ({ ...p, fallbackPrizeId: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-855 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
                   >
                     <option value="">Aucun fallback (Lot de consolation par défaut)</option>
                     {prizes
@@ -1736,7 +1867,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
-                  Si définie, ce lot est attribué par tirage au sort (Kor3a) à la date indiquée et n'apparaîtra pas sur la roulette. La probabilité de gain sera ignorée.
+                  Si définie, ce lot est attribué par tirage au sort   à la date indiquée et n'apparaîtra pas sur la roulette. La probabilité de gain sera ignorée.
                 </p>
               </div>
 
@@ -1770,9 +1901,9 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       {userModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setUserModal(p => ({ ...p, open: false }))}
-              className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
+              className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1785,7 +1916,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               Ajustez les privilèges d'accès ou modifiez directement les soldes de lancers (PlayTokens).
             </p>
 
-            <form 
+            <form
               onSubmit={async (e) => {
                 e.preventDefault()
                 try {
@@ -1858,7 +1989,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm(p => ({ ...p, role: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-855 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
                   >
                     <option value="PLAYER">PLAYER (Joueur de roulette)</option>
                     <option value="PARTNER">PARTNER (Accès aux analytiques de sa marque)</option>
@@ -1868,11 +1999,11 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               </div>
 
               {/* Spin Credit Granting Section */}
-              <div className="bg-slate-50 border border-slate-150 p-4 rounded-2xl space-y-3 mt-4">
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3 mt-4">
                 <h4 className="text-xs font-bold text-[#FF8C00] uppercase tracking-wide flex items-center gap-1.5">
                   <Play className="h-4 w-4 fill-orange-500" /> Crédits de lancers (Lancers NON UTILISÉS)
                 </h4>
-                
+
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Campagne Cible pour l'octroi</label>
                   <select
@@ -1882,7 +2013,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                       const currentUnused = userModal.data?.tokensByCampaign?.[cId]?.unused || 0
                       setUserForm(p => ({ ...p, campaignIdForTokens: cId, playTokensCount: currentUnused }))
                     }}
-                    className="w-full bg-white border border-slate-200 text-slate-855 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-white border border-slate-200 text-slate-800 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
                   >
                     {campaigns?.map(c => (
                       <option key={c.id} value={c.id}>{c.title}</option>
@@ -1909,7 +2040,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                 <button
                   type="button"
                   onClick={() => setUserModal(p => ({ ...p, open: false }))}
-                  className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-655 font-bold rounded-xl text-sm transition-all"
+                  className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-sm transition-all focus:outline-none"
                 >
                   Annuler
                 </button>
@@ -1927,6 +2058,69 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PARTICIPANTS MODAL */}
+      {participantsModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setParticipantsModal(p => ({ ...p, open: false }))}
+              className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
+              <Users className="h-5 w-5 text-[#FF8C00]" />
+              Inscrits au Tirage
+            </h3>
+            <p className="text-slate-400 text-xs font-semibold mb-6">
+              Liste des participants enregistrés pour le lot <strong className="text-slate-700 font-extrabold">{participantsModal.prizeName}</strong>.
+            </p>
+
+            <div className="max-h-[60vh] overflow-y-auto border border-slate-100 rounded-2xl">
+              {participantsModal.list.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-semibold">
+                  Aucun participant n'est encore inscrit à ce tirage au sort.
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs text-slate-550">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 font-bold">Nom</th>
+                      <th className="px-4 py-3 font-bold">Email</th>
+                      <th className="px-4 py-3 font-bold">Téléphone</th>
+                      <th className="px-4 py-3 font-bold text-right">Date d'inscription</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {participantsModal.list.map((u: any, idx: number) => (
+                      <tr key={u.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 font-extrabold text-slate-800">{u.name || 'N/A'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-655">{u.email}</td>
+                        <td className="px-4 py-3 font-mono font-bold text-[#FF8C00]">{u.phone || 'N/A'}</td>
+                        <td className="px-4 py-3 text-right text-slate-400 font-semibold">
+                          {new Date(u.createdAt).toLocaleString('fr-FR')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="pt-4 mt-4 flex items-center justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setParticipantsModal(p => ({ ...p, open: false }))}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200/50 text-slate-700 font-bold rounded-xl text-sm transition-all cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

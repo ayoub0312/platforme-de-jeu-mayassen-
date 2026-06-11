@@ -7,25 +7,25 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  phone        String?
-  name         String?
-  role         Role         @default(PLAYER)
-  
-  // Parrainage
-  referralCode String       @unique @default(cuid())
+  id    String  @id @default(cuid())
+  email String  @unique
+  phone String?
+  name  String?
+  role  Role    @default(PLAYER)
+
+  //  partage
+  referralCode String  @unique @default(cuid())
   referredById String?
-  referredBy   User?        @relation("Referrals", fields: [referredById], references: [id])
-  referrals    User[]       @relation("Referrals")
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referrals")
 
   // Relations
-  playTokens   PlayToken[]
-  wonPrizes    UserPrize[]
-  leads        LeadCapture[]
-  
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  playTokens PlayToken[]
+  wonPrizes  UserPrize[]
+  leads      LeadCapture[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
@@ -37,54 +37,54 @@ enum Role {
 model Partner {
   id             String        @id @default(cuid())
   name           String
-  allowedDomains String        // Ex: "supermarche.com,boutique.fr"
+  allowedDomains String // Ex: "supermarche.com,boutique.fr"
   campaigns      Campaign[]
   capturedLeads  LeadCapture[]
 }
 
 model Campaign {
-  id          String        @id @default(cuid())
-  partnerId   String?
-  partner     Partner?      @relation(fields: [partnerId], references: [id])
-  title       String
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean       @default(true)
-  prizes      Prize[]
-  leads       LeadCapture[]
-  tokens      PlayToken[]
+  id        String        @id @default(cuid())
+  partnerId String?
+  partner   Partner?      @relation(fields: [partnerId], references: [id])
+  title     String
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean       @default(true)
+  prizes    Prize[]
+  leads     LeadCapture[]
+  tokens    PlayToken[]
 
   // Ads & Promos (Manageable from Dashboard)
-  adBadge1    String?
-  adTitle1    String?
-  adDesc1     String?
-  adBadge2    String?
-  adTitle2    String?
-  adDesc2     String?
-  adBadge3    String?
-  adTitle3    String?
-  adDesc3     String?
-  promoTitle  String?
-  promoCode   String?
-  promoDesc   String?
-  promoUrl    String?
+  adBadge1   String?
+  adTitle1   String?
+  adDesc1    String?
+  adBadge2   String?
+  adTitle2   String?
+  adDesc2    String?
+  adBadge3   String?
+  adTitle3   String?
+  adDesc3    String?
+  promoTitle String?
+  promoCode  String?
+  promoDesc  String?
+  promoUrl   String?
 
   @@index([isActive, startDate, endDate])
 }
 
 model Prize {
-  id               String      @id @default(cuid())
-  campaignId       String
-  campaign         Campaign    @relation(fields: [campaignId], references: [id])
-  name             String
-  type             PrizeType
-  totalStock       Int         // -1 pour illimité
-  remainingStock   Int         // Doit être synchronisé avec Redis
-  winProbability   Float       // Ex: 0.05
-  fallbackPrizeId  String?     // ID du lot de consolation
-  winners          UserPrize[]
-  
-  drawDate         DateTime?   // Date du tirage au sort (Kor3a)
+  id              String      @id @default(cuid())
+  campaignId      String
+  campaign        Campaign    @relation(fields: [campaignId], references: [id])
+  name            String
+  type            PrizeType
+  totalStock      Int // -1 pour illimité
+  remainingStock  Int // Doit être synchronisé avec Redis
+  winProbability  Float // Ex: 0.05
+  fallbackPrizeId String? // ID du lot de consolation
+  winners         UserPrize[]
+
+  drawDate DateTime? // Date du tirage au sort  
 }
 
 enum PrizeType {
@@ -126,6 +126,7 @@ enum EarnMethod {
   ADMIN_GRANT
   VISIT_WEBSITE
   FOLLOW_SOCIAL
+  JOIN_DRAW
 }
 
 model LeadCapture {
@@ -136,7 +137,7 @@ model LeadCapture {
   partner    Partner  @relation(fields: [partnerId], references: [id])
   campaignId String
   campaign   Campaign @relation(fields: [campaignId], references: [id])
-  source     String   // "WIDGET", "QR_CODE", "LINK"
+  source     String // "WIDGET", "QR_CODE", "LINK"
   createdAt  DateTime @default(now())
 
   @@unique([userId, campaignId]) // Garantit un seul lead par utilisateur et par campagne

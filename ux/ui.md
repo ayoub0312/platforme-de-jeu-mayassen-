@@ -13,7 +13,7 @@ Ce document détaille la structure des interfaces pour la plateforme de gamifica
 - **Mode :** Modal plein écran (mobile) ou Overlay avec `backdrop-blur` (desktop).
 - **Structure :**
     - **Header :** Logo du partenaire (haut), bouton "Fermer" (X).
-    - **Contenu Principal :** Roue de loterie centrée, design épuré, sections de la roue en nuances de blanc/gris avec accents orange.
+    - **Contenu Principal :** Roue de   centrée, design épuré, sections de la roue en nuances de blanc/gris avec accents orange.
     - **Action :** Bouton "SPIN" orange vif, largeur 80%, centré sous la roue.
     - **Footer :** Mentions légales, texte minimaliste.
 
