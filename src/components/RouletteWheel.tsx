@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { trpc } from '@/utils/trpc'
-import { Gift, RefreshCw, Trophy, Volume2, VolumeX } from 'lucide-react'
+import { RefreshCw, Trophy, Volume2, VolumeX } from 'lucide-react'
 
 interface Prize {
   id: string
@@ -594,18 +594,19 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               const largeArcFlag = segmentAngle <= 180 ? '0' : '1'
 
               // Use the admin-configured segment color when set, otherwise fall
-              // back to the alternating white/orange-tint theme.
-              let fillColor = prize.color || '#FFFFFF'
-              if (!prize.color) {
-                if (numPrizes % 2 === 0) {
-                  fillColor = index % 2 === 0 ? '#FFFFFF' : '#FFF6EE'
-                } else {
-                  fillColor = index % 3 === 0 ? '#FFFFFF' : index % 3 === 1 ? '#FFF6EE' : '#FFEFE0'
-                }
-              }
-              const textColor = prize.color
-                ? getContrastTextColor(prize.color)
-                : fillColor === '#FFFFFF' ? '#1A1A1A' : '#FF8C00'
+              // back to a vivid, high-contrast rotating palette so every
+              // segment reads as a clearly distinct wedge (classic wheel look)
+              // instead of near-white tones blending into each other.
+              const FALLBACK_PALETTE: [fill: string, text: string][] = [
+                ['#F58220', '#FFFFFF'],
+                ['#1F1F1F', '#FFFFFF'],
+                ['#FFFFFF', '#1A1A1A'],
+                ['#C25612', '#FFFFFF'],
+              ]
+              const [fillColor, fallbackTextColor] = prize.color
+                ? [prize.color, getContrastTextColor(prize.color)]
+                : FALLBACK_PALETTE[index % FALLBACK_PALETTE.length]
+              const textColor = fallbackTextColor
 
               // Label placement coordinates for radial text
               const labelAngle = startAngle + segmentAngle / 2
@@ -629,8 +630,8 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                   <path
                     d={`M 100 100 L ${start.x} ${start.y} A 95 95 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`}
                     fill={fillColor}
-                    stroke="#FFE4CC"
-                    strokeWidth="1.5"
+                    stroke="#FFFFFF"
+                    strokeWidth="2"
                     strokeLinejoin="round"
                   />
                   {/* Segment Prize Text */}
@@ -682,10 +683,10 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
             }
           `}} />
 
-          {/* Outer Glass Bezel Ring */}
-          <circle cx="100" cy="100" r="95.5" fill="none" stroke="#FFFFFF" strokeWidth="6" />
-          <circle cx="100" cy="100" r="98.5" fill="none" stroke="#FFE4CC" strokeWidth="0.8" />
-          <circle cx="100" cy="100" r="92.5" fill="none" stroke="#FFE4CC" strokeWidth="0.8" />
+          {/* Outer solid ring — thick brand-colored band, like a classic prize wheel rim */}
+          <circle cx="100" cy="100" r="96" fill="none" stroke="#F58220" strokeWidth="7" />
+          <circle cx="100" cy="100" r="99.5" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+          <circle cx="100" cy="100" r="92.5" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.8" />
 
           {/* LED light bulbs marquee chase */}
           {Array.from({ length: 20 }).map((_, i) => {
@@ -700,7 +701,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                 cx={cx}
                 cy={cy}
                 r="1.8"
-                fill={i % 2 === 0 ? '#FF8C00' : '#FFD700'}
+                fill={i % 2 === 0 ? '#FFFFFF' : '#FFD700'}
                 className="animate-led"
                 style={{
                   animationDelay: delay,
@@ -711,11 +712,15 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
           })}
         </svg>
 
-        {/* Decorative Center Cap (Static, does not block clicks) */}
-        <div className="absolute h-12 w-12 rounded-full bg-white border-4 border-orange-100 flex items-center justify-center shadow-lg z-20 pointer-events-none">
-          <div className="h-7 w-7 rounded-full bg-[#FF8C00] flex items-center justify-center">
-            <Gift className="h-4 w-4 text-white" />
-          </div>
+        {/* Decorative Center Cap (Static, does not block clicks) — bold "JOUER"
+            disc, sized and styled like a classic wheel's "GO" button. */}
+        <div
+          className={`absolute rounded-full flex items-center justify-center shadow-lg z-20 pointer-events-none border-4 border-white ${size === 'premium' ? 'h-24 w-24' : 'h-16 w-16'}`}
+          style={{ background: 'radial-gradient(circle at 35% 30%, #FFAB5C, #F58220 55%, #C25612 100%)' }}
+        >
+          <span className={`font-black tracking-wide text-white ${size === 'premium' ? 'text-base' : 'text-xs'}`} style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
+            JOUER
+          </span>
         </div>
       </motion.div>
       )}
