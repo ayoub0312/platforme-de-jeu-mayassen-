@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Built assets — not source code, linting a minified bundle is just noise.
+    "public/**",
   ]),
 ]);
 

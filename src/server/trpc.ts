@@ -85,3 +85,27 @@ const superAdminMiddleware = t.middleware(({ ctx, next }) => {
 export const adminProcedure = t.procedure.use(adminMiddleware)
 export const superAdminProcedure = t.procedure.use(superAdminMiddleware)
 
+// Write-access middleware: same as adminProcedure, but also blocks the
+// READONLY ("Lecteur") role — use for any mutation a Lecteur must not perform.
+const writeMiddleware = t.middleware(({ ctx, next }) => {
+  if (!ctx.userSession) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Non autorisé. Veuillez vous connecter.',
+    })
+  }
+  if (ctx.userSession.role === 'READONLY') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: "Votre rôle Lecteur ne permet pas d'effectuer cette action.",
+    })
+  }
+  return next({
+    ctx: {
+      userSession: ctx.userSession,
+    },
+  })
+})
+
+export const writeProcedure = t.procedure.use(writeMiddleware)
+

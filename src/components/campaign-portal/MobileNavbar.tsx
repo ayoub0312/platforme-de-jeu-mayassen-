@@ -7,6 +7,7 @@ interface MobileNavbarProps {
   playerName: string | null
   activeTab: 'game' | 'draws' | 'prizes' | 'referral' | 'challenges'
   setActiveTab: (tab: 'game' | 'draws' | 'prizes' | 'referral' | 'challenges') => void
+  gameMode?: 'ROULETTE' | 'DRAW'
 }
 
 export function MobileNavbar({
@@ -14,16 +15,21 @@ export function MobileNavbar({
   playerName,
   activeTab,
   setActiveTab,
+  gameMode = 'ROULETTE',
 }: MobileNavbarProps) {
   if (!playerEmail || !playerName) return null
 
-  const tabs = [
+  const allTabs = [
     { id: 'game', label: 'Lancer', icon: Play },
     { id: 'draws', label: 'Tirages', icon: Calendar },
     { id: 'challenges', label: 'Défis', icon: Target },
     { id: 'prizes', label: 'Lots', icon: Trophy },
     { id: 'referral', label: 'partage', icon: Share2 }
   ] as const
+
+  const tabs = gameMode === 'DRAW'
+    ? allTabs.filter(t => t.id === 'draws' || t.id === 'prizes')
+    : allTabs.filter(t => t.id !== 'draws')
 
   return (
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-slate-50/95 backdrop-blur-md border border-slate-200/80 p-1 rounded-2xl shadow-xl z-50 flex items-center justify-around md:hidden animate-fade-in">

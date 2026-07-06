@@ -1,15 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { z } from 'zod'
 import { trpc } from '@/utils/trpc'
 import type { UserSession } from '@/lib/auth'
+import { CampaignGameConfigModal } from './campaign-config/CampaignGameConfigModal'
+import { AdminLayout, type AdminNavItem } from './admin/AdminLayout'
+import { Dashboard } from './admin/Dashboard'
+import { DataTable } from './admin/DataTable'
+import { CampaignWizard } from './admin/campaign-wizard/CampaignWizard'
+import { SortableBannerList } from './admin/SortableBannerList'
+import { WinnersTab } from './admin/WinnersTab'
+import { SettingsTab } from './admin/SettingsTab'
+import { CampaignCard } from './admin/CampaignCard'
+import { useToast } from '@/components/ui/Toast'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import {
   Users,
   Play,
   Package,
   ArrowUpRight,
-  Download,
-  Link,
+  ArrowLeft,
+  Link as LinkIcon,
   CheckCircle,
   AlertTriangle,
   RefreshCw,
@@ -20,27 +37,46 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Calendar,
   Check,
   X,
   ShieldAlert,
   Settings,
-  ChevronRight,
   Globe,
   Sliders,
   UserCheck,
   BarChart3,
-  Gift
+  Gift,
+  ImageIcon,
+  Upload,
+  LayoutTemplate,
+  Video,
+  LayoutDashboard
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
   partnerId: string
   initialSession: UserSession | null
+  // Full partner list, used only to render the SUPERADMIN "switch account" control.
+  allPartnersForSwitcher?: { id: string; name: string }[]
 }
 
-type TabType = 'leads' | 'partners' | 'campaigns' | 'prizes' | 'users'
+type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'receipts' | 'homepage' | 'settings'
 
-export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboardProps) {
+// Schémas de validation FR — messages affichés sous chaque champ (voir Input.error).
+const partnerFormSchema = z.object({
+  name: z.string().trim().min(2, 'Le nom doit contenir au moins 2 caractères.'),
+  allowedDomains: z.string(),
+})
+
+const userFormSchema = z.object({
+  email: z.string().trim().email('Adresse email invalide.'),
+  name: z.string(),
+  phone: z.string(),
+  role: z.enum(['SUPERADMIN', 'PARTNER', 'PLAYER']),
+})
+
+export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwitcher }: PartnerDashboardProps) {
+  const router = useRouter()
   const isAuthenticated = !!initialSession
   const isSuperAdmin = initialSession?.role === 'SUPERADMIN'
 
@@ -81,7 +117,42 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   }
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<TabType>('leads')
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard')
+
+  // Toast notifications — delegates to the global ToastProvider (src/components/ui/Toast.tsx)
+  // mounted in layout.tsx. Kept as a thin `showToast(msg, type)` wrapper so every existing
+  // call site below didn't need to change when the two toast systems were consolidated.
+  const toast = useToast()
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    if (type === 'error') toast.error(msg)
+    else toast.success(msg)
+  }
+
+  // Generic confirmation dialog (replaces native confirm()/window.confirm() for
+  // destructive or irreversible actions across the whole admin console).
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string
+    description: string
+    confirmLabel?: string
+    danger?: boolean
+    onConfirm: () => void | Promise<void>
+  } | null>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+
+  const askConfirm = (params: { title: string; description: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void | Promise<void> }) => {
+    setConfirmDialog(params)
+  }
+
+  const handleConfirmDialogConfirm = async () => {
+    if (!confirmDialog) return
+    setConfirmLoading(true)
+    try {
+      await confirmDialog.onConfirm()
+    } finally {
+      setConfirmLoading(false)
+      setConfirmDialog(null)
+    }
+  }
 
   // Search States
   const [leadSearch, setLeadSearch] = useState('')
@@ -115,6 +186,18 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     undefined,
     { enabled: isAuthenticated && isSuperAdmin }
   )
+  const { data: receiptSubmissions, refetch: refetchReceipts, isLoading: receiptsLoading } = trpc.getReceiptSubmissions.useQuery(
+    { status: 'PENDING' },
+    { enabled: isAuthenticated }
+  )
+  const { data: siteSettings, refetch: refetchSiteSettings, isLoading: siteSettingsLoading } = trpc.getSiteSettings.useQuery(
+    undefined,
+    { enabled: isAuthenticated && isSuperAdmin }
+  )
+  const { data: promoBanners, refetch: refetchPromoBanners, isLoading: promoBannersLoading } = trpc.getAllPromoBanners.useQuery(
+    undefined,
+    { enabled: isAuthenticated && isSuperAdmin }
+  )
 
   // 2. Mutations
   const createPartnerMut = trpc.createPartner.useMutation()
@@ -125,6 +208,9 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   const updateCampaignMut = trpc.updateCampaign.useMutation()
   const deleteCampaignMut = trpc.deleteCampaign.useMutation()
   const toggleCampaignActiveMut = trpc.toggleCampaignActive.useMutation()
+  const setCampaignGameModeMut = trpc.setCampaignGameMode.useMutation()
+  const updateCampaignGameConfigMut = trpc.updateCampaignGameConfig.useMutation()
+  const duplicateCampaignMut = trpc.duplicateCampaign.useMutation()
 
   const createPrizeMut = trpc.createPrize.useMutation()
   const updatePrizeMut = trpc.updatePrize.useMutation()
@@ -134,6 +220,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   const createUserMut = trpc.createUser.useMutation()
   const updateUserMut = trpc.updateUser.useMutation()
   const deleteUserMut = trpc.deleteUser.useMutation()
+  const expireStaleTokensMut = trpc.expireStaleTokens.useMutation()
+  const reviewReceiptMut = trpc.reviewReceiptSubmission.useMutation()
+
+  const updateSiteSettingsMut = trpc.updateSiteSettings.useMutation()
+  const createPromoBannerMut = trpc.createPromoBanner.useMutation()
+  const updatePromoBannerMut = trpc.updatePromoBanner.useMutation()
+  const deletePromoBannerMut = trpc.deletePromoBanner.useMutation()
+  const reorderPromoBannersMut = trpc.reorderPromoBanners.useMutation()
 
   // 3. Modal States
   const [partnerModal, setPartnerModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: any | null }>({
@@ -161,15 +255,27 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     prizeName: '',
     list: [],
   })
+  const [gameConfigModal, setGameConfigModal] = useState<{ open: boolean; campaignId: string | null }>({
+    open: false,
+    campaignId: null,
+  })
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   // 4. Modal Form Inputs
   const [partnerForm, setPartnerForm] = useState({ name: '', allowedDomains: '' })
+  const [partnerFormErrors, setPartnerFormErrors] = useState<{ name?: string }>({})
   const [campaignForm, setCampaignForm] = useState({
     title: '',
     partnerId: '',
     startDate: '',
     endDate: '',
     isActive: true,
+    gameMode: 'ROULETTE' as 'ROULETTE' | 'DRAW',
+    imageData: '' as string | null,
+    imageMimeType: '' as string | null,
+    senderEmail: '',
+    senderEmailPassword: '',
+    hasSenderEmailPassword: false,
     adBadge1: '',
     adTitle1: '',
     adDesc1: '',
@@ -184,21 +290,45 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     promoDesc: '',
     promoUrl: '',
   })
-  const [prizeForm, setPrizeForm] = useState({ campaignId: '', name: '', type: 'PHYSICAL', totalStock: 10, winProbability: 5, fallbackPrizeId: '', drawDate: '' })
+  const [prizeForm, setPrizeForm] = useState({ campaignId: '', name: '', type: 'PHYSICAL', totalStock: 10, winProbability: 5, fallbackPrizeId: '', drawDate: '', validityDays: 30 })
   const [userForm, setUserForm] = useState({ email: '', name: '', phone: '', role: 'PLAYER', campaignIdForTokens: '', playTokensCount: 0 })
+  const [userFormErrors, setUserFormErrors] = useState<{ email?: string }>({})
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
+
+  // Homepage hero video form (site-wide singleton, synced from siteSettings query)
+  const [heroForm, setHeroForm] = useState({
+    heroVideoData: '',
+    heroVideoMimeType: '',
+  })
+
+  useEffect(() => {
+    if (siteSettings) {
+      setHeroForm({
+        heroVideoData: siteSettings.heroVideoData || '',
+        heroVideoMimeType: siteSettings.heroVideoMimeType || '',
+      })
+    }
+  }, [siteSettings])
+
+  // Promo banners form (new banner to add)
+  const [newBannerForm, setNewBannerForm] = useState({ imageData: '', imageMimeType: '' })
+  const [bannerFormError, setBannerFormError] = useState<string | null>(null)
 
   // Combined Loading States
   const isLoading = isAuthenticated && (
     (!!partnerId && statsLoading) ||
-    (isSuperAdmin && (partnersLoading || campaignsLoading || prizesLoading || usersLoading))
+    receiptsLoading ||
+    (isSuperAdmin && (partnersLoading || campaignsLoading || prizesLoading || usersLoading || siteSettingsLoading || promoBannersLoading))
   )
 
   // Render Login overlay if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
+        <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#FF8C00] transition-all mb-6">
+          <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
+        </Link>
         <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-slate-200/85 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
           {/* Decorative background glows */}
           <div className="absolute -top-12 -right-12 w-36 h-36 bg-orange-400/20 rounded-full blur-2xl"></div>
@@ -283,44 +413,14 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
   // Refetch utility
   const refetchAll = () => {
     refetchStats()
+    refetchReceipts()
     if (isSuperAdmin) {
       refetchPartners()
       refetchCampaigns()
       refetchPrizes()
       refetchUsers()
-    }
-  }
-
-  // CSV Export for Leads
-  const handleExportCSV = (activeCampaign: any) => {
-    if (!activeCampaign) return
-    try {
-      const headers = ['Lead ID', 'Name', 'Email', 'Phone', 'Source', 'Registration Date', 'Prizes Won']
-      const rows = activeCampaign.leads.map((lead: any) => [
-        lead.id,
-        lead.name || 'Anonymous',
-        lead.email,
-        lead.phone || 'N/A',
-        lead.source,
-        new Date(lead.createdAt).toISOString(),
-        lead.prizesWon.join('; ') || 'None'
-      ])
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((e: any) => e.map((val: any) => `"${String(val).replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const linkElement = document.createElement('a')
-      linkElement.setAttribute('href', url)
-      linkElement.setAttribute('download', `${stats?.name.replace(/\s+/g, '_')}_leads_${activeCampaign.title.substring(0, 10)}.csv`)
-      document.body.appendChild(linkElement)
-      linkElement.click()
-      document.body.removeChild(linkElement)
-    } catch (err) {
-      alert('Erreur lors de la génération du fichier CSV.')
+      refetchSiteSettings()
+      refetchPromoBanners()
     }
   }
 
@@ -333,12 +433,144 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
     return localISOTime
   }
 
+  // Convert a selected campaign photo to base64 for storage in DB
+  const handleCampaignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner un fichier image (JPEG, PNG, WEBP...).', 'error')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Le fichier dépasse la limite de 2 Mo.', 'error')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.split(',')[1] || ''
+      setCampaignForm(p => ({ ...p, imageData: base64, imageMimeType: file.type }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleHeroVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('video/')) {
+      showToast('Veuillez sélectionner un fichier vidéo (MP4, WEBM...).', 'error')
+      return
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('La vidéo dépasse la limite de 4 Mo. Compressez-la avant de la réimporter.', 'error')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.split(',')[1] || ''
+      setHeroForm(p => ({ ...p, heroVideoData: base64, heroVideoMimeType: file.type }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveHero = async () => {
+    try {
+      await updateSiteSettingsMut.mutateAsync(heroForm)
+      showToast('Hero de la page d\'accueil mis à jour avec succès.')
+      refetchSiteSettings()
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de la mise à jour du hero.", 'error')
+    }
+  }
+
+  // "Retirer" saves immediately — otherwise the video stays live on the public
+  // site until the admin remembers to also click "Sauvegarder le Hero".
+  const handleRemoveHeroVideo = async () => {
+    const cleared = { ...heroForm, heroVideoData: '', heroVideoMimeType: '' }
+    setHeroForm(cleared)
+    try {
+      await updateSiteSettingsMut.mutateAsync(cleared)
+      showToast('Vidéo retirée du site.')
+      refetchSiteSettings()
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors du retrait de la vidéo.', 'error')
+    }
+  }
+
+  const handleNewBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner un fichier image (JPEG, PNG, WEBP...).', 'error')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Le fichier dépasse la limite de 2 Mo.', 'error')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.split(',')[1] || ''
+      setNewBannerForm(p => ({ ...p, imageData: base64, imageMimeType: file.type }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleAddBanner = async () => {
+    setBannerFormError(null)
+    if (!newBannerForm.imageData) {
+      setBannerFormError("Il manque l'image : cliquez sur \"Image\" pour en importer une.")
+      return
+    }
+    try {
+      await createPromoBannerMut.mutateAsync(newBannerForm)
+      setNewBannerForm({ imageData: '', imageMimeType: '' })
+      showToast('Bannière ajoutée avec succès.')
+      refetchPromoBanners()
+    } catch (err: any) {
+      const message = err.message || "Erreur lors de l'ajout de la bannière."
+      setBannerFormError(message)
+      showToast(message, 'error')
+    }
+  }
+
+  const handleToggleBannerActive = async (id: string, isActive: boolean) => {
+    await updatePromoBannerMut.mutateAsync({ id, isActive: !isActive })
+    refetchPromoBanners()
+  }
+
+  const handleReorderBanners = async (orderedIds: string[]) => {
+    await reorderPromoBannersMut.mutateAsync({ orderedIds })
+    refetchPromoBanners()
+  }
+
+  const handleDeleteBanner = (id: string) => {
+    askConfirm({
+      title: 'Supprimer cette bannière ?',
+      description: 'Cette bannière sera définitivement supprimée du carrousel de la page d\'accueil.',
+      onConfirm: async () => {
+        await deletePromoBannerMut.mutateAsync({ id })
+        showToast('Bannière supprimée.')
+        refetchPromoBanners()
+      },
+    })
+  }
+
   // Modal open handlers
   const openPartnerModal = (mode: 'create' | 'edit', data: any = null) => {
     setPartnerForm({
       name: data?.name || '',
       allowedDomains: data?.allowedDomains || '',
     })
+    setPartnerFormErrors({})
     setPartnerModal({ open: true, mode, data })
   }
 
@@ -349,6 +581,12 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       startDate: data ? formatDateForInput(data.startDate) : '',
       endDate: data ? formatDateForInput(data.endDate) : '',
       isActive: data ? data.isActive : true,
+      gameMode: data?.gameMode || 'ROULETTE',
+      imageData: data?.imageData || '',
+      imageMimeType: data?.imageMimeType || '',
+      senderEmail: data?.senderEmail || '',
+      senderEmailPassword: '',
+      hasSenderEmailPassword: !!data?.hasSenderEmailPassword,
       adBadge1: data?.adBadge1 || '',
       adTitle1: data?.adTitle1 || '',
       adDesc1: data?.adDesc1 || '',
@@ -375,6 +613,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       winProbability: data ? Math.round(data.winProbability * 100) : 5,
       fallbackPrizeId: data?.fallbackPrizeId || '',
       drawDate: data?.drawDate ? formatDateForInput(data.drawDate) : '',
+      validityDays: data ? (data.validityDays ?? 30) : 30,
     })
     setPrizeModal({ open: true, mode, data })
   }
@@ -390,171 +629,212 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
       campaignIdForTokens: campaignId,
       playTokensCount: currentUnused,
     })
+    setUserFormErrors({})
     setUserModal({ open: true, mode, data })
   }
 
-  // Deletion logic with checks
-  const handleDeletePartner = async (id: string, name: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le partenaire "${name}" ? Ses leads associés seront définitivement supprimés et ses campagnes seront dissociées.`)) {
-      try {
-        await deletePartnerMut.mutateAsync({ id })
-        refetchAll()
-      } catch (err: any) {
-        console.error(err)
-        alert(err.message || "Une erreur est survenue lors de la suppression du partenaire.")
-      }
-    }
+  // Deletion logic with checks — chaque suppression passe par une modale de
+  // confirmation stylée (askConfirm) plutôt que le confirm() natif du navigateur.
+  const handleDeletePartner = (id: string, name: string) => {
+    askConfirm({
+      title: 'Supprimer ce partenaire ?',
+      description: `Le partenaire "${name}" sera supprimé. Ses leads associés seront définitivement supprimés et ses campagnes seront dissociées.`,
+      onConfirm: async () => {
+        try {
+          await deletePartnerMut.mutateAsync({ id })
+          showToast('Partenaire supprimé.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || 'Une erreur est survenue lors de la suppression du partenaire.', 'error')
+        }
+      },
+    })
   }
 
-  const handleDeleteCampaign = async (id: string, title: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la campagne "${title}" ? Tous les cadeaux, jetons de jeu, et leads correspondants seront supprimés.`)) {
-      try {
-        await deleteCampaignMut.mutateAsync({ id })
-        refetchAll()
-      } catch (err: any) {
-        console.error(err)
-        alert(err.message || "Une erreur est survenue lors de la suppression de la campagne.")
-      }
-    }
+  const handleDeleteCampaign = (id: string, title: string) => {
+    askConfirm({
+      title: 'Supprimer cette campagne ?',
+      description: `La campagne "${title}" sera supprimée. Tous les cadeaux, jetons de jeu et leads correspondants seront supprimés.`,
+      onConfirm: async () => {
+        try {
+          await deleteCampaignMut.mutateAsync({ id })
+          showToast('Campagne supprimée.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || 'Une erreur est survenue lors de la suppression de la campagne.', 'error')
+        }
+      },
+    })
   }
 
-  const handleDeletePrize = async (id: string, name: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le lot "${name}" ? Les historiques de gains associés seront également supprimés.`)) {
-      try {
-        await deletePrizeMut.mutateAsync({ id })
-        refetchAll()
-      } catch (err: any) {
-        console.error(err)
-        alert(err.message || "Une erreur est survenue lors de la suppression du lot.")
-      }
-    }
+  const handleDeletePrize = (id: string, name: string) => {
+    askConfirm({
+      title: 'Supprimer ce lot ?',
+      description: `Le lot "${name}" sera supprimé. Les historiques de gains associés seront également supprimés.`,
+      onConfirm: async () => {
+        try {
+          await deletePrizeMut.mutateAsync({ id })
+          showToast('Lot supprimé.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || 'Une erreur est survenue lors de la suppression du lot.', 'error')
+        }
+      },
+    })
   }
 
   const handleExecuteDraw = (prize: any) => {
     const participantCount = prize.participantCount || 0
     if (!participantCount) {
-      alert("Aucun participant n'est encore inscrit à ce tirage au sort.")
+      showToast("Aucun participant n'est encore inscrit à ce tirage au sort.", 'error')
       return
     }
-    const confirmMessage = `Voulez-vous effectuer le tirage au sort pour le lot "${prize.name}" ?\n\nUn gagnant sera sélectionné au hasard parmi les ${participantCount} participant(s) inscrit(s).`
-    if (window.confirm(confirmMessage)) {
-      runDrawMut.mutate(
-        { prizeId: prize.id },
-        {
-          onSuccess: (data) => {
-            refetchAll()
-            alert(`Félicitations ! Le tirage au sort a été effectué.\n\nGagnant(s) :\n${data.winners.map((w: any) => `- ${w.name || 'Joueur'} (${w.email})`).join('\n')}`)
-          },
-          onError: (err) => {
-            alert(err.message)
-          }
+    askConfirm({
+      title: 'Effectuer le tirage au sort ?',
+      description: `Un gagnant sera sélectionné au hasard parmi les ${participantCount} participant(s) inscrit(s) pour le lot "${prize.name}". Cette action est irréversible.`,
+      confirmLabel: 'Lancer le tirage',
+      danger: false,
+      onConfirm: () =>
+        new Promise<void>((resolve) => {
+          runDrawMut.mutate(
+            { prizeId: prize.id },
+            {
+              onSuccess: (data) => {
+                refetchAll()
+                const names = data.winners.map((w: any) => w.name || w.email).join(', ')
+                showToast(`Tirage effectué ! Gagnant(s) : ${names}`)
+                resolve()
+              },
+              onError: (err) => {
+                showToast(err.message, 'error')
+                resolve()
+              },
+            }
+          )
+        }),
+    })
+  }
+
+  const handleDeleteUser = (id: string, email: string) => {
+    askConfirm({
+      title: 'Supprimer cet utilisateur ?',
+      description: `L'utilisateur "${email}" sera supprimé. Tous ses jetons de jeu, leads et gains de lots seront définitivement supprimés.`,
+      onConfirm: async () => {
+        try {
+          await deleteUserMut.mutateAsync({ id })
+          showToast('Utilisateur supprimé.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || "Une erreur est survenue lors de la suppression de l'utilisateur.", 'error')
         }
-      )
+      },
+    })
+  }
+
+  const handleCleanStaleTokens = async () => {
+    try {
+      const res = await expireStaleTokensMut.mutateAsync()
+      showToast(`${res.expiredCount} jeton(s) expiré(s) nettoyé(s)`, 'success')
+      refetchAll()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || "Une erreur est survenue lors du nettoyage des jetons.", 'error')
     }
   }
 
-  const handleDeleteUser = async (id: string, email: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${email}" ? Tous ses jetons de jeu, leads et gains de lots seront définitivement supprimés.`)) {
-      try {
-        await deleteUserMut.mutateAsync({ id })
-        refetchAll()
-      } catch (err: any) {
-        console.error(err)
-        alert(err.message || "Une erreur est survenue lors de la suppression de l'utilisateur.")
-      }
+  const handleReviewReceipt = async (submissionId: string, decision: 'APPROVED' | 'REJECTED') => {
+    try {
+      await reviewReceiptMut.mutateAsync({
+        submissionId,
+        decision,
+      })
+      showToast(
+        decision === 'APPROVED'
+          ? 'Ticket approuvé avec succès ! Un jeton a été attribué.'
+          : 'Ticket rejeté avec succès.',
+        'success'
+      )
+      refetchAll()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Une erreur est survenue lors de la modération du ticket.', 'error')
     }
   }
+
+  const navItems: AdminNavItem[] = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'leads', label: 'Leads & Stats', icon: BarChart3 },
+    { id: 'winners', label: 'Gagnants', icon: Trophy },
+    { id: 'receipts', label: 'Tickets à vérifier', icon: CheckCircle },
+    ...(isSuperAdmin
+      ? [
+        { id: 'partners', label: 'Partenaires', icon: Globe },
+        { id: 'campaigns', label: 'Campagnes', icon: Sliders },
+        { id: 'prizes', label: 'Cadeaux / Lots', icon: Gift },
+        { id: 'users', label: 'Utilisateurs', icon: UserCheck },
+        { id: 'homepage', label: "Page d'Accueil", icon: LayoutTemplate },
+        { id: 'settings', label: 'Paramètres', icon: Settings },
+      ]
+      : []),
+  ]
+
+  // Topbar search box mirrors whichever per-tab search state is active — there is
+  // no unified cross-entity search endpoint yet, so this stays scoped per section.
+  const activeSearchByTab: Partial<Record<TabType, [string, (v: string) => void]>> = {
+    leads: [leadSearch, setLeadSearch],
+    partners: [partnerSearch, setPartnerSearch],
+    campaigns: [campaignSearch, setCampaignSearch],
+    prizes: [prizeSearch, setPrizeSearch],
+    users: [userSearch, setUserSearch],
+  }
+  const [topbarSearchValue, setTopbarSearchValue] = activeSearchByTab[activeTab] ?? [undefined, undefined]
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
-
-      {/* Admin Title Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-6 border-b border-slate-100">
-        <div>
-          <span className="text-[#FF8C00] font-black text-xs tracking-wider uppercase block">
-            {isSuperAdmin ? 'Administration Centrale' : 'Espace Partenaire'}
-          </span>
-          <h2 className="text-3xl font-black text-slate-800 mt-1">
-            {isSuperAdmin ? "Console d'Administration" : "Statistiques & Activité"}
-          </h2>
-          <p className="text-slate-400 text-sm mt-1.5">
-            {isSuperAdmin
-              ? 'Gérez globalement vos Partenaires, Campagnes, Cadeaux (Lots) et Utilisateurs tout en visualisant le suivi analytique.'
-              : 'Visualisez les leads capturés et exportez vos statistiques de campagne.'}
-          </p>
+    <AdminLayout
+      session={initialSession!}
+      navItems={navItems}
+      activeId={activeTab}
+      onNavigate={(id) => setActiveTab(id as TabType)}
+      onLogout={handleLogout}
+      searchValue={topbarSearchValue}
+      onSearchChange={setTopbarSearchValue}
+    >
+      <div className="max-w-[1600px] mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-ink-900">
+              {isSuperAdmin ? "Console d'Administration" : "Statistiques & Activité"}
+            </h2>
+            <p className="text-ink-500 text-sm mt-1">
+              {isSuperAdmin
+                ? 'Gérez globalement vos Partenaires, Campagnes, Cadeaux (Lots) et Utilisateurs tout en visualisant le suivi analytique.'
+                : 'Visualisez les leads capturés et exportez vos statistiques de campagne.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isSuperAdmin && allPartnersForSwitcher && allPartnersForSwitcher.length > 1 && (
+              <select
+                value={partnerId}
+                onChange={(e) => router.push(`/partner?id=${e.target.value}`)}
+                className="h-9 px-3 rounded-[var(--radius-ds-sm)] bg-surface border border-black/[0.08] text-xs font-bold text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-500/25 cursor-pointer"
+                aria-label="Changer de compte partenaire"
+              >
+                {allPartnersForSwitcher.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={refetchAll}
+              className="flex items-center gap-2 px-4 py-2 bg-surface border border-black/[0.08] text-ink-700 hover:text-ink-900 rounded-[var(--radius-ds-sm)] transition-all cursor-pointer text-sm font-bold active:scale-95 focus:outline-none"
+            >
+              <RefreshCw className="h-4 w-4" /> Actualiser
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
-          <div className="flex flex-col items-end text-slate-550 text-xs font-semibold mr-1">
-            <span className="text-slate-700">{initialSession?.email}</span>
-            <span className="text-xxs text-[#FF8C00] uppercase font-bold">{initialSession?.role}</span>
-          </div>
-          <button
-            onClick={refetchAll}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95 focus:outline-none"
-          >
-            <RefreshCw className="h-4 w-4" /> Actualiser
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200/80 text-red-650 hover:text-red-700 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md text-sm font-bold active:scale-95 focus:outline-none"
-          >
-            Se déconnecter
-          </button>
-        </div>
-      </div>
-
-      {/* Main Layout Grid/Flex: Sidebar on the left, Content on the right */}
-      <div className="flex flex-col lg:flex-row gap-8 mt-8 items-start">
-        {/* Left Sidebar Navigation */}
-        <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-24">
-          <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-sm space-y-2">
-            {[
-              { id: 'leads', label: 'Leads & Stats', desc: 'Analytique & Exports', icon: BarChart3 },
-              ...(isSuperAdmin
-                ? [
-                  { id: 'partners', label: 'Partenaires', desc: 'Whitelists CORS & Noms', icon: Globe },
-                  { id: 'campaigns', label: 'Campagnes', desc: 'Périodes & Statuts', icon: Sliders },
-                  { id: 'prizes', label: 'Cadeaux / Lots', desc: 'RNG Probabilités & Stocks', icon: Gift },
-                  { id: 'users', label: 'Utilisateurs', desc: 'Rôles & Crédits Lancers', icon: UserCheck }
-                ]
-                : [])
-            ].map((t) => {
-              const Icon = t.icon
-              const isActive = activeTab === t.id
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id as TabType)}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl border transition-all duration-300 text-left cursor-pointer focus:outline-none group ${
-                    isActive
-                      ? 'bg-orange-50/60 border-l-4 border-l-[#FF8C00] border-t-transparent border-r-transparent border-b-transparent text-[#FF8C00] rounded-l-none pl-3 font-extrabold shadow-sm shadow-orange-500/5'
-                      : 'bg-white border-l-4 border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:border-l-slate-200 pl-4'
-                  }`}
-                >
-                  <div className={`p-2.5 rounded-xl transition-all duration-300 ${
-                    isActive
-                      ? 'bg-[#FF8C00] text-white shadow-sm shadow-orange-500/10'
-                      : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
-                  }`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-extrabold tracking-tight ${isActive ? 'text-[#FF8C00]' : 'text-slate-700'}`}>
-                      {t.label}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium mt-0.5 line-clamp-1">
-                      {t.desc}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </aside>
-
-        {/* Right Content Panel */}
-        <div className="flex-1 min-w-0 w-full">
+          {/* TAB CONTENT: DASHBOARD */}
+          {activeTab === 'dashboard' && <Dashboard />}
 
           {/* TAB CONTENT: LEADS & ANALYTICS */}
           {activeTab === 'leads' && (
@@ -591,7 +871,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                       Suivi Analytique : {stats.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm">
-                      <Link className="h-4 w-4 text-[#FF8C00]" />
+                      <LinkIcon className="h-4 w-4 text-[#FF8C00]" />
                       <span>Domaine dynamic CORS :</span>
                       <span className="text-slate-700 font-mono text-xs bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
                         {stats.allowedDomains || '(Aucun domaine whitelisté)'}
@@ -698,180 +978,285 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   </div>
                 </div>
 
-                {/* Captured Leads List */}
-                <div className="mt-8 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                {/* Section Maintenance / Outils */}
+                <div className="mt-8 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-bold text-slate-800">Leads Capturés</h3>
-                      <p className="text-slate-400 text-xs mt-1">Visualisation et export des contacts de la campagne.</p>
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-[#FF8C00]" /> Maintenance
+                      </h3>
+                      <p className="text-slate-400 text-xs mt-1">
+                        Gérez et optimisez le stockage des jetons de jeu.
+                      </p>
                     </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Rechercher..."
-                          value={leadSearch}
-                          onChange={(e) => setLeadSearch(e.target.value)}
-                          className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-52 sm:w-64"
-                        />
-                      </div>
-
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <button
-                        onClick={() => handleExportCSV(activeCampaign)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm shadow-orange-500/10 cursor-pointer"
+                        onClick={handleCleanStaleTokens}
+                        disabled={expireStaleTokensMut.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-[#FF8C00] disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
                       >
-                        <Download className="h-4 w-4" /> Exporter CSV
+                        {expireStaleTokensMut.isPending ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" /> Nettoyage...
+                          </>
+                        ) : (
+                          'Nettoyer les jetons périmés'
+                        )}
                       </button>
+                      <span className="text-[10px] text-slate-400 font-semibold max-w-xs text-right">
+                        Marque comme expirés les jetons non utilisés depuis plus de 90 jours
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    {filteredLeads.length > 0 ? (
-                      <table className="w-full text-left text-sm text-slate-500">
-                        <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                          <tr>
-                            <th className="px-6 py-4 font-bold">Détails du Lead</th>
-                            <th className="px-6 py-4 font-bold">Source</th>
-                            <th className="px-6 py-4 font-bold">Cadeaux Remportés</th>
-                            <th className="px-6 py-4 font-bold text-right">Date d'inscription</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {filteredLeads.map((lead) => (
-                            <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4">
-                                <div className="font-extrabold text-slate-800">{lead.name || 'Anonymous'}</div>
-                                <div className="flex items-center gap-4 text-xs mt-1 text-slate-400">
-                                  <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {lead.email}</span>
-                                  {lead.phone && (
-                                    <span className="flex items-center gap-1"><PhoneCall className="h-3 w-3" /> {lead.phone}</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="px-2 py-0.5 bg-orange-50 border border-orange-100 rounded-md text-[10px] font-bold text-[#FF8C00]">
-                                  {lead.source}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-xs font-medium">
-                                {lead.prizesWon.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {lead.prizesWon.map((p: string, i: number) => (
-                                      <span key={i} className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold">
-                                        {p}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-400 italic">Aucun lot gagné</span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 text-right text-xs text-slate-400">
-                                {new Date(lead.createdAt).toLocaleDateString('fr-FR', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div className="text-center py-12 text-slate-400">
-                        Aucun lead trouvé pour cette recherche.
-                      </div>
-                    )}
                   </div>
                 </div>
+
+                {/* Captured Leads List */}
+                <Card className="mt-8 overflow-hidden">
+                  <div className="p-6 border-b border-black/[0.06]">
+                    <h3 className="text-xl font-bold text-ink-900">Leads Capturés</h3>
+                    <p className="text-ink-500 text-xs mt-1">Visualisation et export des contacts de la campagne.</p>
+                  </div>
+
+                  <div className="p-6">
+                    <DataTable
+                      columns={[
+                        {
+                          key: 'lead', header: 'Détails du Lead', sortValue: (lead: any) => lead.name || lead.email,
+                          render: (lead: any) => (
+                            <>
+                              <div className="font-extrabold text-ink-900">{lead.name || 'Anonymous'}</div>
+                              <div className="flex items-center gap-4 text-xs mt-1 text-ink-500">
+                                <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {lead.email}</span>
+                                {lead.phone && (
+                                  <span className="flex items-center gap-1"><PhoneCall className="h-3 w-3" /> {lead.phone}</span>
+                                )}
+                              </div>
+                            </>
+                          ),
+                        },
+                        {
+                          key: 'source', header: 'Source', sortValue: (lead: any) => lead.source,
+                          render: (lead: any) => (
+                            <span className="px-2 py-0.5 bg-brand-50 border border-brand-500/20 rounded-md text-[10px] font-bold text-brand-600">
+                              {lead.source}
+                            </span>
+                          ),
+                        },
+                        {
+                          key: 'prizes', header: 'Cadeaux Remportés',
+                          render: (lead: any) => lead.prizesWon.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {lead.prizesWon.map((p: string, i: number) => (
+                                <span key={i} className="px-2.5 py-0.5 rounded-full bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20 text-[10px] font-bold">
+                                  {p}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-ink-500 italic text-xs">Aucun lot gagné</span>
+                          ),
+                        },
+                        {
+                          key: 'createdAt', header: "Date d'inscription", align: 'right',
+                          sortValue: (lead: any) => new Date(lead.createdAt).getTime(),
+                          render: (lead: any) => (
+                            <span className="text-xs text-ink-500">
+                              {new Date(lead.createdAt).toLocaleDateString('fr-FR', {
+                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </span>
+                          ),
+                        },
+                      ]}
+                      data={filteredLeads}
+                      getRowId={(lead: any) => lead.id}
+                      emptyIcon={Users}
+                      emptyTitle="Aucun lead trouvé"
+                      emptyDescription="Aucun contact ne correspond à cette recherche."
+                      exportColumns={[
+                        { header: 'Nom', value: (lead: any) => lead.name || 'Anonymous' },
+                        { header: 'Email', value: (lead: any) => lead.email },
+                        { header: 'Téléphone', value: (lead: any) => lead.phone || '' },
+                        { header: 'Source', value: (lead: any) => lead.source },
+                        { header: "Date d'inscription", value: (lead: any) => new Date(lead.createdAt).toISOString() },
+                        { header: 'Cadeaux remportés', value: (lead: any) => lead.prizesWon.join('; ') || '' },
+                      ]}
+                      exportFilename={`leads_${activeCampaign.title.substring(0, 20)}`}
+                    />
+                  </div>
+                </Card>
               </>
             )
           })()}
         </div>
       )}
 
-      {/* TAB CONTENT: PARTNERS CRUD */}
-      {activeTab === 'partners' && (
-        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+      {/* TAB CONTENT: GAGNANTS */}
+      {activeTab === 'winners' && <WinnersTab />}
+
+      {/* TAB CONTENT: TICKETS MODERATION */}
+      {activeTab === 'receipts' && (
+        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Gestion des Partenaires</h3>
-              <p className="text-slate-450 text-xs mt-1">Créez et configurez les comptes B2B autorisés à intégrer les widgets.</p>
+              <h3 className="text-xl font-bold text-slate-800">Tickets de caisse à vérifier</h3>
+              <p className="text-slate-450 text-xs mt-1">
+                Validez ou rejetez les tickets de caisse soumis par les joueurs pour deblocquer leur participation.
+              </p>
             </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un partenaire..."
-                  value={partnerSearch}
-                  onChange={(e) => setPartnerSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-52 sm:w-64"
-                />
-              </div>
-
-              <button
-                onClick={() => openPartnerModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
-              >
-                <Plus className="h-4 w-4" /> Ajouter
-              </button>
-            </div>
+            <button
+              onClick={() => refetchReceipts()}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-850 rounded-xl transition-all cursor-pointer shadow-xs text-xs font-bold"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${reviewReceiptMut.isPending ? 'animate-spin' : ''}`} />
+              Rafraîchir
+            </button>
           </div>
 
           <div className="overflow-x-auto">
-            {partners && partners.length > 0 ? (() => {
-              const filtered = partners.filter(p => p.name.toLowerCase().includes(partnerSearch.toLowerCase()))
-              return (
-                <table className="w-full text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 font-bold">ID Partenaire</th>
-                      <th className="px-6 py-4 font-bold">Nom complet</th>
-                      <th className="px-6 py-4 font-bold">Domaines whitelistés (CORS)</th>
-                      <th className="px-6 py-4 font-bold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filtered.map(p => (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-slate-400">{p.id}</td>
-                        <td className="px-6 py-4 font-extrabold text-slate-800">{p.name}</td>
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-xs bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-md">
-                            {p.allowedDomains || '* (Aucun domaine)'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openPartnerModal('edit', p)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePartner(p.id, p.name)}
-                              className="p-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+            {!receiptSubmissions || receiptSubmissions.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 text-xs font-semibold">
+                Aucun ticket en attente de vérification.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm text-slate-500">
+                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 font-bold">Joueur</th>
+                    <th className="px-6 py-4 font-bold">Campagne</th>
+                    <th className="px-6 py-4 font-bold">Aperçu du Ticket</th>
+                    <th className="px-6 py-4 font-bold">Date de Soumission</th>
+                    <th className="px-6 py-4 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {receiptSubmissions.map((sub: any) => (
+                    <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-extrabold text-slate-800">{sub.user.name || 'Anonyme'}</div>
+                        <div className="text-xs mt-1 text-slate-450 font-semibold">{sub.user.email}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-700">{sub.campaign.title}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {sub.fileMimeType === 'application/pdf' ? (
+                          <a
+                            href={`data:${sub.fileMimeType};base64,${sub.fileData}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-[#FF8C00] hover:text-[#E07B00] rounded-lg text-xs font-bold transition-colors"
+                          >
+                            Voir le PDF (nouvel onglet)
+                          </a>
+                        ) : (
+                          <div className="relative group w-24 h-24 border border-slate-200 rounded-xl overflow-hidden cursor-zoom-in bg-slate-50">
+                            <img
+                              src={`data:${sub.fileMimeType};base64,${sub.fileData}`}
+                              alt="Ticket"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              onClick={() => window.open(`data:${sub.fileMimeType};base64,${sub.fileData}`, '_blank')}
+                            />
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            })() : (
-              <div className="text-center py-12 text-slate-400">Aucun partenaire enregistré.</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-400 font-semibold">
+                        {new Date(sub.submittedAt).toLocaleString('fr-FR')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleReviewReceipt(sub.id, 'APPROVED')}
+                            disabled={reviewReceiptMut.isPending}
+                            className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-xs font-black transition-all cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+                          >
+                            <Check className="h-3.5 w-3.5" /> Approuver
+                          </button>
+                          <button
+                            onClick={() => handleReviewReceipt(sub.id, 'REJECTED')}
+                            disabled={reviewReceiptMut.isPending}
+                            className="px-3.5 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-xs font-black transition-all cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+                          >
+                            <X className="h-3.5 w-3.5" /> Rejeter
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
+      )}
+
+      {/* TAB CONTENT: PARTNERS CRUD */}
+      {activeTab === 'partners' && (
+        <Card className="overflow-hidden">
+          <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-ink-900">Gestion des Partenaires</h3>
+              <p className="text-ink-500 text-xs mt-1">Créez et configurez les comptes B2B autorisés à intégrer les widgets.</p>
+            </div>
+            <Button size="sm" onClick={() => openPartnerModal('create')}>
+              <Plus className="h-4 w-4" /> Ajouter
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <DataTable
+              columns={[
+                {
+                  key: 'id', header: 'ID Partenaire', sortValue: (p: any) => p.id,
+                  render: (p: any) => <span className="font-mono text-xs text-ink-500">{p.id}</span>,
+                },
+                {
+                  key: 'name', header: 'Nom complet', sortValue: (p: any) => p.name,
+                  render: (p: any) => <span className="font-extrabold text-ink-900">{p.name}</span>,
+                },
+                {
+                  key: 'domains', header: 'Domaines whitelistés (CORS)',
+                  render: (p: any) => (
+                    <span className="font-mono text-xs bg-surface-alt border border-black/[0.06] text-ink-700 px-2 py-1 rounded-md">
+                      {p.allowedDomains || '* (Aucun domaine)'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'actions', header: 'Actions', align: 'right',
+                  render: (p: any) => (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openPartnerModal('edit', p)}
+                        className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePartner(p.id, p.name)}
+                        className="p-2 text-[var(--danger)] hover:text-white hover:bg-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/20 rounded-lg transition-all cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+              data={partners?.filter((p) => p.name.toLowerCase().includes(partnerSearch.toLowerCase()))}
+              isLoading={partnersLoading}
+              getRowId={(p: any) => p.id}
+              emptyIcon={Globe}
+              emptyTitle="Aucun partenaire enregistré"
+              emptyDescription="Ajoutez votre premier partenaire pour commencer."
+              exportColumns={[
+                { header: 'ID', value: (p: any) => p.id },
+                { header: 'Nom', value: (p: any) => p.name },
+                { header: 'Domaines', value: (p: any) => p.allowedDomains || '' },
+              ]}
+              exportFilename="partenaires"
+            />
+          </div>
+        </Card>
       )}
 
       {/* TAB CONTENT: CAMPAIGNS CRUD */}
@@ -908,15 +1293,15 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               </select>
 
               <button
-                onClick={() => openCampaignModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                onClick={() => setWizardOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-brand-signature text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
               >
-                <Plus className="h-4 w-4" /> Ajouter
+                <Plus className="h-4 w-4" /> Nouvelle campagne
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="p-6">
             {campaigns && campaigns.length > 0 ? (() => {
               const filtered = campaigns.filter(c => {
                 const matchesSearch = c.title.toLowerCase().includes(campaignSearch.toLowerCase())
@@ -925,86 +1310,58 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                   c.partnerId === campaignPartnerFilter
                 return matchesSearch && matchesPartner
               })
-              return (
-                <table className="w-full text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 font-bold">Campagne</th>
-                      <th className="px-6 py-4 font-bold">Partenaire B2B</th>
-                      <th className="px-6 py-4 font-bold">Début / Fin</th>
-                      <th className="px-6 py-4 font-bold">Statut</th>
-                      <th className="px-6 py-4 font-bold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filtered.map(c => (
-                      <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-extrabold text-slate-800">{c.title}</div>
-                          <div className="text-xxs text-slate-400 font-mono mt-0.5">{c.id}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {c.partner ? (
-                            <span className="font-bold text-slate-700">{c.partner.name}</span>
-                          ) : (
-                            <span className="text-slate-400 italic font-medium">Aucun partenaire</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-xs font-semibold text-slate-500">
-                          <div className="flex items-center gap-1.5"><Calendar className="h-3 w-3 text-[#FF8C00]" /> Du {new Date(c.startDate).toLocaleDateString('fr-FR')}</div>
-                          <div className="text-slate-400 mt-1">Au {new Date(c.endDate).toLocaleDateString('fr-FR')}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={async () => {
-                              try {
-                                await toggleCampaignActiveMut.mutateAsync({
-                                  id: c.id,
-                                  isActive: !c.isActive
-                                })
-                                refetchAll()
-                              } catch (err: any) {
-                                alert(err.message || "Erreur lors du changement de statut.")
-                              }
-                            }}
-                            disabled={toggleCampaignActiveMut.isPending}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 select-none ${c.isActive
-                              ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/10'
-                              : 'bg-slate-800 hover:bg-slate-900 border-slate-900 text-white shadow-slate-800/10'
-                              }`}
-                            title={c.isActive ? "Désactiver le lancement" : "Activer le lancement"}
-                          >
-                            {toggleCampaignActiveMut.isPending && toggleCampaignActiveMut.variables?.id === c.id ? (
-                              <RefreshCw className="h-3 w-3 animate-spin text-white" />
-                            ) : (
-                              <span className={`h-1.5 w-1.5 rounded-full ${c.isActive ? 'bg-white animate-pulse' : 'bg-slate-400'}`}></span>
-                            )}
-                            {c.isActive ? 'LANCEMENT ACTIF' : 'LANCEMENT DÉSACTIVÉ'}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openCampaignModal('edit', c)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCampaign(c.id, c.title)}
-                              className="p-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              return filtered.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {filtered.map((c) => (
+                    <CampaignCard
+                      key={c.id}
+                      campaign={c as any}
+                      isTogglingActive={toggleCampaignActiveMut.isPending && toggleCampaignActiveMut.variables?.id === c.id}
+                      isDuplicating={duplicateCampaignMut.isPending && duplicateCampaignMut.variables?.id === c.id}
+                      onToggleActive={async () => {
+                        try {
+                          await toggleCampaignActiveMut.mutateAsync({ id: c.id, isActive: !c.isActive })
+                          refetchAll()
+                        } catch (err: any) {
+                          showToast(err.message || 'Erreur lors du changement de statut.', 'error')
+                        }
+                      }}
+                      onSetGameMode={async (mode) => {
+                        try {
+                          await setCampaignGameModeMut.mutateAsync({ id: c.id, gameMode: mode })
+                          refetchAll()
+                        } catch (err: any) {
+                          showToast(err.message || 'Erreur lors du changement de mode.', 'error')
+                        }
+                      }}
+                      onSpinsPerClientChange={async (value) => {
+                        try {
+                          await updateCampaignGameConfigMut.mutateAsync({ id: c.id, spinsPerClient: value })
+                          refetchAll()
+                        } catch (err: any) {
+                          showToast(err.message || 'Erreur lors de la mise à jour du nombre de lancers.', 'error')
+                        }
+                      }}
+                      onConfigure={() => setGameConfigModal({ open: true, campaignId: c.id })}
+                      onEdit={() => openCampaignModal('edit', c)}
+                      onDuplicate={async () => {
+                        try {
+                          await duplicateCampaignMut.mutateAsync({ id: c.id })
+                          showToast('Campagne dupliquée en brouillon.')
+                          refetchAll()
+                        } catch (err: any) {
+                          showToast(err.message || 'Erreur lors de la duplication.', 'error')
+                        }
+                      }}
+                      onDelete={() => handleDeleteCampaign(c.id, c.title)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-ink-500">Aucune campagne ne correspond à cette recherche.</div>
               )
             })() : (
-              <div className="text-center py-12 text-slate-400">Aucune campagne configurée.</div>
+              <div className="text-center py-12 text-ink-500">Aucune campagne configurée.</div>
             )}
           </div>
         </div>
@@ -1197,144 +1554,265 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
 
       {/* TAB CONTENT: USERS CRUD */}
       {activeTab === 'users' && (
-        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Card className="overflow-hidden">
+          <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Membres & Joueurs</h3>
-              <p className="text-slate-450 text-xs mt-1">Créez des utilisateurs, ajustez leurs rôles (Superadmin, Partenaire, Joueur) et attribuez manuellement des lancers.</p>
+              <h3 className="text-xl font-bold text-ink-900">Membres & Joueurs</h3>
+              <p className="text-ink-500 text-xs mt-1">Créez des utilisateurs, ajustez leurs rôles (Superadmin, Partenaire, Joueur) et attribuez manuellement des lancers.</p>
+            </div>
+            <Button size="sm" onClick={() => openUserModal('create')}>
+              <Plus className="h-4 w-4" /> Ajouter
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <DataTable
+              columns={[
+                {
+                  key: 'member', header: 'Membre', sortValue: (u: any) => u.name || u.email,
+                  render: (u: any) => (
+                    <>
+                      <div className="font-extrabold text-ink-900">{u.name || 'Anonyme'}</div>
+                      <div className="text-xs text-ink-500 mt-1 flex flex-col gap-1">
+                        <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {u.email}</span>
+                        {u.phone && <span className="flex items-center gap-1"><PhoneCall className="h-3 w-3" /> {u.phone}</span>}
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'role', header: 'Rôle', sortValue: (u: any) => u.role,
+                  render: (u: any) => (
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${u.role === 'SUPERADMIN'
+                      ? 'bg-[var(--danger)]/10 border-[var(--danger)]/20 text-[var(--danger)]'
+                      : u.role === 'PARTNER'
+                        ? 'bg-[var(--warning)]/10 border-[var(--warning)]/20 text-[var(--warning)]'
+                        : 'bg-surface-alt border-black/[0.06] text-ink-500'
+                      }`}>
+                      {u.role === 'SUPERADMIN' ? 'SUPERADMIN' : u.role === 'PARTNER' ? 'PARTENAIRE' : 'JOUEUR'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'referralCode', header: 'Code  partage',
+                  render: (u: any) => <span className="font-mono text-xs font-bold text-ink-700">{u.referralCode}</span>,
+                },
+                {
+                  key: 'tokens', header: 'Lancers par Campagne (Dispo)',
+                  render: (u: any) => Object.keys(u.tokensByCampaign).length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {Object.entries(u.tokensByCampaign).map(([campId, tokens]: [string, any]) => {
+                        const camp = campaigns?.find((c) => c.id === campId)
+                        return (
+                          <div key={campId} className="text-xxs font-medium text-ink-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span className="font-bold text-ink-900">{camp?.title || 'Campagne'} :</span>
+                            <span className="bg-brand-50 text-brand-600 border border-brand-500/20 px-2 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap shrink-0">
+                              {tokens.unused} lancers restants
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <span className="text-ink-500 italic text-xxs">Aucun lancer disponible</span>
+                  ),
+                },
+                {
+                  key: 'wins', header: 'Gains',
+                  render: (u: any) => u.wonPrizesCount > 0 ? (
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {u.wonPrizes.map((wpName: string, idx: number) => (
+                        <span key={idx} className="bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20 px-1.5 py-0.5 rounded-full text-[9px] font-bold inline-block">
+                          {wpName}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-ink-500 italic text-xxs">0 gains</span>
+                  ),
+                },
+                {
+                  key: 'actions', header: 'Actions', align: 'right',
+                  render: (u: any) => (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openUserModal('edit', u)}
+                        className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id, u.email)}
+                        className="p-2 text-[var(--danger)] hover:text-white hover:bg-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/20 rounded-lg transition-all cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+              data={users?.filter((u) =>
+                (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+                (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
+              )}
+              isLoading={usersLoading}
+              getRowId={(u: any) => u.id}
+              emptyIcon={UserCheck}
+              emptyTitle="Aucun utilisateur enregistré"
+              emptyDescription="Les joueurs inscrits apparaîtront ici."
+              exportColumns={[
+                { header: 'Nom', value: (u: any) => u.name || '' },
+                { header: 'Email', value: (u: any) => u.email },
+                { header: 'Téléphone', value: (u: any) => u.phone || '' },
+                { header: 'Rôle', value: (u: any) => u.role },
+                { header: 'Code parrainage', value: (u: any) => u.referralCode },
+              ]}
+              exportFilename="utilisateurs"
+              bulkActions={[
+                {
+                  label: 'Supprimer',
+                  icon: Trash2,
+                  variant: 'danger',
+                  onClick: (rows: any[]) => {
+                    askConfirm({
+                      title: 'Supprimer ces utilisateurs ?',
+                      description: `${rows.length} utilisateur(s) sélectionné(s) seront définitivement supprimés, avec leurs jetons, leads et gains.`,
+                      onConfirm: async () => {
+                        for (const u of rows) {
+                          await deleteUserMut.mutateAsync({ id: u.id })
+                        }
+                        showToast(`${rows.length} utilisateur(s) supprimé(s).`)
+                        refetchAll()
+                      },
+                    })
+                  },
+                },
+              ]}
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* TAB CONTENT: HOMEPAGE (Hero video/poster + Promo banners) */}
+      {activeTab === 'homepage' && (
+        <div className="space-y-6">
+          {/* Hero video/poster card */}
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
+              <Video className="h-5 w-5 text-[#FF8C00]" /> Vidéo du Hero (Page d'Accueil)
+            </h3>
+            <p className="text-slate-400 text-xs font-semibold mb-5">
+              Vidéo de fond en boucle affichée en haut de la page d'accueil. Courte et compressée, 4 Mo max.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Vidéo (MP4/WEBM, 4 Mo max)</label>
+              <div className="h-32 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden mb-2">
+                {heroForm.heroVideoData ? (
+                  <video
+                    src={`data:${heroForm.heroVideoMimeType || 'video/mp4'};base64,${heroForm.heroVideoData}`}
+                    className="h-full w-full object-cover"
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                  />
+                ) : (
+                  <Video className="h-6 w-6 text-slate-300" />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  Importer une vidéo
+                  <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={handleHeroVideoChange} />
+                </label>
+                {heroForm.heroVideoData && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveHeroVideo}
+                    disabled={updateSiteSettingsMut.isPending}
+                    className="px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold text-red-500 transition-colors"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un joueur..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-52 sm:w-64"
-                />
-              </div>
-
+            <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end">
               <button
-                onClick={() => openUserModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
+                onClick={handleSaveHero}
+                disabled={updateSiteSettingsMut.isPending}
+                className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
               >
-                <Plus className="h-4 w-4" /> Ajouter
+                {updateSiteSettingsMut.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Sauvegarder le Hero
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            {users && users.length > 0 ? (() => {
-              const filtered = users.filter(u =>
-                (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-                (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
-              )
-              return (
-                <table className="w-full text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 font-bold">Membre</th>
-                      <th className="px-6 py-4 font-bold">Rôle</th>
-                      <th className="px-6 py-4 font-bold">Code  partage</th>
-                      <th className="px-6 py-4 font-bold">Lancers par Campagne (Dispo)</th>
-                      <th className="px-6 py-4 font-bold">Gains</th>
-                      <th className="px-6 py-4 font-bold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filtered.map(u => (
-                      <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-extrabold text-slate-800">{u.name || 'Anonyme'}</div>
-                          <div className="text-xs text-slate-400 mt-1 flex flex-col gap-1">
-                            <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {u.email}</span>
-                            {u.phone && <span className="flex items-center gap-1"><PhoneCall className="h-3 w-3" /> {u.phone}</span>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${u.role === 'SUPERADMIN'
-                            ? 'bg-red-50 border-red-100 text-red-650'
-                            : u.role === 'PARTNER'
-                              ? 'bg-amber-50 border-amber-100 text-amber-650'
-                              : 'bg-slate-50 border-slate-200 text-slate-500'
-                            }`}>
-                            {u.role === 'SUPERADMIN'
-                              ? 'SUPERADMIN'
-                              : u.role === 'PARTNER'
-                                ? 'PARTENAIRE'
-                                : 'JOUEUR'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-slate-600">
-                          {u.referralCode}
-                        </td>
-                        <td className="px-6 py-4">
-                          {Object.keys(u.tokensByCampaign).length > 0 ? (
-                            <div className="flex flex-col gap-1">
-                              {Object.entries(u.tokensByCampaign).map(([campId, tokens]: [string, any]) => {
-                                const camp = campaigns?.find(c => c.id === campId)
-                                return (
-                                  <div key={campId} className="text-xxs font-medium text-slate-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                                    <span className="font-bold text-slate-850">{camp?.title || 'Campagne'} :</span>
-                                    <span className="bg-orange-50 text-[#FF8C00] border border-orange-100 px-2 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap shrink-0">
-                                      {tokens.unused} lancers restants
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic text-xxs">Aucun lancer disponible</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {u.wonPrizesCount > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {u.wonPrizes.map((wpName: string, idx: number) => (
-                                <span key={idx} className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full text-[9px] font-bold inline-block">
-                                  {wpName}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic text-xxs">0 gains</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openUserModal('edit', u)}
-                              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 border border-slate-200 focus:outline-none rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(u.id, u.email)}
-                              className="p-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            })() : (
-              <div className="text-center py-12 text-slate-400">Aucun utilisateur enregistré.</div>
-            )}
+          {/* Promo banners marquee card */}
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
+              <LayoutTemplate className="h-5 w-5 text-[#FF8C00]" /> Bandeau Publicitaire (Marquee)
+            </h3>
+            <p className="text-slate-400 text-xs font-semibold mb-5">
+              Images défilantes affichées sous la liste des campagnes.
+            </p>
+
+            {/* Add new banner */}
+            <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 mb-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className={`h-16 w-24 shrink-0 rounded-lg border bg-white flex items-center justify-center overflow-hidden ${
+                  bannerFormError && !newBannerForm.imageData ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'
+                }`}>
+                  {newBannerForm.imageData ? (
+                    <img
+                      src={`data:${newBannerForm.imageMimeType};base64,${newBannerForm.imageData}`}
+                      alt="Aperçu"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-slate-300" />
+                  )}
+                </div>
+                <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer transition-colors shrink-0">
+                  <Upload className="h-3.5 w-3.5" />
+                  Image *
+                  <input type="file" accept="image/*" className="hidden" onChange={handleNewBannerImageChange} />
+                </label>
+                <button
+                  onClick={handleAddBanner}
+                  disabled={createPromoBannerMut.isPending}
+                  className="px-4 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ajouter
+                </button>
+              </div>
+              {bannerFormError && (
+                <p className="text-xs text-red-500 font-semibold mt-2">{bannerFormError}</p>
+              )}
+            </div>
+
+            {/* Existing banners list — glisser-déposer pour réordonner */}
+            <SortableBannerList
+              banners={promoBanners || []}
+              onReorder={handleReorderBanners}
+              onToggleActive={handleToggleBannerActive}
+              onDelete={handleDeleteBanner}
+            />
           </div>
         </div>
       )}
 
-    </div> {/* closes flex-1 */}
-  </div> {/* closes outer flex container */}
+      {/* TAB CONTENT: SETTINGS */}
+      {activeTab === 'settings' && <SettingsTab />}
 
-  {/* PARTNER MODAL */}
+      </div> {/* closes max-w-[1600px] wrapper */}
+
+      {/* PARTNER MODAL */}
       {partnerModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
@@ -1356,6 +1834,12 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
             <form
               onSubmit={async (e) => {
                 e.preventDefault()
+                const parsed = partnerFormSchema.safeParse(partnerForm)
+                if (!parsed.success) {
+                  setPartnerFormErrors({ name: parsed.error.flatten().fieldErrors.name?.[0] })
+                  return
+                }
+                setPartnerFormErrors({})
                 try {
                   if (partnerModal.mode === 'create') {
                     await createPartnerMut.mutateAsync(partnerForm)
@@ -1363,25 +1847,22 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     await updatePartnerMut.mutateAsync({ id: partnerModal.data.id, ...partnerForm })
                   }
                   setPartnerModal(p => ({ ...p, open: false }))
+                  showToast('Partenaire enregistré.')
                   refetchAll()
                 } catch (err: any) {
                   console.error(err)
-                  alert(err.message || "Une erreur est survenue lors de l'enregistrement du partenaire. Veuillez rafraîchir la page.")
+                  showToast(err.message || "Une erreur est survenue lors de l'enregistrement du partenaire.", 'error')
                 }
               }}
               className="space-y-4"
             >
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Nom du Partenaire *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Gourmet Bistro, Boulangerie Co."
-                  value={partnerForm.name}
-                  onChange={(e) => setPartnerForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
-                />
-              </div>
+              <Input
+                label="Nom du Partenaire *"
+                placeholder="Ex: Gourmet Bistro, Boulangerie Co."
+                value={partnerForm.name}
+                onChange={(e) => setPartnerForm(p => ({ ...p, name: e.target.value }))}
+                error={partnerFormErrors.name}
+              />
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Domaines dynamic CORS whitelistés</label>
@@ -1446,8 +1927,9 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
               onSubmit={async (e) => {
                 e.preventDefault()
                 try {
+                  const { hasSenderEmailPassword, ...campaignFormData } = campaignForm
                   const data = {
-                    ...campaignForm,
+                    ...campaignFormData,
                     partnerId: (campaignForm.partnerId && campaignForm.partnerId.trim() !== '') ? campaignForm.partnerId : null,
                     startDate: new Date(campaignForm.startDate),
                     endDate: new Date(campaignForm.endDate),
@@ -1459,10 +1941,11 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     await updateCampaignMut.mutateAsync({ id: campaignModal.data.id, ...data })
                   }
                   setCampaignModal(p => ({ ...p, open: false }))
+                  showToast('Campagne enregistrée.')
                   refetchAll()
                 } catch (err: any) {
                   console.error(err)
-                  alert(err.message || "Une erreur est survenue lors de l'enregistrement de la campagne. Veuillez rafraîchir la page.")
+                  showToast(err.message || "Une erreur est survenue lors de l'enregistrement de la campagne.", 'error')
                 }
               }}
               className="space-y-4"
@@ -1527,6 +2010,120 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                 <label htmlFor="campaignActive" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
                   Campagne active et ouverte aux participations immédiates
                 </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Type de Jeu</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'ROULETTE' }))}
+                    className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
+                      campaignForm.gameMode === 'ROULETTE'
+                        ? 'bg-[#FF8C00] border-[#FF8C00] text-white shadow-md shadow-orange-500/10'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🎰 Roulette
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'DRAW' }))}
+                    className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
+                      campaignForm.gameMode === 'DRAW'
+                        ? 'bg-[#FF8C00] border-[#FF8C00] text-white shadow-md shadow-orange-500/10'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🎟️ Tirage au Sort
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 font-semibold">
+                  {campaignForm.gameMode === 'ROULETTE'
+                    ? "Les joueurs jouent à la roulette. L'onglet Tirages sera masqué."
+                    : "Les joueurs s'inscrivent au tirage au sort (Kor3a). La roulette sera masquée — pensez à définir une date de tirage sur les lots."}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Photo de la Campagne</label>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {campaignForm.imageData ? (
+                      <img
+                        src={`data:${campaignForm.imageMimeType || 'image/jpeg'};base64,${campaignForm.imageData}`}
+                        alt="Aperçu"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-slate-300" />
+                    )}
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer transition-colors">
+                      <Upload className="h-3.5 w-3.5" />
+                      Importer une image
+                      <input type="file" accept="image/*" className="hidden" onChange={handleCampaignImageChange} />
+                    </label>
+                    {campaignForm.imageData && (
+                      <button
+                        type="button"
+                        onClick={() => setCampaignForm(p => ({ ...p, imageData: '', imageMimeType: '' }))}
+                        className="px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold text-red-500 transition-colors"
+                      >
+                        Retirer
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 font-semibold">
+                  JPEG, PNG ou WEBP, 2 Mo max. Affichée en remplacement de l'icône sur la carte de la campagne.
+                </p>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                  Email d'Envoi Automatique au Gagnant (Optionnel)
+                </label>
+                <p className="text-[10px] text-slate-400 mb-3 font-semibold">
+                  Dès qu'un client gagne, un email lui est envoyé automatiquement depuis cette adresse, au nom du partenaire de la campagne.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Adresse Gmail</label>
+                    <input
+                      type="email"
+                      placeholder="agence@gmail.com"
+                      value={campaignForm.senderEmail}
+                      onChange={(e) => setCampaignForm(p => ({ ...p, senderEmail: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">
+                      Mot de Passe d'Application {campaignForm.hasSenderEmailPassword && <span className="text-emerald-500 normal-case font-semibold">(déjà configuré)</span>}
+                    </label>
+                    <input
+                      type="password"
+                      placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
+                      value={campaignForm.senderEmailPassword}
+                      onChange={(e) => setCampaignForm(p => ({ ...p, senderEmailPassword: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 font-semibold">
+                  Laissez le mot de passe vide pour conserver celui déjà enregistré. Générez un{' '}
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#FF8C00] hover:underline"
+                  >
+                    mot de passe d'application Google
+                  </a>{' '}
+                  (pas le mot de passe habituel du compte).
+                </p>
               </div>
 
               {/* 📢 HERO BANNER ADS SECTION */}
@@ -1758,6 +2355,7 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     winProbability: prizeForm.drawDate ? 0 : Number(prizeForm.winProbability) / 100,
                     fallbackPrizeId: prizeForm.fallbackPrizeId || undefined,
                     drawDate: prizeForm.drawDate ? new Date(prizeForm.drawDate) : null,
+                    validityDays: prizeForm.validityDays ? Number(prizeForm.validityDays) : null,
                   }
 
                   if (prizeModal.mode === 'create') {
@@ -1766,10 +2364,11 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     await updatePrizeMut.mutateAsync({ id: prizeModal.data.id, ...prizeData })
                   }
                   setPrizeModal(p => ({ ...p, open: false }))
+                  showToast('Lot enregistré.')
                   refetchAll()
                 } catch (err: any) {
                   console.error(err)
-                  alert(err.message || "Une erreur est survenue lors de l'enregistrement du lot. Veuillez rafraîchir la page.")
+                  showToast(err.message || "Une erreur est survenue lors de l'enregistrement du lot.", 'error')
                 }
               }}
               className="space-y-4"
@@ -1869,6 +2468,28 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                   Si définie, ce lot est attribué par tirage au sort   à la date indiquée et n'apparaîtra pas sur la roulette. La probabilité de gain sera ignorée.
                 </p>
+                {campaigns?.find(c => c.id === prizeForm.campaignId)?.gameMode === 'DRAW' && !prizeForm.drawDate && (
+                  <p className="text-[10px] text-amber-600 mt-1 font-bold">
+                    ⚠️ Cette campagne est en mode Tirage au Sort — une date de tirage est requise pour que ce lot soit jouable.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                  Durée de validité (en jours)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={prizeForm.validityDays}
+                  onChange={(e) => setPrizeForm(p => ({ ...p, validityDays: Number(e.target.value) }))}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                />
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
+                  Nombre de jours durant lesquels le lot digital ou la remise reste valide après avoir été gagné (ex: 30).
+                </p>
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
@@ -1919,6 +2540,12 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
             <form
               onSubmit={async (e) => {
                 e.preventDefault()
+                const parsed = userFormSchema.safeParse(userForm)
+                if (!parsed.success) {
+                  setUserFormErrors({ email: parsed.error.flatten().fieldErrors.email?.[0] })
+                  return
+                }
+                setUserFormErrors({})
                 try {
                   if (userModal.mode === 'create') {
                     await createUserMut.mutateAsync({
@@ -1939,37 +2566,31 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
                     })
                   }
                   setUserModal(p => ({ ...p, open: false }))
+                  showToast('Utilisateur enregistré.')
                   refetchAll()
                 } catch (err: any) {
                   console.error(err)
-                  alert(err.message || "Une erreur est survenue lors de l'enregistrement de l'utilisateur. Veuillez rafraîchir la page.")
+                  showToast(err.message || "Une erreur est survenue lors de l'enregistrement de l'utilisateur.", 'error')
                 }
               }}
               className="space-y-4"
             >
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Nom / Prénom</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Jean Dupont"
-                  value={userForm.name}
-                  onChange={(e) => setUserForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
-                />
-              </div>
+              <Input
+                label="Nom / Prénom"
+                placeholder="Ex: Jean Dupont"
+                value={userForm.name}
+                onChange={(e) => setUserForm(p => ({ ...p, name: e.target.value }))}
+              />
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Adresse E-mail *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="Ex: jean.dupont@gmail.com"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm(p => ({ ...p, email: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
-                  />
-                </div>
+                <Input
+                  type="email"
+                  label="Adresse E-mail *"
+                  placeholder="Ex: jean.dupont@gmail.com"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm(p => ({ ...p, email: e.target.value }))}
+                  error={userFormErrors.email}
+                />
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Téléphone</label>
@@ -2125,6 +2746,35 @@ export function PartnerDashboard({ partnerId, initialSession }: PartnerDashboard
         </div>
       )}
 
-    </div>
+      <CampaignGameConfigModal
+        open={gameConfigModal.open}
+        campaignId={gameConfigModal.campaignId}
+        onClose={() => {
+          setGameConfigModal({ open: false, campaignId: null })
+          refetchAll()
+        }}
+      />
+
+      <CampaignWizard
+        open={wizardOpen}
+        onClose={() => {
+          setWizardOpen(false)
+          refetchAll()
+        }}
+        partners={partners || []}
+      />
+
+      <ConfirmModal
+        open={!!confirmDialog}
+        title={confirmDialog?.title || ''}
+        description={confirmDialog?.description || ''}
+        confirmLabel={confirmDialog?.confirmLabel}
+        danger={confirmDialog?.danger ?? true}
+        loading={confirmLoading}
+        onConfirm={handleConfirmDialogConfirm}
+        onCancel={() => setConfirmDialog(null)}
+      />
+
+    </AdminLayout>
   )
 }

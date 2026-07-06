@@ -1,6 +1,6 @@
 'use client'
 
-import { Play } from 'lucide-react'
+import { Play, CheckCircle } from 'lucide-react'
 import { RouletteWheel } from '../RouletteWheel'
 
 interface GameTabProps {
@@ -8,6 +8,9 @@ interface GameTabProps {
   playerEmail: string
   spinsLeft: number
   onSpinSuccess: (prize: any, remainingSpins: number) => void
+  playerInfo: any
+  uploadingReceipt: boolean
+  handleReceiptUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
 export function GameTab({
@@ -24,11 +27,20 @@ export function GameTab({
         {spinsLeft} lancers restants
       </div>
 
+      {spinsLeft === 0 && (
+        <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1.5 mb-2">
+          <CheckCircle className="h-3.5 w-3.5" /> Vous avez utilisé tous vos lancers pour cette campagne.
+        </p>
+      )}
+
       <RouletteWheel
         campaignId={activeCampaign.id}
         prizes={activeCampaign.prizes.filter((p: any) => !p.drawDate)}
         email={playerEmail}
         onSpinSuccess={onSpinSuccess}
+        size="premium"
+        showCountdown
+        disabled={spinsLeft === 0}
       />
     </div>
   )

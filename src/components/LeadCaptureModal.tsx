@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { trpc } from '@/utils/trpc'
 import { Mail, User, Phone, Gift, Send, RefreshCw, AlertCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 interface LeadCaptureModalProps {
   campaignId: string
@@ -16,7 +17,10 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
 
+  const toast = useToast()
   const leadMutation = trpc.captureLead.useMutation()
+  const { data: siteSettings } = trpc.getSiteSettings.useQuery()
+  const referralBonusSpins = siteSettings?.referralBonusSpins ?? 2
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +38,11 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
       },
       {
         onSuccess: (data) => {
+          toast.success(
+            data.tokensCount > 0
+              ? `Inscription réussie ! Vous avez ${data.tokensCount} lancer${data.tokensCount > 1 ? 's' : ''}.`
+              : 'Inscription réussie !'
+          )
           onSuccess(email, data.user.name || name, data.tokensCount)
         },
       }
@@ -48,12 +57,12 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
         </div>
         <h3 className="text-xl font-extrabold text-[#1A1A1A] tracking-tight">Tentez votre chance !</h3>
         <p className="text-slate-500 text-xs mt-2 leading-relaxed">
-          Enregistrez vos coordonnées pour obtenir vos <span className="text-[#FF8C00] font-bold">3 lancers gratuits</span> et tenter de remporter un lot exceptionnel !
+          Enregistrez vos coordonnées pour obtenir vos <span className="text-[#FF8C00] font-bold">lancers gratuits</span> et tenter de remporter un lot exceptionnel !
         </p>
 
         {referredByCode && (
           <div className="mt-3 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-xxs font-semibold text-[#FF8C00] inline-flex items-center gap-1.5">
-            🎁  partage actif : 2 lancers bonus offerts au parrain !
+            🎁 Parrainage actif : {referralBonusSpins} lancer{referralBonusSpins > 1 ? 's' : ''} bonus offert{referralBonusSpins > 1 ? 's' : ''} au parrain !
           </div>
         )}
       </div>
@@ -123,7 +132,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
           ) : (
             <>
               <Send className="h-4 w-4" />
-              Obtenir mes 3 lancers
+              Obtenir mes lancers
             </>
           )}
         </button>

@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { trpc } from '../utils/trpc'
 import { RouletteWheel } from '../components/RouletteWheel'
-import { 
-  Gift, 
-  X, 
-  Sparkles, 
-  User, 
-  Mail, 
-  Play, 
-  Trophy, 
+import {
+  Gift,
+  X,
+  Sparkles,
+  User,
+  Mail,
+  Play,
+  Trophy,
   CheckCircle,
   Copy,
   ChevronRight,
@@ -31,12 +31,20 @@ interface WidgetAppProps {
 export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUserName }: WidgetAppProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'game' | 'challenges' | 'prizes'>('game')
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   
   // Player session states
   const [playerEmail, setPlayerEmail] = useState<string | null>(null)
   const [playerName, setPlayerName] = useState<string | null>(null)
   const [spinsLeft, setSpinsLeft] = useState<number>(0)
   const [isPromoCopied, setIsPromoCopied] = useState(false)
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => {
+      setToastMessage(prev => prev === msg ? null : prev)
+    }, 5000)
+  }
 
   // Registration/Lead Form states
   const [emailInput, setEmailInput] = useState('')
@@ -144,7 +152,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
         },
         onError: (err) => {
           setIsSubmitting(false)
-          alert(err.message)
+          showToast(err.message)
         }
       }
     )
@@ -209,7 +217,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
           refetchPlayer()
         },
         onError: (err) => {
-          alert(err.message)
+          showToast(err.message)
         }
       }
     )
@@ -230,7 +238,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
           refetchPlayer()
         },
         onError: (err) => {
-          alert(err.message)
+          showToast(err.message)
         }
       }
     )
@@ -246,7 +254,9 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
     }
   }
 
-  if (isLoading || !activeCampaign) return null
+  // The widget only supports the Roulette flow — Tirage au Sort campaigns
+  // aren't shown here (they rely on the full campaign portal experience).
+  if (isLoading || !activeCampaign || activeCampaign.gameMode === 'DRAW') return null
 
   const pName = activeCampaign.partner?.name || ' '
   const isToutEstLa = pName.toLowerCase().includes('tout est la') || pName.toLowerCase().includes('tout')
@@ -281,6 +291,19 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
         <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 w-full sm:w-[400px] h-full sm:h-[650px] bg-slate-950/80 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none z-[999999] flex items-end sm:items-stretch justify-center">
           
           <div className="w-full h-[90vh] sm:h-full bg-slate-950 sm:border border-slate-800 rounded-t-3xl sm:rounded-3xl flex flex-col justify-between overflow-hidden shadow-2xl relative animate-fade-in">
+            
+            {/* Toast Message banner */}
+            {toastMessage && (
+              <div className="absolute top-4 inset-x-4 z-[9999] bg-slate-900 border border-slate-800 text-white text-[11px] font-black px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-3 animate-fade-in">
+                <span>{toastMessage}</span>
+                <button
+                  onClick={() => setToastMessage(null)}
+                  className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             
             {/* Header section with Dynamic glows */}
             <div className="absolute top-0 inset-x-0 h-24 bg-linear-to-b from-purple-500/10 to-transparent pointer-events-none" />
@@ -344,7 +367,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                         </div>
                         <h4 className="text-sm font-black text-white">Rejoignez la Loterie !</h4>
                         <p className="text-[11px] text-slate-400 leading-relaxed font-semibold max-w-xs mx-auto">
-                          Entrez votre e-mail et votre nom pour obtenir immédiatement 3 lancers offerts.
+                          Entrez votre e-mail et votre nom pour débloquer vos lancers.
                         </p>
                       </div>
 
@@ -389,13 +412,13 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                         disabled={isSubmitting}
                         className={`w-full py-3 text-white font-black text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-97 cursor-pointer mt-6 ${brandAccent}`}
                       >
-                        {isSubmitting ? 'Chargement...' : 'Obtenir mes lancers 🎁'}
+                        {isSubmitting ? 'Chargement...' : 'Rejoindre la loterie'}
                       </button>
                     </form>
                   ) : (
                     /* The actual roulette wheel container */
                     <div className="flex flex-col items-center space-y-4">
-                      
+
                       {/* Spins header indicator */}
                       <div className="flex justify-between items-center w-full px-1">
                         <div>
@@ -410,9 +433,9 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
 
                       {/* Small Roulette Wheel */}
                       <div className="w-full flex justify-center py-2">
-                        <RouletteWheel 
+                        <RouletteWheel
                           campaignId={activeCampaign.id}
-                          prizes={activeCampaign.prizes}
+                          prizes={activeCampaign.prizes.filter((p: any) => !p.drawDate)}
                           email={playerEmail}
                           onSpinSuccess={handleSpinSuccess}
                         />

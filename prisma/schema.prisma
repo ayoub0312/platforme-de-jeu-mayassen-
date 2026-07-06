@@ -6,12 +6,38 @@ datasource db {
   provider = "sqlite"
 }
 
+// Singleton row (id: "main") holding site-wide homepage configuration.
+model SiteSettings {
+  id                  String  @id @default(cuid())
+  heroVideoData       String? // base64, capped at ~4MB client + server side
+  heroVideoMimeType   String?
+  heroPosterData      String? // shown when no video is configured, or as <video poster>
+  heroPosterMimeType  String?
+
+  // Réglages globaux (page "Paramètres" du back-office)
+  referralBonusSpins         Int     @default(2) // Lancers offerts au parrain par filleul inscrit
+  defaultSenderEmail         String? // Utilisé si une campagne n'a pas sa propre adresse d'envoi
+  defaultSenderEmailPassword String? // Mot de passe d'application, chiffré (AES-256-GCM)
+}
+
+model PromoBanner {
+  id            String   @id @default(cuid())
+  imageData     String
+  imageMimeType String
+  linkUrl       String? // Optional — banner is purely visual if no destination is set
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
 model User {
   id    String  @id @default(cuid())
   email String  @unique
   phone String?
   name  String?
   role  Role    @default(PLAYER)
+  passwordHash String?
+  normalizedEmail String? // Email normalisé pour détecter les alias (Gmail +tag, dots)
 
   //  partage
   referralCode String  @unique @default(cuid())
@@ -23,6 +49,7 @@ model User {
   playTokens PlayToken[]
   wonPrizes  UserPrize[]
   leads      LeadCapture[]
+  receiptSubmissions ReceiptSubmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -32,6 +59,12 @@ enum Role {
   SUPERADMIN
   PARTNER
   PLAYER
+  READONLY
+}
+
+enum GameMode {
+  ROULETTE
+  DRAW
 }
 
 model Partner {
@@ -47,12 +80,34 @@ model Campaign {
   partnerId String?
   partner   Partner?      @relation(fields: [partnerId], references: [id])
   title     String
+  description String? // Résumé affiché dans le wizard admin et, à terme, sur la fiche campagne
+  category    String? // Catégorie choisie explicitement dans le wizard (remplace l'heuristique côté client)
   startDate DateTime
   endDate   DateTime
   isActive  Boolean       @default(true)
+  gameMode  GameMode      @default(ROULETTE)
+  imageData     String? // Image de la campagne encodée en base64 (stockée en DB)
+  imageMimeType String? // Ex: image/jpeg, image/png
+
+  // Wizard admin (brouillon, QR unique par campagne, template d'origine)
+  // isDraft défaut à false pour ne pas transformer les campagnes déjà publiées
+  // en brouillons lors de la migration ; le wizard le passe explicitement à
+  // true à la création puis à false à la publication (étape 5).
+  isDraft       Boolean @default(false)
+  qrCodeToken   String  @unique @default(cuid())
+  templateUsed  String?
+  spinsPerClient      Int     @default(1) // Nb de lancers/entrées offerts à la vérification OTP (flow QR direct)
+  postSignupMessage   String? // Message affiché après inscription (mode Tirage)
+  qrColor             String? @default("#F97316") // Couleur du QR téléchargeable
+
+  // Email d'envoi automatique au gagnant (identité de l'agence/partenaire)
+  senderEmail         String?
+  senderEmailPassword String? // Mot de passe d'application, chiffré (AES-256-GCM) avant stockage
+
   prizes    Prize[]
   leads     LeadCapture[]
   tokens    PlayToken[]
+  receiptSubmissions ReceiptSubmission[]
 
   // Ads & Promos (Manageable from Dashboard)
   adBadge1   String?
@@ -83,8 +138,13 @@ model Prize {
   winProbability  Float // Ex: 0.05
   fallbackPrizeId String? // ID du lot de consolation
   winners         UserPrize[]
+  color           String? // Couleur du segment (config roulette)
+  imageData       String? // Image du segment/lot encodée en base64
+  imageMimeType   String?
+  order           Int         @default(0) // Tri pour le drag & drop (même pattern que PromoBanner.order)
 
-  drawDate DateTime? // Date du tirage au sort  
+  drawDate DateTime? // Date du tirage au sort
+  validityDays Int? @default(30) // Durée de validité en jours
 }
 
 enum PrizeType {
@@ -99,7 +159,7 @@ model UserPrize {
   prizeId   String
   prize     Prize    @relation(fields: [prizeId], references: [id])
   claimedAt DateTime @default(now())
-  status    String   @default("PENDING") // PENDING, DELIVERED
+  status    String   @default("PENDING") // PENDING, DELIVERED, CONTACTED, RETRIEVED
 }
 
 model PlayToken {
@@ -141,4 +201,62 @@ model LeadCapture {
   createdAt  DateTime @default(now())
 
   @@unique([userId, campaignId]) // Garantit un seul lead par utilisateur et par campagne
+}
+
+enum ReceiptStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ReceiptSubmission {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  campaignId      String
+  campaign        Campaign      @relation(fields: [campaignId], references: [id])
+  fileData        String        // Image encodée en base64 (stocké en DB)
+  fileMimeType    String        // Ex: image/jpeg, image/png, application/pdf
+  status          ReceiptStatus @default(PENDING)
+  submittedAt     DateTime      @default(now())
+  reviewedAt      DateTime?
+  reviewedByEmail String?
+}
+
+// Un scan = un QR de campagne flashé, avant même le formulaire. Alimente le
+// compteur de scans et le graphique 7/30 jours du dashboard.
+model QrScanEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  scannedAt  DateTime @default(now())
+
+  @@index([campaignId, scannedAt])
+}
+
+// Code de vérification SMS envoyé avant de pouvoir jouer (Phase 8).
+model OtpCode {
+  id         String   @id @default(cuid())
+  phone      String
+  code       String
+  campaignId String
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([phone, campaignId])
+}
+
+// Historique des actions admin (création/édition/publication de campagne,
+// changement de statut d'un gagnant, etc.) pour le back-office.
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userEmail  String
+  action     String
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

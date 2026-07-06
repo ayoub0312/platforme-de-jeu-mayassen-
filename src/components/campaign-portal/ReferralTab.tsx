@@ -98,7 +98,7 @@ export function ReferralTab({
           Partagez votre lien de parrainage
         </h3>
         <p className="text-slate-650 text-xs mt-3 leading-relaxed font-semibold">
-          Chaque filleul inscrit vous fait gagner instantanément <span className="text-[#FF8C00] font-black">+2 lancers bonus</span> et ils reçoivent 3 lancers gratuits dès leur arrivée !
+          Chaque filleul inscrit vous fait gagner instantanément <span className="text-[#FF8C00] font-black">+2 lancers bonus</span> et ils reçoivent leurs lancers gratuits dès leur arrivée !
         </p>
       </div>
 

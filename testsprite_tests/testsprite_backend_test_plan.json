@@ -1,0 +1,27 @@
+[
+  {
+    "id": "TC001",
+    "title": "test_admin_authentication_with_valid_and_invalid_credentials",
+    "description": "Verify that POST /api/trpc/loginAdmin authenticates users correctly by returning a JWT token, role, and partnerId for valid credentials and returns a 401 Unauthorized error for invalid credentials without issuing a token."
+  },
+  {
+    "id": "TC002",
+    "title": "test_get_campaign_details_for_existing_and_missing_campaigns",
+    "description": "Verify that GET /api/trpc/getCampaignDetails returns 200 with campaign details for an existing active campaign and returns 404 Campaign not found for a missing or expired campaign."
+  },
+  {
+    "id": "TC003",
+    "title": "test_capture_lead_with_valid_and_duplicate_data",
+    "description": "Verify that POST /api/trpc/captureLead registers a new lead and returns player profile and spin tokens for valid data, and returns validation or conflict errors when duplicate userId and campaignId combinations or invalid data are submitted."
+  },
+  {
+    "id": "TC004",
+    "title": "test_spin_roulette_with_rate_limiting_and_stock_control",
+    "description": "Verify that POST /api/trpc/spinRoulette executes a prize spin correctly with token validation, atomic stock decrement, and returns prize details; rejects rapid repeated requests with 429 rate limit; returns 403 when no unused tokens are available; and assigns fallback prize when stock is depleted."
+  },
+  {
+    "id": "TC005",
+    "title": "test_get_user_prizes_by_email_with_valid_and_invalid_signature",
+    "description": "Verify that GET /api/trpc/getUserPrizesByEmail returns an array of won prizes when provided a valid HMAC signature and returns 401 Signature verification failed when the signature is invalid, ensuring secure prize retrieval."
+  }
+]

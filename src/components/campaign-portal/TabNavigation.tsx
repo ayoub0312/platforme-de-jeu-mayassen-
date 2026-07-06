@@ -5,16 +5,22 @@ import { Play, Calendar, Target, Trophy, Share2 } from 'lucide-react'
 interface TabNavigationProps {
   activeTab: 'game' | 'draws' | 'prizes' | 'referral' | 'challenges'
   setActiveTab: (tab: 'game' | 'draws' | 'prizes' | 'referral' | 'challenges') => void
+  gameMode?: 'ROULETTE' | 'DRAW'
 }
 
-export function TabNavigation({ activeTab, setActiveTab }: TabNavigationProps) {
-  const tabs = [
+export function TabNavigation({ activeTab, setActiveTab, gameMode = 'ROULETTE' }: TabNavigationProps) {
+  const allTabs = [
     { id: 'game', label: 'Lancer', icon: Play },
     { id: 'draws', label: 'Tirages', icon: Calendar },
     { id: 'challenges', label: 'Défis', icon: Target },
     { id: 'prizes', label: 'Lots', icon: Trophy },
     { id: 'referral', label: ' partage', icon: Share2 }
   ] as const
+
+  // A campaign is either Roulette (Lancer/Défis/Partage) or Tirage au Sort (Tirages) — never both.
+  const tabs = gameMode === 'DRAW'
+    ? allTabs.filter(t => t.id === 'draws' || t.id === 'prizes')
+    : allTabs.filter(t => t.id !== 'draws')
 
   return (
     <div className="hidden md:flex w-full items-center bg-slate-100/80 border border-slate-200 mb-6 p-1 rounded-2xl">

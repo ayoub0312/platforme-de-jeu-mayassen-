@@ -1,0 +1,16 @@
+{
+  "name": "Obooking Gift",
+  "short_name": "Obooking Gift",
+  "description": "Jeux-concours Obooking Gift — roulette et tirages au sort pour tenter de remporter voyages, séjours et bons d'achat exclusifs.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEF3E9",
+  "theme_color": "#F58220",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}

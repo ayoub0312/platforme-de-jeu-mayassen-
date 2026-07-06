@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { CampaignPortal } from '@/components/CampaignPortal'
@@ -10,27 +12,45 @@ interface CompanyPageProps {
   params: Promise<{ id: string }>
 }
 
+// cache() dedupes this lookup between generateMetadata and the page render —
+// both run for every request but React collapses them into a single query.
+const getPartnerBySlug = cache((id: string) =>
+  prisma.partner.findFirst({
+    where: {
+      OR: [
+        { id },
+        { name: { equals: id.toLowerCase().replace(/-/g, ' ') } },
+      ],
+    },
+  })
+)
+
+export async function generateMetadata({ params }: CompanyPageProps): Promise<Metadata> {
+  const { id } = await params
+  const partner = await getPartnerBySlug(id)
+  if (!partner) {
+    return { title: 'Partenaire introuvable | Obooking Gift' }
+  }
+  return {
+    title: `${partner.name} | Obooking Gift`,
+    description: `Jouez et tentez de remporter des lots exclusifs offerts par ${partner.name} avec Obooking Gift.`,
+    openGraph: {
+      title: `${partner.name} | Obooking Gift`,
+      description: `Jouez et tentez de remporter des lots exclusifs offerts par ${partner.name}.`,
+    },
+  }
+}
+
 export default async function CompanyPage({ params }: CompanyPageProps) {
   const resolvedParams = await params
   const { id } = resolvedParams
 
   // 1. Resolve B2B Partner by ID or Name slug
-  const partner = await prisma.partner.findFirst({
-    where: {
-      OR: [
-        { id: id },
-        { name: { equals: id.toLowerCase().replace(/-/g, ' ') } }
-      ]
-    }
-  })
+  const partner = await getPartnerBySlug(id)
 
   if (!partner) {
     return (
-      <main className="min-h-screen bg-linear-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] text-slate-800 flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Subtle Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000003_1px,transparent_1px),linear-gradient(to_bottom,#00000003_1px,transparent_1px)]  pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-orange-500 rounded-full blur-[100px] pointer-events-none" />
-
+      <main className="relative z-10 min-h-screen text-slate-800 flex items-center justify-center p-4 overflow-hidden">
         <div className="relative z-10 bg-white border border-slate-200/80 rounded-[32px] p-8 max-w-md w-full shadow-xl text-center">
           <AlertTriangle className="h-12 w-12 text-[#FF8C00] mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-black text-slate-800">Partenaire Introuvable</h2>
@@ -56,7 +76,9 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     },
     include: {
       partner: { select: { name: true } },
-      prizes: true,
+      // Must match the ordering spinRoulette uses to compute prizeIndex,
+      // otherwise the wheel visually lands on a different prize than the one awarded.
+      prizes: { orderBy: { winProbability: 'asc' } },
     },
     orderBy: { startDate: 'desc' },
   })
@@ -89,15 +111,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
   const isToutEstLa = partner.name.toLowerCase().includes('tout est la') || partner.name.toLowerCase().includes('tout')
 
   return (
-    <main className="b2b-white-portal min-h-screen bg-linear-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] text-slate-900 relative overflow-hidden flex flex-col justify-between">
-      {/* Subtle Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000003_1px,transparent_1px),linear-gradient(to_bottom,#00000003_1px,transparent_1px)]  pointer-events-none" />
-
-      {/* Dynamic Ambient Blur Lights */}
-      <div className="absolute -top-40 -left-40 w-[450px] h-[450px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000" />
-
-      <div className="absolute top-1/3 -right-40 w-[500px] h-[500px]  rounded-full blur-[140px] pointer-events-none" />
-
+    <main className="b2b-white-portal relative z-10 min-h-screen text-slate-900 overflow-hidden flex flex-col justify-between">
       <div className="z-10">
         {/* Client side dashboard with filtered campaigns */}
         <CampaignPortal

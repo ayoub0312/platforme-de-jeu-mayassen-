@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trpc } from '@/utils/trpc'
 import { LeadCaptureModal } from './LeadCaptureModal'
-import { HelpCircle, LogOut, Calendar, Radio } from 'lucide-react'
+import { HelpCircle, LogOut, Calendar } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 // Subcomponents
 import { HeroBanner } from './campaign-portal/HeroBanner'
@@ -27,6 +28,7 @@ interface CampaignPortalProps {
 export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: CampaignPortalProps) {
   const searchParams = useSearchParams()
   const referredByCode = searchParams.get('ref') || undefined
+  const toast = useToast()
 
   const [activeTab, setActiveTab] = useState<'game' | 'draws' | 'prizes' | 'referral' | 'challenges'>('game')
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
@@ -51,7 +53,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
   const activeCampaign = campaigns?.find(c => c.id === activeCampaignId)
 
   // Player info loader
-  const { data: playerInfo, refetch: refetchPlayer } = trpc.getPlayerInfo.useQuery(
+  const { data: playerInfo, isLoading: isPlayerInfoLoading, refetch: refetchPlayer } = trpc.getPlayerInfo.useQuery(
     {
       email: playerEmail || '',
       campaignId: activeCampaignId || ''
@@ -66,6 +68,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
 
   // tRPC mutations
   const claimTaskMutation = trpc.claimTaskToken.useMutation()
+  const submitReceiptMutation = trpc.submitReceipt.useMutation()
   const leadMutation = trpc.captureLead.useMutation()
 
   const handleVisitWebsite = () => {
@@ -81,10 +84,10 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
       {
         onSuccess: (data) => {
           refetchPlayer()
-          alert(data.message)
+          toast.success(data.message)
         },
         onError: (err) => {
-          alert(err.message)
+          toast.error(err.message)
         }
       }
     )
@@ -103,41 +106,63 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
       {
         onSuccess: (data) => {
           refetchPlayer()
-          alert(data.message)
+          toast.success(data.message)
         },
         onError: (err) => {
-          alert(err.message)
+          toast.error(err.message)
         }
       }
     )
   }
 
-  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!activeCampaign) return
     if (playerInfo?.completedTasks?.includes('RECEIPT_UPLOAD')) return
     if (!e.target.files || e.target.files.length === 0) return
 
+    const file = e.target.files[0]
     setUploadingReceipt(true)
-    setTimeout(() => {
-      claimTaskMutation.mutate(
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload-receipt', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erreur lors de l'upload du fichier.")
+      }
+
+      const uploadResult = await response.json()
+      const { fileData, fileMimeType } = uploadResult
+
+      submitReceiptMutation.mutate(
         {
           email: playerEmail || '',
           campaignId: activeCampaign.id,
-          taskType: 'RECEIPT_UPLOAD',
+          fileData,
+          fileMimeType,
         },
         {
           onSuccess: (data) => {
             setUploadingReceipt(false)
             refetchPlayer()
-            alert('Ticket analysé avec succès ! ' + data.message)
+            toast.success(data.message || 'Ticket envoyé ! Il sera vérifié sous peu.')
           },
           onError: (err) => {
             setUploadingReceipt(false)
-            alert(err.message)
+            toast.error(err.message)
           }
         }
       )
-    }, 2000)
+    } catch (err: any) {
+      setUploadingReceipt(false)
+      toast.error(err.message || "Une erreur est survenue lors de l'envoi.")
+    }
   }
 
   const handleJoinDraw = () => {
@@ -152,10 +177,10 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
       {
         onSuccess: (data) => {
           refetchPlayer()
-          alert(data.message)
+          toast.success(data.message)
         },
         onError: (err) => {
-          alert(err.message)
+          toast.error(err.message)
         }
       }
     )
@@ -180,11 +205,23 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
     }
   }, [playerInfo])
 
+  // Keep the active tab valid for the current campaign's game mode — a campaign
+  // is either Roulette (Lancer/Défis/Partage) or Tirage au Sort (Tirages), never both.
+  useEffect(() => {
+    if (!activeCampaign) return
+    const isDraw = activeCampaign.gameMode === 'DRAW'
+    if (isDraw && activeTab !== 'draws' && activeTab !== 'prizes') {
+      setActiveTab('draws')
+    } else if (!isDraw && activeTab === 'draws') {
+      setActiveTab('game')
+    }
+  }, [activeCampaign])
+
   const handleLeadCaptureSuccess = (email: string, name: string, tokens: number) => {
     setPlayerEmail(email)
     setPlayerName(name)
     setSpinsLeft(tokens)
-    setActiveTab('game')
+    setActiveTab(activeCampaign?.gameMode === 'DRAW' ? 'draws' : 'game')
     if (typeof window !== 'undefined') {
       localStorage.setItem('obooking_game_email', email)
       localStorage.setItem('obooking_game_name', name)
@@ -330,10 +367,22 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
                   referredByCode={referredByCode}
                   onSuccess={handleLeadCaptureSuccess}
                 />
+              ) : isPlayerInfoLoading ? (
+                // Player info (spins left, completed tasks...) is still loading — show a
+                // shimmer placeholder instead of briefly rendering tabs with default/zero
+                // values (e.g. GameTab flashing "0 lancers restants" before the real count arrives).
+                <div className="flex flex-col items-center w-full gap-6" aria-busy="true" aria-label="Chargement...">
+                  <div className="flex gap-2 w-full max-w-md">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="skeleton-shimmer h-9 flex-1 rounded-xl" />
+                    ))}
+                  </div>
+                  <div className="skeleton-shimmer h-64 w-full max-w-md rounded-2xl" />
+                </div>
               ) : (
                 <div className="flex flex-col items-center w-full">
                   {/* Internal horizontal tabs */}
-                  <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+                  <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} gameMode={activeCampaign.gameMode} />
 
                   {/* TAB CONTENT: GAME */}
                   {activeTab === 'game' && (
@@ -342,6 +391,9 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
                       playerEmail={playerEmail!}
                       spinsLeft={spinsLeft}
                       onSpinSuccess={handleSpinSuccess}
+                      playerInfo={playerInfo}
+                      uploadingReceipt={uploadingReceipt}
+                      handleReceiptUpload={handleReceiptUpload}
                     />
                   )}
 
@@ -401,6 +453,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
         playerName={playerName}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        gameMode={activeCampaign.gameMode}
       />
     </div>
   )

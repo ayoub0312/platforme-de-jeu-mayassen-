@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# testsprite_tests/tmp/config.json contains a live API key — ignore the whole
+# tmp/ directory (Windows backslashes above didn't actually match as a path
+# separator, so this had been silently unignored).
+testsprite_tests/tmp/

@@ -40,7 +40,7 @@ async function getCryptoKey(): Promise<CryptoKey> {
 
 export interface UserSession {
   email: string;
-  role: 'SUPERADMIN' | 'PARTNER';
+  role: 'SUPERADMIN' | 'PARTNER' | 'READONLY';
   partnerId?: string | null;
   exp: number;
 }
@@ -98,13 +98,9 @@ export async function verifySessionToken(token: string | undefined): Promise<Use
     if (session.exp < Math.floor(Date.now() / 1000)) {
       return null; // Expired
     }
-    
-    // Dynamic promotion of PARTNER roles to SUPERADMIN
-    if (session.role === 'PARTNER') {
-      session.role = 'SUPERADMIN';
-    }
-    
+
     return session;
+
   } catch (err) {
     console.error('Failed to verify session token:', err);
     return null;
