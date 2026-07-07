@@ -2125,6 +2125,8 @@ export const appRouter = router({
         })
       }
 
+      const campaignForDraw = await prisma.campaign.findUnique({ where: { id: prize.campaignId } })
+
       // 1. Fetch all participants for this campaign who completed JOIN_DRAW
       const participants = await prisma.playToken.findMany({
         where: {
@@ -2146,7 +2148,25 @@ export const appRouter = router({
       for (const p of participants) {
         uniqueUsersMap.set(p.user.id, p.user)
       }
-      const eligibleUsers = Array.from(uniqueUsersMap.values())
+      let eligibleUsers = Array.from(uniqueUsersMap.values())
+
+      // If the campaign disallows winning more than one prize, exclude anyone
+      // who already won any other prize belonging to this same campaign.
+      if (campaignForDraw && !campaignForDraw.allowMultipleWins) {
+        const priorWinners = await prisma.userPrize.findMany({
+          where: { prize: { campaignId: prize.campaignId } },
+          select: { userId: true },
+        })
+        const alreadyWon = new Set(priorWinners.map((w) => w.userId))
+        eligibleUsers = eligibleUsers.filter((u) => !alreadyWon.has(u.id))
+      }
+
+      if (eligibleUsers.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: "Aucun participant éligible : tous les inscrits ont déjà gagné un autre lot de cette campagne.",
+        })
+      }
 
       // 2. Determine number of winners to draw based on stock (minimum 1, up to remaining stock or number of eligible users)
       const countToDraw = prize.totalStock > 0 ? Math.min(prize.totalStock, eligibleUsers.length) : 1
@@ -2222,6 +2242,85 @@ export const appRouter = router({
         success: true,
         winners: winners.map(w => ({ id: w.id, name: w.name, email: w.email }))
       }
+    }),
+
+  // Vue dédiée pour la page de réglages "Tirage au sort" d'une campagne :
+  // lots, nombre d'inscrits par lot, gagnants déjà tirés, et réglages globaux.
+  getDrawCampaignOverview: superAdminProcedure
+    .input(z.object({ campaignId: z.string() }))
+    .query(async ({ input }) => {
+      const campaign = await prisma.campaign.findUnique({
+        where: { id: input.campaignId },
+        include: {
+          prizes: {
+            orderBy: { order: 'asc' },
+            include: { winners: { include: { user: { select: { name: true, email: true } } } } },
+          },
+        },
+      })
+      if (!campaign) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+
+      const prizesWithCounts = await Promise.all(
+        campaign.prizes.map(async (p) => {
+          const tokens = await prisma.playToken.findMany({
+            where: { campaignId: campaign.id, earnedVia: EarnMethod.JOIN_DRAW },
+            select: { userId: true },
+          })
+          const participantCount = new Set(tokens.map((t) => t.userId)).size
+          return {
+            id: p.id,
+            name: p.name,
+            totalStock: p.totalStock,
+            drawDate: p.drawDate,
+            participantCount,
+            winners: p.winners.map((w) => ({
+              id: w.id,
+              name: w.user.name,
+              email: w.user.email,
+              claimedAt: w.claimedAt,
+            })),
+          }
+        })
+      )
+
+      return {
+        id: campaign.id,
+        title: campaign.title,
+        allowMultipleWins: campaign.allowMultipleWins,
+        drawDate: campaign.prizes[0]?.drawDate ?? null,
+        prizes: prizesWithCounts,
+      }
+    }),
+
+  updateDrawSettings: writeProcedure
+    .input(
+      z.object({
+        campaignId: z.string(),
+        allowMultipleWins: z.boolean(),
+        drawDate: z.coerce.date().nullable(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      await prisma.campaign.update({
+        where: { id: input.campaignId },
+        data: { allowMultipleWins: input.allowMultipleWins },
+      })
+      await prisma.prize.updateMany({
+        where: { campaignId: input.campaignId },
+        data: { drawDate: input.drawDate },
+      })
+      return { success: true }
+    }),
+
+  updatePrizeWinnerCount: writeProcedure
+    .input(z.object({ prizeId: z.string(), totalStock: z.number().int().min(1) }))
+    .mutation(async ({ input }) => {
+      return prisma.prize.update({
+        where: { id: input.prizeId },
+        data: { totalStock: input.totalStock },
+      })
     }),
 
   // Users & Tokens CRUD
@@ -2405,6 +2504,16 @@ export const appRouter = router({
         where: { id: input.id },
         data: { gameMode: input.gameMode },
       })
+      if (input.gameMode === 'DRAW') {
+        // totalStock <= 0 is a valid "stock illimité" value in Roulette mode,
+        // but in Draw mode the same column means "nombre de gagnants à
+        // tirer" — a prize carried over from Roulette can otherwise show a
+        // nonsensical "Gagnants : -1" until an admin edits it manually.
+        await prisma.prize.updateMany({
+          where: { campaignId: input.id, totalStock: { lte: 0 } },
+          data: { totalStock: 1 },
+        })
+      }
       await logActivity({
         userEmail: ctx.userSession!.email,
         action: `SET_GAME_MODE_${input.gameMode}`,

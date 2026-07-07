@@ -99,6 +99,7 @@ model Campaign {
   spinsPerClient      Int     @default(1) // Nb de lancers/entrées offerts à la vérification OTP (flow QR direct)
   postSignupMessage   String? // Message affiché après inscription (mode Tirage)
   qrColor             String? @default("#F97316") // Couleur du QR téléchargeable
+  allowMultipleWins   Boolean @default(true) // Tirage au sort : un participant peut-il gagner plusieurs lots de la meme campagne
 
   // Email d'envoi automatique au gagnant (identité de l'agence/partenaire)
   senderEmail         String?

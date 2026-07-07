@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Users, Gift, Sliders, Edit2, Copy, Trash2, RefreshCw } from 'lucide-react'
+import { Calendar, Users, Gift, Sliders, Edit2, Copy, Trash2, RefreshCw, Trophy } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 
@@ -24,6 +24,7 @@ export interface CampaignCardProps {
   onSetGameMode: (mode: 'ROULETTE' | 'DRAW') => void
   onSpinsPerClientChange: (value: number) => void
   onConfigure: () => void
+  onManageDraws?: () => void
   onEdit: () => void
   onDuplicate: () => void
   onDelete: () => void
@@ -42,6 +43,7 @@ export function CampaignCard({
   onSetGameMode,
   onSpinsPerClientChange,
   onConfigure,
+  onManageDraws,
   onEdit,
   onDuplicate,
   onDelete,
@@ -128,6 +130,11 @@ export function CampaignCard({
             <button type="button" onClick={onConfigure} title="Configurer" className="p-2 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-500 hover:text-white transition-colors cursor-pointer">
               <Sliders className="h-3.5 w-3.5" />
             </button>
+            {c.gameMode === 'DRAW' && onManageDraws && (
+              <button type="button" onClick={onManageDraws} title="Gérer le tirage au sort" className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-colors cursor-pointer">
+                <Trophy className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button type="button" onClick={onEdit} title="Modifier" className="p-2 rounded-lg bg-surface-alt text-ink-500 hover:bg-black/[0.08] transition-colors cursor-pointer">
               <Edit2 className="h-3.5 w-3.5" />
             </button>

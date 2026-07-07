@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { trpc } from '@/utils/trpc'
 import type { UserSession } from '@/lib/auth'
 import { CampaignGameConfigModal } from './campaign-config/CampaignGameConfigModal'
+import { DrawManagementModal } from './campaign-config/DrawManagementModal'
 import { AdminLayout, type AdminNavItem } from './admin/AdminLayout'
 import { Dashboard } from './admin/Dashboard'
 import { DataTable } from './admin/DataTable'
@@ -256,6 +257,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     list: [],
   })
   const [gameConfigModal, setGameConfigModal] = useState<{ open: boolean; campaignId: string | null }>({
+    open: false,
+    campaignId: null,
+  })
+  const [drawManagementModal, setDrawManagementModal] = useState<{ open: boolean; campaignId: string | null }>({
     open: false,
     campaignId: null,
   })
@@ -1343,6 +1348,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         }
                       }}
                       onConfigure={() => setGameConfigModal({ open: true, campaignId: c.id })}
+                      onManageDraws={() => setDrawManagementModal({ open: true, campaignId: c.id })}
                       onEdit={() => openCampaignModal('edit', c)}
                       onDuplicate={async () => {
                         try {
@@ -2751,6 +2757,15 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         campaignId={gameConfigModal.campaignId}
         onClose={() => {
           setGameConfigModal({ open: false, campaignId: null })
+          refetchAll()
+        }}
+      />
+
+      <DrawManagementModal
+        open={drawManagementModal.open}
+        campaignId={drawManagementModal.campaignId}
+        onClose={() => {
+          setDrawManagementModal({ open: false, campaignId: null })
           refetchAll()
         }}
       />
