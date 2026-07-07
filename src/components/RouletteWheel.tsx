@@ -620,6 +620,14 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               const hasImage = !!prize.imageData
               const wedgePathD = `M 100 100 L ${start.x} ${start.y} A 95 95 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`
 
+              // Fit the photo to this wedge's own bounding box (not the whole
+              // wheel) so it isn't zoomed way in — only the visible sliver of
+              // the photo used to cover a 200x200 area would otherwise show.
+              const wedgeMinX = Math.min(100, start.x, end.x) - 4
+              const wedgeMaxX = Math.max(100, start.x, end.x) + 4
+              const wedgeMinY = Math.min(100, start.y, end.y) - 4
+              const wedgeMaxY = Math.max(100, start.y, end.y) + 4
+
               const displayName = prize.name
               const lines = splitTextIntoLines(displayName)
 
@@ -649,10 +657,10 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                       </defs>
                       <image
                         href={`data:${prize.imageMimeType || 'image/jpeg'};base64,${prize.imageData}`}
-                        x="2"
-                        y="2"
-                        width="196"
-                        height="196"
+                        x={wedgeMinX}
+                        y={wedgeMinY}
+                        width={wedgeMaxX - wedgeMinX}
+                        height={wedgeMaxY - wedgeMinY}
                         preserveAspectRatio="xMidYMid slice"
                         clipPath={`url(#wedge-photo-clip-${prize.id})`}
                       />
