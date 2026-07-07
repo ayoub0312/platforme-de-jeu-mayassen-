@@ -14,6 +14,8 @@ interface Prize {
   winProbability: number
   fallbackPrizeId: string | null
   color?: string | null
+  imageData?: string | null
+  imageMimeType?: string | null
 }
 
 interface RouletteWheelProps {
@@ -615,6 +617,14 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               const textX = 100 + labelRadius * Math.cos(labelAngleRad)
               const textY = 100 + labelRadius * Math.sin(labelAngleRad)
 
+              // Admin-uploaded lot photo, shown as a small clipped-circle icon
+              // closer to the rim than the label — a circle looks identical
+              // whichever way it's rotated, so no extra transform is needed.
+              const iconRadius = 9
+              const iconCenterRadius = 78
+              const iconX = 100 + iconCenterRadius * Math.cos(labelAngleRad)
+              const iconY = 100 + iconCenterRadius * Math.sin(labelAngleRad)
+
               const displayName = prize.name
               const lines = splitTextIntoLines(displayName)
 
@@ -634,6 +644,26 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                     strokeWidth="2"
                     strokeLinejoin="round"
                   />
+                  {/* Admin-uploaded lot photo, if any */}
+                  {prize.imageData && (
+                    <>
+                      <defs>
+                        <clipPath id={`prize-photo-clip-${prize.id}`}>
+                          <circle cx={iconX} cy={iconY} r={iconRadius} />
+                        </clipPath>
+                      </defs>
+                      <image
+                        href={`data:${prize.imageMimeType || 'image/jpeg'};base64,${prize.imageData}`}
+                        x={iconX - iconRadius}
+                        y={iconY - iconRadius}
+                        width={iconRadius * 2}
+                        height={iconRadius * 2}
+                        preserveAspectRatio="xMidYMid slice"
+                        clipPath={`url(#prize-photo-clip-${prize.id})`}
+                      />
+                      <circle cx={iconX} cy={iconY} r={iconRadius} fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                    </>
+                  )}
                   {/* Segment Prize Text */}
                   <text
                     x={textX}

@@ -196,6 +196,8 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
     winProbability: s.winProbability || 0.0001,
     fallbackPrizeId: null,
     color: s.color,
+    imageData: s.imageData,
+    imageMimeType: s.imageMimeType,
   }))
 
   return (
