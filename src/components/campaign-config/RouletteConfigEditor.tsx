@@ -71,66 +71,73 @@ function SortableSegmentRow({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-      <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 shrink-0">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 items-center p-3 bg-slate-50 border border-slate-200 rounded-xl"
+    >
+      <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 shrink-0" aria-label="Réordonner">
         <GripVertical className="h-4 w-4" />
       </button>
 
-      <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 shrink-0">
-        <button
-          type="button"
-          onClick={selectColorMode}
-          title="Couleur unie"
-          aria-pressed={mode === 'color'}
-          className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
-            mode === 'color' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
-          }`}
-        >
-          <Palette className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('image')}
-          title="Image"
-          aria-pressed={mode === 'image'}
-          className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
-            mode === 'image' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
-          }`}
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      {/* Fond du segment : couleur unie ou photo */}
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={selectColorMode}
+            title="Couleur unie"
+            aria-pressed={mode === 'color'}
+            className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+              mode === 'color' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+            }`}
+          >
+            <Palette className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('image')}
+            title="Image"
+            aria-pressed={mode === 'image'}
+            className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+              mode === 'image' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+            }`}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-      {mode === 'color' ? (
-        <input
-          type="color"
-          value={segment.color}
-          onChange={(e) => onChange(index, { color: e.target.value })}
-          className="h-9 w-9 rounded-lg border border-slate-200 cursor-pointer shrink-0"
-          title="Couleur du segment"
-        />
-      ) : (
-        <>
-          <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden" title="Photo du segment">
-            {segment.imageData ? (
-              <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
-            ) : (
-              <ImageIcon className="h-4 w-4 text-slate-300" />
+        {mode === 'color' ? (
+          <input
+            type="color"
+            value={segment.color}
+            onChange={(e) => onChange(index, { color: e.target.value })}
+            className="h-9 w-9 rounded-lg border border-slate-200 cursor-pointer shrink-0"
+            title="Couleur du segment"
+          />
+        ) : (
+          <>
+            <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden" title="Choisir une photo">
+              {segment.imageData ? (
+                <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
+              ) : (
+                <ImageIcon className="h-4 w-4 text-slate-300" />
+              )}
+              <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+            </label>
+            {segment.imageData && (
+              <button
+                type="button"
+                onClick={() => setIsCropping(true)}
+                title="Recadrer la photo"
+                className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all"
+              >
+                <Crop className="h-4 w-4" />
+              </button>
             )}
-            <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-          </label>
-          {segment.imageData && (
-            <button
-              type="button"
-              onClick={() => setIsCropping(true)}
-              title="Recadrer la photo"
-              className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all"
-            >
-              <Crop className="h-4 w-4" />
-            </button>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       {isCropping && segment.imageData && (
         <ImageCropModal
@@ -149,29 +156,36 @@ function SortableSegmentRow({
         value={segment.name}
         onChange={(e) => onChange(index, { name: e.target.value })}
         placeholder="Nom du lot"
-        className="flex-1 min-w-0 bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+        className="min-w-0 bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
       />
 
-      <input
-        type="number"
-        min={0}
-        max={100}
-        value={Math.round(segment.winProbability * 100)}
-        onChange={(e) => onChange(index, { winProbability: Math.max(0, Math.min(100, Number(e.target.value))) / 100 })}
-        className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
-        title="Probabilité de gain (%)"
-      />
-      <span className="text-[10px] text-slate-400 font-bold -ml-1">%</span>
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          min={0}
+          max={100}
+          value={Math.round(segment.winProbability * 100)}
+          onChange={(e) => onChange(index, { winProbability: Math.max(0, Math.min(100, Number(e.target.value))) / 100 })}
+          className="w-full min-w-0 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+          title="Probabilité de gain (%)"
+        />
+        <span className="text-[10px] text-slate-400 font-bold shrink-0">%</span>
+      </div>
 
       <input
         type="number"
         value={segment.totalStock}
         onChange={(e) => onChange(index, { totalStock: Number(e.target.value) })}
-        className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
-        title="Stock (-1 = illimité)"
+        className="w-full min-w-0 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+        title="Stock disponible (-1 = illimité)"
       />
 
-      <button type="button" onClick={() => onDelete(index)} className="p-2 text-red-400 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all shrink-0 cursor-pointer">
+      <button
+        type="button"
+        onClick={() => onDelete(index)}
+        title="Supprimer ce segment"
+        className="p-2 text-red-400 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all shrink-0 cursor-pointer"
+      >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -319,7 +333,7 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         {/* Éditeur de segments */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -327,6 +341,16 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
             <span className={`text-xs font-black px-2.5 py-1 rounded-full ${isValid ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
               Total : {sumPercent}% {isValid ? '✓' : '(doit faire 100%)'}
             </span>
+          </div>
+
+          {/* En-têtes de colonnes — alignés sur la même grille que chaque ligne */}
+          <div className="grid grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 px-3 mb-1.5">
+            <span />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Fond</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Nom du lot</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Gain %</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Stock</span>
+            <span />
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
