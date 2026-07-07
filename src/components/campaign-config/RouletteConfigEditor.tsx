@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle } from 'lucide-react'
+import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle, Crop } from 'lucide-react'
 import { RouletteWheel } from '../RouletteWheel'
 import { SEGMENT_COLOR_PALETTE, type GameConfigData, type ConfigPrize } from './types'
+import { ImageCropModal } from './ImageCropModal'
 import { trpc } from '@/utils/trpc'
 
 const SEGMENT_COUNTS = [6, 8, 10, 12]
@@ -48,6 +49,7 @@ function SortableSegmentRow({
   useEffect(() => {
     if (segment.imageData) setMode('image')
   }, [segment.imageData])
+  const [isCropping, setIsCropping] = useState(false)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -108,14 +110,38 @@ function SortableSegmentRow({
           title="Couleur du segment"
         />
       ) : (
-        <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden" title="Photo du segment">
-          {segment.imageData ? (
-            <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
-          ) : (
-            <ImageIcon className="h-4 w-4 text-slate-300" />
+        <>
+          <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden" title="Photo du segment">
+            {segment.imageData ? (
+              <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
+            ) : (
+              <ImageIcon className="h-4 w-4 text-slate-300" />
+            )}
+            <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+          </label>
+          {segment.imageData && (
+            <button
+              type="button"
+              onClick={() => setIsCropping(true)}
+              title="Recadrer la photo"
+              className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all"
+            >
+              <Crop className="h-4 w-4" />
+            </button>
           )}
-          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-        </label>
+        </>
+      )}
+
+      {isCropping && segment.imageData && (
+        <ImageCropModal
+          imageData={segment.imageData}
+          imageMimeType={segment.imageMimeType || 'image/jpeg'}
+          onCancel={() => setIsCropping(false)}
+          onConfirm={({ imageData, imageMimeType }) => {
+            onChange(index, { imageData, imageMimeType })
+            setIsCropping(false)
+          }}
+        />
       )}
 
       <input
