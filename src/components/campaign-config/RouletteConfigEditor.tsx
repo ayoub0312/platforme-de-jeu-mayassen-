@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2, Plus, ImageIcon, PlayCircle } from 'lucide-react'
+import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle } from 'lucide-react'
 import { RouletteWheel } from '../RouletteWheel'
 import { SEGMENT_COLOR_PALETTE, type GameConfigData, type ConfigPrize } from './types'
 import { trpc } from '@/utils/trpc'
@@ -41,8 +41,18 @@ function SortableSegmentRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `seg-${index}` })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
+  // Which control is shown for this segment's background — derived from
+  // whether a photo is already set, but kept as local state too so picking
+  // "Image" shows the upload control right away, before a file is chosen.
+  const [mode, setMode] = useState<'color' | 'image'>(segment.imageData ? 'image' : 'color')
+  useEffect(() => {
+    if (segment.imageData) setMode('image')
+  }, [segment.imageData])
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    // Reset so selecting the same file again still fires a change event.
+    e.target.value = ''
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
@@ -53,28 +63,60 @@ function SortableSegmentRow({
     reader.readAsDataURL(file)
   }
 
+  const selectColorMode = () => {
+    setMode('color')
+    onChange(index, { imageData: null, imageMimeType: null })
+  }
+
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
       <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 shrink-0">
         <GripVertical className="h-4 w-4" />
       </button>
 
-      <input
-        type="color"
-        value={segment.color}
-        onChange={(e) => onChange(index, { color: e.target.value })}
-        className="h-9 w-9 rounded-lg border border-slate-200 cursor-pointer shrink-0"
-        title="Couleur du segment"
-      />
+      <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={selectColorMode}
+          title="Couleur unie"
+          aria-pressed={mode === 'color'}
+          className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+            mode === 'color' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+          }`}
+        >
+          <Palette className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('image')}
+          title="Image"
+          aria-pressed={mode === 'image'}
+          className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
+            mode === 'image' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+          }`}
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
-      <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden">
-        {segment.imageData ? (
-          <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
-        ) : (
-          <ImageIcon className="h-4 w-4 text-slate-300" />
-        )}
-        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-      </label>
+      {mode === 'color' ? (
+        <input
+          type="color"
+          value={segment.color}
+          onChange={(e) => onChange(index, { color: e.target.value })}
+          className="h-9 w-9 rounded-lg border border-slate-200 cursor-pointer shrink-0"
+          title="Couleur du segment"
+        />
+      ) : (
+        <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden" title="Photo du segment">
+          {segment.imageData ? (
+            <img src={`data:${segment.imageMimeType};base64,${segment.imageData}`} className="h-full w-full object-cover" alt="" />
+          ) : (
+            <ImageIcon className="h-4 w-4 text-slate-300" />
+          )}
+          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+        </label>
+      )}
 
       <input
         type="text"

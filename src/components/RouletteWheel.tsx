@@ -617,13 +617,8 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               const textX = 100 + labelRadius * Math.cos(labelAngleRad)
               const textY = 100 + labelRadius * Math.sin(labelAngleRad)
 
-              // Admin-uploaded lot photo, shown as a small clipped-circle icon
-              // closer to the rim than the label — a circle looks identical
-              // whichever way it's rotated, so no extra transform is needed.
-              const iconRadius = 9
-              const iconCenterRadius = 78
-              const iconX = 100 + iconCenterRadius * Math.cos(labelAngleRad)
-              const iconY = 100 + iconCenterRadius * Math.sin(labelAngleRad)
+              const hasImage = !!prize.imageData
+              const wedgePathD = `M 100 100 L ${start.x} ${start.y} A 95 95 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`
 
               const displayName = prize.name
               const lines = splitTextIntoLines(displayName)
@@ -636,45 +631,47 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
 
               return (
                 <g key={prize.id}>
-                  {/* Segment path */}
+                  {/* Segment path — flat color fill, or left transparent so the
+                      admin's photo (clipped to this same wedge shape below) shows instead */}
                   <path
-                    d={`M 100 100 L ${start.x} ${start.y} A 95 95 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`}
-                    fill={fillColor}
+                    d={wedgePathD}
+                    fill={hasImage ? 'none' : fillColor}
                     stroke="#FFFFFF"
                     strokeWidth="2"
                     strokeLinejoin="round"
                   />
-                  {/* Admin-uploaded lot photo, if any */}
-                  {prize.imageData && (
+                  {hasImage && (
                     <>
                       <defs>
-                        <clipPath id={`prize-photo-clip-${prize.id}`}>
-                          <circle cx={iconX} cy={iconY} r={iconRadius} />
+                        <clipPath id={`wedge-photo-clip-${prize.id}`}>
+                          <path d={wedgePathD} />
                         </clipPath>
                       </defs>
                       <image
                         href={`data:${prize.imageMimeType || 'image/jpeg'};base64,${prize.imageData}`}
-                        x={iconX - iconRadius}
-                        y={iconY - iconRadius}
-                        width={iconRadius * 2}
-                        height={iconRadius * 2}
+                        x="2"
+                        y="2"
+                        width="196"
+                        height="196"
                         preserveAspectRatio="xMidYMid slice"
-                        clipPath={`url(#prize-photo-clip-${prize.id})`}
+                        clipPath={`url(#wedge-photo-clip-${prize.id})`}
                       />
-                      <circle cx={iconX} cy={iconY} r={iconRadius} fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                      {/* Re-stroke the wedge border on top of the photo for a crisp edge */}
+                      <path d={wedgePathD} fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinejoin="round" />
                     </>
                   )}
                   {/* Segment Prize Text */}
                   <text
                     x={textX}
                     y={textY}
-                    fill={textColor}
+                    fill={hasImage ? '#FFFFFF' : textColor}
                     fontSize={fontSize}
                     fontWeight="850"
                     textAnchor="middle"
                     dominantBaseline="central"
                     transform={`rotate(${labelAngle - 90}, ${textX}, ${textY})`}
                     className="tracking-wide"
+                    style={hasImage ? { paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.65)', strokeWidth: fontSize * 0.3, strokeLinejoin: 'round' } : undefined}
                   >
                     {lines.map((line, idx) => (
                       <tspan
