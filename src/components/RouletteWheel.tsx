@@ -235,7 +235,47 @@ function splitTextIntoLines(text: string): string[] {
   return [text]
 }
 
+// Matches the wheel's own deceleration curve exactly (same 4 control points as
+// the CSS `cubic-bezier(0.1, 0.8, 0.2, 1)` used to spin it) so tick sounds are
+// computed from the identical progress curve driving the visuals, instead of a
+// second, slightly different easing guessing at where the wheel visually is.
+function makeCubicBezier(mX1: number, mY1: number, mX2: number, mY2: number) {
+  const A = (a1: number, a2: number) => 1.0 - 3.0 * a2 + 3.0 * a1
+  const B = (a1: number, a2: number) => 3.0 * a2 - 6.0 * a1
+  const C = (a1: number) => 3.0 * a1
+  const calcBezier = (t: number, a1: number, a2: number) => ((A(a1, a2) * t + B(a1, a2)) * t + C(a1)) * t
+  const getSlope = (t: number, a1: number, a2: number) => 3.0 * A(a1, a2) * t * t + 2.0 * B(a1, a2) * t + C(a1)
+  const getTForX = (x: number) => {
+    let t = x
+    for (let i = 0; i < 8; i++) {
+      const slope = getSlope(t, mX1, mX2)
+      if (slope === 0) return t
+      t -= (calcBezier(t, mX1, mX2) - x) / slope
+    }
+    return t
+  }
+  return (x: number) => calcBezier(getTForX(x), mY1, mY2)
+}
+
+const wheelEase = makeCubicBezier(0.1, 0.8, 0.2, 1)
+
 export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size = 'default', previewMode = false, showCountdown = false, spinTrigger, disabled = false }: RouletteWheelProps) {
+  // A single shared AudioContext, created lazily on first sound and reused for
+  // every tick/win sound — avoids the crackling/lag that comes from spinning
+  // up a brand new AudioContext dozens of times per spin.
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const getAudioContext = () => {
+    if (typeof window === 'undefined') return null
+    const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextCtor) return null
+    if (!audioCtxRef.current) audioCtxRef.current = new AudioContextCtor()
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume()
+    return audioCtxRef.current
+  }
+  useEffect(() => {
+    return () => { audioCtxRef.current?.close() }
+  }, [])
+
   const wheelRef = useRef<HTMLDivElement>(null)
   const [rotation, setRotation] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
@@ -282,58 +322,57 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
     }, 5000)
   }
 
-  // Web Audio API tick sound synthesizer
-  const playTickSound = () => {
-    if (muteSound || typeof window === 'undefined') return
+  // Crisp mechanical "clack" — a single short click per segment the pointer
+  // passes, pitched slightly higher each time the wheel is closer to its final
+  // position (more segments = a natural little glissando as it slows down).
+  const playTickSound = (pitchBoost = 0) => {
+    if (muteSound) return
+    const audioCtx = getAudioContext()
+    if (!audioCtx) return
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-      if (!AudioContext) return
-      
-      const audioCtx = new AudioContext()
       const osc = audioCtx.createOscillator()
       const gainNode = audioCtx.createGain()
 
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(600, audioCtx.currentTime)
-      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.06)
+      osc.type = 'square'
+      osc.frequency.setValueAtTime(920 + pitchBoost, audioCtx.currentTime)
 
-      gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06)
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.035)
 
       osc.connect(gainNode)
       gainNode.connect(audioCtx.destination)
 
       osc.start()
-      osc.stop(audioCtx.currentTime + 0.06)
+      osc.stop(audioCtx.currentTime + 0.035)
     } catch (e) {
       // Audio context might be blocked by browser autoplay policy
     }
   }
 
-  // Synthesize a fanfare sound for wins
+  // Synthesize a brighter, fuller fanfare for wins
   const playWinSound = () => {
-    if (muteSound || typeof window === 'undefined') return
+    if (muteSound) return
+    const audioCtx = getAudioContext()
+    if (!audioCtx) return
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioContext()
-      const notes = [261.63, 329.63, 392.00, 523.25] // C, E, G, C chords
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.25] // C, E, G, C, E — brighter/fuller cadence
 
       notes.forEach((freq, index) => {
         const osc = audioCtx.createOscillator()
         const gainNode = audioCtx.createGain()
-        
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1)
-        
+
+        osc.type = 'triangle'
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.09)
+
         gainNode.gain.setValueAtTime(0, audioCtx.currentTime)
-        gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + index * 0.1 + 0.02)
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.1 + 0.3)
-        
+        gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + index * 0.09 + 0.02)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.09 + 0.35)
+
         osc.connect(gainNode)
         gainNode.connect(audioCtx.destination)
-        
-        osc.start(audioCtx.currentTime + index * 0.1)
-        osc.stop(audioCtx.currentTime + index * 0.1 + 0.3)
+
+        osc.start(audioCtx.currentTime + index * 0.09)
+        osc.stop(audioCtx.currentTime + index * 0.09 + 0.35)
       })
     } catch (e) {}
   }
@@ -349,43 +388,45 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
     const targetSegmentCenter = data.prizeIndex * segmentAngle + segmentAngle / 2
 
     // Calculate rotation delta: add 5 full spins (1800 deg) for suspense
-    const nextRotation = rotationRef.current + 1800 + (360 - (targetSegmentCenter + (rotationRef.current % 360)))
-
+    const startRotation = rotationRef.current
+    const nextRotation = startRotation + 1800 + (360 - (targetSegmentCenter + (startRotation % 360)))
+    const totalDelta = nextRotation - startRotation
     rotationRef.current = nextRotation
-    setRotation(nextRotation)
     setWinningPrize(data.prize)
 
-    // Play tick sounds as segments pass by during animation
-    let lastTickDeg = 0
-    const startTimestamp = performance.now()
+    // Drive the rotation frame-by-frame in JS (rather than a CSS transition)
+    // using the exact same easing curve the wheel used to spin with — this is
+    // the single source of truth for "where the wheel visually is right now",
+    // so tick sounds can never drift out of sync with what's on screen, even
+    // if a frame is dropped or the tab briefly loses focus.
     const animationDuration = 4000 // 4 seconds
+    const startTimestamp = performance.now()
+    let lastTickAngle = 0
 
-    const checkTick = (now: number) => {
-      const elapsed = now - startTimestamp
-      if (elapsed < animationDuration) {
-        // Cubic bezier easing approximation to sync ticks with deceleration
-        const progress = elapsed / animationDuration
-        const easedProgress = 1 - Math.pow(1 - progress, 3) // easeOutCubic
-        const currentDeg = easedProgress * (nextRotation - (rotationRef.current - 1800))
+    const step = (now: number) => {
+      const linearProgress = Math.min((now - startTimestamp) / animationDuration, 1)
+      const easedProgress = wheelEase(linearProgress)
+      const currentDeg = easedProgress * totalDelta
+      setRotation(startRotation + currentDeg)
 
-        if (currentDeg - lastTickDeg >= segmentAngle) {
-          playTickSound()
-          lastTickDeg = currentDeg
-        }
-        requestAnimationFrame(checkTick)
+      if (currentDeg - lastTickAngle >= segmentAngle) {
+        // Slightly rising pitch as the wheel nears its final segments
+        playTickSound(Math.min(linearProgress, 1) * 260)
+        lastTickAngle += segmentAngle * Math.floor((currentDeg - lastTickAngle) / segmentAngle)
+      }
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(step)
+      } else {
+        setIsSpinning(false)
+        setShowResult(true)
+        setLastRemainingSpins(data.remainingSpins)
+        playWinSound()
+        // Callback to update parent layout
+        onSpinSuccess(data.prize, data.remainingSpins)
       }
     }
-    requestAnimationFrame(checkTick)
-
-    // Complete the spin after animation ends
-    setTimeout(() => {
-      setIsSpinning(false)
-      setShowResult(true)
-      setLastRemainingSpins(data.remainingSpins)
-      playWinSound()
-      // Callback to update parent layout
-      onSpinSuccess(data.prize, data.remainingSpins)
-    }, animationDuration)
+    requestAnimationFrame(step)
   }
 
   // Client-only weighted random draw — mirrors the backend's cumulative-probability
@@ -565,15 +606,13 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
           }}
         />
 
-        {/* Interactive SVG Wheel */}
+        {/* Interactive SVG Wheel — rotation is driven frame-by-frame from JS
+            during a spin (see animateToResult), not a CSS transition, so the
+            tick sounds computed from that same per-frame value never drift
+            out of sync with what's actually on screen. */}
         <svg
-          className="w-[91%] h-[91%] rounded-full transform transition-transform"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transitionProperty: 'transform',
-            transitionDuration: '4000ms',
-            transitionTimingFunction: 'cubic-bezier(0.1, 0.8, 0.2, 1)',
-          }}
+          className="w-[91%] h-[91%] rounded-full transform"
+          style={{ transform: `rotate(${rotation}deg)` }}
           viewBox="0 0 200 200"
         >
           {/* Wheel Segments */}
