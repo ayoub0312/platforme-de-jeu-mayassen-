@@ -264,13 +264,21 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
   // every tick/win sound — avoids the crackling/lag that comes from spinning
   // up a brand new AudioContext dozens of times per spin.
   const audioCtxRef = useRef<AudioContext | null>(null)
+  // Sound is always best-effort: any failure here (autoplay policy, an
+  // unsupported browser, a driver quirk) must never throw, since this runs
+  // inside the spin's requestAnimationFrame loop — an uncaught exception here
+  // would silently kill that rAF chain and freeze the wheel mid-spin.
   const getAudioContext = () => {
-    if (typeof window === 'undefined') return null
-    const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
-    if (!AudioContextCtor) return null
-    if (!audioCtxRef.current) audioCtxRef.current = new AudioContextCtor()
-    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume()
-    return audioCtxRef.current
+    try {
+      if (typeof window === 'undefined') return null
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContextCtor) return null
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContextCtor()
+      if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume().catch(() => {})
+      return audioCtxRef.current
+    } catch (e) {
+      return null
+    }
   }
   useEffect(() => {
     return () => { audioCtxRef.current?.close() }
@@ -409,11 +417,15 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
       const currentDeg = easedProgress * totalDelta
       setRotation(startRotation + currentDeg)
 
-      if (currentDeg - lastTickAngle >= segmentAngle) {
-        // Slightly rising pitch as the wheel nears its final segments
-        playTickSound(Math.min(linearProgress, 1) * 260)
-        lastTickAngle += segmentAngle * Math.floor((currentDeg - lastTickAngle) / segmentAngle)
-      }
+      // The wheel's own motion must never depend on sound succeeding — guard
+      // this defensively even though playTickSound is already exception-safe.
+      try {
+        if (currentDeg - lastTickAngle >= segmentAngle) {
+          // Slightly rising pitch as the wheel nears its final segments
+          playTickSound(Math.min(linearProgress, 1) * 260)
+          lastTickAngle += segmentAngle * Math.floor((currentDeg - lastTickAngle) / segmentAngle)
+        }
+      } catch (e) {}
 
       if (linearProgress < 1) {
         requestAnimationFrame(step)
@@ -421,7 +433,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
         setIsSpinning(false)
         setShowResult(true)
         setLastRemainingSpins(data.remainingSpins)
-        playWinSound()
+        try { playWinSound() } catch (e) {}
         // Callback to update parent layout
         onSpinSuccess(data.prize, data.remainingSpins)
       }
@@ -479,23 +491,24 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
       return
     }
 
-    // 3-2-1-GO countdown overlay, then trigger the real spin
+    // 3-2-1-GO countdown overlay, then trigger the real spin — kept short so
+    // the wheel feels responsive to the click instead of making players wait.
     let step = 3
     setCountdownValue(step)
     const tick = () => {
       step -= 1
       if (step > 0) {
         setCountdownValue(step)
-        setTimeout(tick, 600)
+        setTimeout(tick, 350)
       } else {
         setCountdownValue('GO')
         setTimeout(() => {
           setCountdownValue(null)
           startSpin()
-        }, 500)
+        }, 250)
       }
     }
-    setTimeout(tick, 600)
+    setTimeout(tick, 350)
   }
 
   // Lets a parent (the wizard's "Tester" button) trigger a spin imperatively
