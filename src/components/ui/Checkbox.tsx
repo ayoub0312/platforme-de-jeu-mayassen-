@@ -19,7 +19,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           ref={ref}
           id={inputId}
           type="checkbox"
-          className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-md border border-black/[0.15] bg-surface transition-colors checked:border-brand-500 checked:bg-gradient-brand-signature focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-md border border-black/[0.15] bg-surface transition-colors checked:border-brand-500 checked:[background-image:var(--gradient-brand-signature)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
           {...props}
         />
         <Check className="pointer-events-none h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" aria-hidden="true" />
