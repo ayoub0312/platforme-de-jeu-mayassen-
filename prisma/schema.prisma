@@ -140,6 +140,7 @@ model Prize {
   fallbackPrizeId String? // ID du lot de consolation
   winners         UserPrize[]
   color           String? // Couleur du segment (config roulette)
+  textColor       String? // Couleur du texte du segment (null = contraste auto)
   imageData       String? // Image du segment/lot encodée en base64
   imageMimeType   String?
   order           Int         @default(0) // Tri pour le drag & drop (même pattern que PromoBanner.order)

@@ -2,6 +2,7 @@ export interface ConfigPrize {
   id?: string
   name: string
   color: string
+  textColor: string | null // null = contraste auto selon la couleur de fond
   imageData: string | null
   imageMimeType: string | null
   winProbability: number // 0..1

@@ -9,6 +9,7 @@ function makePrize(order: number): ConfigPrize {
   return {
     name: `Lot ${order + 1}`,
     color: '#FF6B47',
+    textColor: null,
     imageData: null,
     imageMimeType: null,
     winProbability: 0,
@@ -75,6 +76,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
       prizes: tpl.prizes.map((pr, i) => ({
         name: pr.name,
         color: '#FF6B47',
+        textColor: null,
         imageData: null,
         imageMimeType: null,
         winProbability: 0,

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle, Crop } from 'lucide-react'
-import { RouletteWheel } from '../RouletteWheel'
+import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle, Crop, RotateCcw } from 'lucide-react'
+import { RouletteWheel, getContrastTextColor } from '../RouletteWheel'
 import { SEGMENT_COLOR_PALETTE, type GameConfigData, type ConfigPrize } from './types'
 import { ImageCropModal } from './ImageCropModal'
 import { Disclosure } from '../ui/Disclosure'
@@ -17,6 +17,7 @@ function makeSegment(order: number): ConfigPrize {
   return {
     name: `Lot ${order + 1}`,
     color: SEGMENT_COLOR_PALETTE[order % SEGMENT_COLOR_PALETTE.length],
+    textColor: null,
     imageData: null,
     imageMimeType: null,
     winProbability: 0,
@@ -75,7 +76,7 @@ function SortableSegmentRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-wrap sm:grid sm:grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 items-center p-3 bg-slate-50 border border-slate-200 rounded-xl"
+      className="flex flex-wrap sm:grid sm:grid-cols-[22px_150px_36px_minmax(110px,1fr)_78px_78px_32px] gap-2 items-center p-3 bg-slate-50 border border-slate-200 rounded-xl"
     >
       <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 shrink-0" aria-label="Réordonner">
         <GripVertical className="h-4 w-4" />
@@ -151,6 +152,26 @@ function SortableSegmentRow({
           }}
         />
       )}
+
+      {/* Couleur du texte affiché sur le segment — vide = contraste auto */}
+      <div className="relative shrink-0" title="Couleur du texte du segment">
+        <input
+          type="color"
+          value={segment.textColor || getContrastTextColor(segment.color)}
+          onChange={(e) => onChange(index, { textColor: e.target.value })}
+          className="h-9 w-9 rounded-lg border border-slate-200 cursor-pointer"
+        />
+        {segment.textColor && (
+          <button
+            type="button"
+            onClick={() => onChange(index, { textColor: null })}
+            title="Revenir au contraste automatique"
+            className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-slate-700 hover:bg-slate-900 text-white flex items-center justify-center cursor-pointer"
+          >
+            <RotateCcw className="h-2.5 w-2.5" />
+          </button>
+        )}
+      </div>
 
       <input
         type="text"
@@ -257,6 +278,7 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
       prizes: tpl.segments.map((s, i) => ({
         name: s.name,
         color: s.color,
+        textColor: null,
         imageData: null,
         imageMimeType: null,
         winProbability: s.winProbability,
@@ -279,6 +301,7 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
     winProbability: s.winProbability || 0.0001,
     fallbackPrizeId: null,
     color: s.color,
+    textColor: s.textColor,
     imageData: s.imageData,
     imageMimeType: s.imageMimeType,
   }))
@@ -348,9 +371,10 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
           </div>
 
           {/* En-têtes de colonnes — alignés sur la même grille que chaque ligne (desktop uniquement, la ligne mobile est empilée) */}
-          <div className="hidden sm:grid sm:grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 px-3 mb-1.5">
+          <div className="hidden sm:grid sm:grid-cols-[22px_150px_36px_minmax(110px,1fr)_78px_78px_32px] gap-2 px-3 mb-1.5">
             <span />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Fond</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Texte</span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Nom du lot</span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Gain %</span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Stock</span>

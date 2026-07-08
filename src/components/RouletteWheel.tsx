@@ -14,6 +14,7 @@ interface Prize {
   winProbability: number
   fallbackPrizeId: string | null
   color?: string | null
+  textColor?: string | null
   imageData?: string | null
   imageMimeType?: string | null
 }
@@ -39,7 +40,7 @@ interface RouletteWheelProps {
 }
 
 // Relative luminance (WCAG) to pick a readable black/white label color against a custom segment color
-function getContrastTextColor(hex: string): string {
+export function getContrastTextColor(hex: string): string {
   const clean = hex.replace('#', '')
   if (clean.length !== 6) return '#241F1C'
   const r = parseInt(clean.slice(0, 2), 16) / 255
@@ -608,7 +609,9 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               const [fillColor, fallbackTextColor] = prize.color
                 ? [prize.color, getContrastTextColor(prize.color)]
                 : FALLBACK_PALETTE[index % FALLBACK_PALETTE.length]
-              const textColor = fallbackTextColor
+              // The admin can override the auto-contrast text color per segment
+              // (useful e.g. when a photo background makes the auto pick wrong).
+              const textColor = prize.textColor || fallbackTextColor
 
               // Label placement coordinates for radial text
               const labelAngle = startAngle + segmentAngle / 2
@@ -672,7 +675,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                   <text
                     x={textX}
                     y={textY}
-                    fill={hasImage ? '#FFFFFF' : textColor}
+                    fill={hasImage ? (prize.textColor || '#FFFFFF') : textColor}
                     fontSize={fontSize}
                     fontWeight="850"
                     textAnchor="middle"
