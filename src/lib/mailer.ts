@@ -124,3 +124,104 @@ export async function sendWinnerEmail({
     ],
   })
 }
+
+interface SendDrawRegistrationEmailParams {
+  to: string
+  participantName: string | null
+  campaignTitle: string
+  partnerName: string
+  senderEmail: string
+  senderEmailPassword: string // encrypted
+  drawDate: Date | null
+}
+
+// Confirms a participant's entry into a "tirage au sort" (prize draw) — sent
+// right after they complete the JOIN_DRAW task, before any winner is picked.
+// Never throws — same non-blocking-failure contract as sendWinnerEmail.
+export async function sendDrawRegistrationEmail({
+  to,
+  participantName,
+  campaignTitle,
+  partnerName,
+  senderEmail,
+  senderEmailPassword,
+  drawDate,
+}: SendDrawRegistrationEmailParams): Promise<void> {
+  const password = decryptSecret(senderEmailPassword)
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: senderEmail,
+      pass: password,
+    },
+  })
+
+  const greeting = participantName ? `Bonjour ${participantName}` : 'Bonjour'
+  const drawDateLabel = drawDate
+    ? drawDate.toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
+    : null
+
+  const text = [
+    `${greeting},`,
+    '',
+    `Votre inscription au tirage au sort "${campaignTitle}" est confirmée.`,
+    drawDateLabel ? `Le tirage aura lieu le ${drawDateLabel}.` : null,
+    'Vous recevrez un e-mail si vous êtes tiré au sort.',
+    '',
+    partnerName,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  await transporter.sendMail({
+    from: `"${partnerName}" <${senderEmail}>`,
+    to,
+    replyTo: senderEmail,
+    subject: `Inscription confirmée : ${campaignTitle}`,
+    text,
+    html: `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:32px 16px; font-family:Arial,Helvetica,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #eceff1;">
+        <tr>
+          <td style="background:#182444; padding:28px 32px; text-align:center;">
+            <div style="font-size:32px; line-height:1;">🎟️</div>
+            <div style="color:#ffffff; font-weight:800; font-size:20px; margin-top:8px;">Inscription confirmée !</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px 8px 32px; color:#241f1c; font-size:14px;">
+            <p style="margin:0 0 12px 0;">${greeting},</p>
+            <p style="margin:0 0 16px 0;">Votre participation au tirage au sort est bien enregistrée :</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF7ED; border:1px solid #FFE3BF; border-radius:12px;">
+              <tr>
+                <td style="padding:16px 20px; text-align:center; font-weight:800; font-size:15px; color:#241f1c;">
+                  🎟️ ${campaignTitle}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ${drawDateLabel ? `
+        <tr>
+          <td style="padding:20px 32px 8px 32px; text-align:center; font-size:13px; color:#6b7280;">
+            Tirage prévu le <strong style="color:#241f1c;">${drawDateLabel}</strong>
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td style="padding:20px 32px 28px 32px; text-align:center; font-size:12px; color:#9ca3af;">
+            Vous recevrez un e-mail si vous êtes tiré au sort.<br />Offert par ${partnerName}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`,
+  })
+}

@@ -8,7 +8,7 @@ import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
 import { createSessionToken } from '../../lib/auth'
 import bcrypt from 'bcryptjs'
 import { encryptSecret } from '../../lib/crypto'
-import { sendWinnerEmail } from '../../lib/mailer'
+import { sendWinnerEmail, sendDrawRegistrationEmail } from '../../lib/mailer'
 
 // Jetons de jeu valides pendant 90 jours après leur création
 const TOKEN_VALIDITY_DAYS = 90
@@ -1188,6 +1188,32 @@ export const appRouter = router({
             status: TokenStatus.USED,
           },
         })
+
+        // Confirm the draw entry by email, sent from the partner/agency's own
+        // address. Never allowed to break the registration flow — failures are only logged.
+        try {
+          const campaign = await prisma.campaign.findUnique({
+            where: { id: input.campaignId },
+            include: {
+              partner: true,
+              prizes: { where: { drawDate: { not: null } }, orderBy: { drawDate: 'asc' }, take: 1 },
+            },
+          })
+          const senderCreds = campaign ? await resolveSenderCredentials(campaign) : null
+          if (campaign && senderCreds) {
+            await sendDrawRegistrationEmail({
+              to: user.email,
+              participantName: user.name,
+              campaignTitle: campaign.title,
+              partnerName: campaign.partner?.name || campaign.title,
+              senderEmail: senderCreds.senderEmail,
+              senderEmailPassword: senderCreds.senderEmailPassword,
+              drawDate: campaign.prizes[0]?.drawDate ?? null,
+            })
+          }
+        } catch (mailErr) {
+          console.warn('[Email Warning] Failed to send draw registration confirmation email:', mailErr)
+        }
       } else {
         // Roulette tasks award unused tokens (spins)
         const tokensCount = 1
