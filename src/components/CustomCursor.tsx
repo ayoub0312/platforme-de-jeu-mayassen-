@@ -91,7 +91,7 @@ export function CustomCursor() {
         <motion.div
           key={i}
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-[99] rounded-full blur-[1px]"
+          className="pointer-events-none fixed left-0 top-0 z-[9998] rounded-full blur-[1px]"
           style={{
             x: t.x,
             y: t.y,
@@ -105,9 +105,14 @@ export function CustomCursor() {
           transition={{ duration: 0.2 }}
         />
       ))}
+      {/* Above every overlay in the app (modals sit at z-[150], the loading
+          screen/toasts at z-[200]) — the native OS cursor is suppressed
+          site-wide whenever this is active (see .custom-cursor-active in
+          globals.css), so if this dot rendered below an overlay the user
+          would have no visible cursor at all while hovering it. */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[100] rounded-full"
+        className="pointer-events-none fixed left-0 top-0 z-[9999] rounded-full"
         style={{
           x,
           y,
