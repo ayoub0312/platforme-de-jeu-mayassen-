@@ -1,6 +1,7 @@
 'use client'
 
-import { Calendar, ArrowRight } from 'lucide-react'
+import { Calendar, ArrowRight, Gamepad2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Campaign {
   id: string
@@ -40,6 +41,14 @@ export function ActiveGamesList({
         </span>
       </div>
 
+      {campaigns.length === 0 ? (
+        <EmptyState
+          icon={Gamepad2}
+          title="Aucun jeu actif pour le moment"
+          description="Revenez bientôt : de nouvelles campagnes seront bientôt disponibles."
+          className="bg-white border border-slate-200 rounded-3xl"
+        />
+      ) : (
       <div className="space-y-4">
         {campaigns.map((c) => {
           const isActiveGame = c.id === activeCampaign.id
@@ -48,7 +57,7 @@ export function ActiveGamesList({
           // Custom branding palettes per partner
           let brandBadge = 'bg-orange-50 text-orange-700 border-orange-100'
           let brandRing = 'border-orange-300'
-          let textHighlight = 'text-[#FF8C00]'
+          let textHighlight = 'text-[#FF6B47]'
 
           return (
             <div
@@ -149,6 +158,7 @@ export function ActiveGamesList({
           )
         })}
       </div>
+      )}
     </div>
   )
 }

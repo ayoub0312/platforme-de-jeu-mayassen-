@@ -116,7 +116,7 @@ export function ImageCropModal({ imageData, imageMimeType, onCancel, onConfirm }
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-full accent-[#FF8C00]"
+            className="w-full accent-[#FF6B47]"
             aria-label="Zoom"
           />
           <ZoomIn className="h-4 w-4 text-slate-400 shrink-0" />
@@ -133,7 +133,7 @@ export function ImageCropModal({ imageData, imageMimeType, onCancel, onConfirm }
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-4 py-2 bg-[#FF8C00] hover:bg-[#E07B00] text-white rounded-xl text-xs font-bold cursor-pointer transition-all"
+            className="px-4 py-2 bg-[#FF6B47] hover:bg-[#E85530] text-white rounded-xl text-xs font-bold cursor-pointer transition-all"
           >
             Valider
           </button>

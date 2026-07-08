@@ -34,7 +34,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
       prizes: c.prizes.map((p) => ({
         id: p.id,
         name: p.name,
-        color: p.color || '#F97316',
+        color: p.color || '#FF6B47',
         imageData: p.imageData,
         imageMimeType: p.imageMimeType,
         winProbability: p.winProbability,
@@ -134,7 +134,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
 
           {!data ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 text-[#FF8C00] animate-spin" />
+              <Loader2 className="h-6 w-6 text-[#FF6B47] animate-spin" />
             </div>
           ) : (
             <>
@@ -161,7 +161,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-xs font-bold cursor-pointer transition-all disabled:opacity-60"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-bold cursor-pointer transition-all disabled:opacity-60"
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Enregistrer

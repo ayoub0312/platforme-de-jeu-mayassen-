@@ -1,43 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
+  --background: #f7f7f4;
+  --foreground: #241f1c;
 
-  /* --- Legacy premium palette (public homepage, pre-existing components) ---
-     Kept as-is so nothing already built on these tokens breaks; new work
-     (admin + design system v2) uses the Obooking Gift palette below instead. */
-  --color-brand-orange: #f97316;
-  --color-brand-orange-deep: #c2410c;
-  --color-brand-gold: #d4af6a;
-  --color-brand-navy: #0b1120;
-  --color-brand-navy-soft: #111827;
-  --color-brand-neutral-50: #f8fafc;
-  --color-brand-neutral-200: #e2e8f0;
-  --color-brand-neutral-500: #64748b;
-  --color-brand-warm-white: #fffbf7;
+  /* --- Refonte "Corail + Lagon" (2026) — remplace l'ancien orange/crème
+     générique par une palette voyage distinctive. Les tokens "legacy"
+     (--color-brand-orange, etc.) sont conservés comme ALIAS des nouvelles
+     valeurs plutôt que supprimés : chaque composant existant qui les utilise
+     hérite du nouveau look sans avoir à être réécrit un par un. */
+  --color-brand-orange: #ff6b47;
+  --color-brand-orange-deep: #c23f1f;
+  --color-brand-gold: #e8a33d;
+  --color-brand-navy: #182444;
+  --color-brand-navy-soft: #24325a;
+  --color-brand-neutral-50: #f7f7f4;
+  --color-brand-neutral-200: #e8e6e1;
+  --color-brand-neutral-500: #847a73;
+  --color-brand-warm-white: #f7f7f4;
 
   /* --- Obooking Gift design system v2 (unified palette, admin + player) --- */
-  --brand-50: #fef3e9;
-  --brand-400: #f7a24d;
-  --brand-500: #f58220;
-  --brand-600: #e06b14;
-  --brand-700: #c25612;
+  --brand-50: #fff0ea;
+  --brand-400: #ff8a6b;
+  --brand-500: #ff6b47;
+  --brand-600: #e85530;
+  --brand-700: #c23f1f;
 
-  --ink-900: #1f1f1f;
-  --ink-700: #3d3d3d;
-  --ink-500: #6b6b6b;
+  /* Ambre Doré — accent chaud (badges, prix, éléments "or") */
+  --ambre-400: #f0b75e;
+  --ambre-500: #e8a33d;
+  --ambre-600: #c9861f;
+
+  /* Lagon — second accent signature (succès, liens secondaires, pop distinctif) */
+  --lagon-400: #3dbdb8;
+  --lagon-500: #0ea5a0;
+  --lagon-600: #0b8480;
+
+  /* Nuit Voyage — fond sombre ponctuel (footer, sections contrastées, sidebar admin) */
+  --nuit-voyage: #182444;
+  --nuit-voyage-soft: #24325a;
+
+  --ink-900: #241f1c;
+  --ink-700: #4a423d;
+  --ink-500: #847a73;
 
   --surface: #ffffff;
-  --surface-alt: #faf7f3;
-  --surface-dark: #161311;
+  --surface-alt: #f7f7f4;
+  --surface-dark: #182444;
 
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
   --info: #2563eb;
 
-  --gradient-brand-signature: linear-gradient(135deg, #f7a24d 0%, #f58220 45%, #c25612 100%);
+  --gradient-brand-signature: linear-gradient(135deg, #ff8a6b 0%, #ff6b47 45%, #c23f1f 100%);
 
   /* Rayons (échelle du design system v2) */
   --radius-ds-sm: 8px;
@@ -51,7 +67,7 @@
   --shadow-premium-sm: 0 1px 2px rgba(11, 17, 32, 0.04), 0 2px 8px rgba(11, 17, 32, 0.04);
   --shadow-premium-md: 0 2px 4px rgba(11, 17, 32, 0.04), 0 12px 24px -8px rgba(11, 17, 32, 0.10);
   --shadow-premium-lg: 0 4px 8px rgba(11, 17, 32, 0.05), 0 24px 48px -12px rgba(11, 17, 32, 0.18), 0 48px 80px -24px rgba(11, 17, 32, 0.12);
-  --shadow-premium-glow: 0 0 0 1px rgba(249, 115, 22, 0.08), 0 16px 40px -12px rgba(249, 115, 22, 0.25), 0 32px 64px -16px rgba(249, 115, 22, 0.14);
+  --shadow-premium-glow: 0 0 0 1px rgba(255, 107, 71, 0.08), 0 16px 40px -12px rgba(255, 107, 71, 0.25), 0 32px 64px -16px rgba(255, 107, 71, 0.14);
 }
 
 @theme inline {
@@ -77,6 +93,17 @@
   --color-brand-500: var(--brand-500);
   --color-brand-600: var(--brand-600);
   --color-brand-700: var(--brand-700);
+
+  --color-ambre-400: var(--ambre-400);
+  --color-ambre-500: var(--ambre-500);
+  --color-ambre-600: var(--ambre-600);
+
+  --color-lagon-400: var(--lagon-400);
+  --color-lagon-500: var(--lagon-500);
+  --color-lagon-600: var(--lagon-600);
+
+  --color-nuit-voyage: var(--nuit-voyage);
+  --color-nuit-voyage-soft: var(--nuit-voyage-soft);
 
   --color-ink-900: var(--ink-900);
   --color-ink-700: var(--ink-700);
@@ -271,7 +298,7 @@ body {
 .spotlight-layer {
   opacity: 0;
   transition: opacity 0.3s ease;
-  background: radial-gradient(400px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(249, 115, 22, 0.16), transparent 70%);
+  background: radial-gradient(400px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(255, 107, 71, 0.16), transparent 70%);
 }
 @media (hover: hover) and (pointer: fine) {
   .group:hover .spotlight-layer {

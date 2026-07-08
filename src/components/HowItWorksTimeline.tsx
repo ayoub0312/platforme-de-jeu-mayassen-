@@ -41,8 +41,8 @@ function ConnectingPath({ vertical, progress }: { vertical: boolean; progress: M
     >
       <defs>
         <linearGradient id="howItWorksLine" x1="0" y1="0" x2={vertical ? '0' : '1'} y2={vertical ? '1' : '0'}>
-          <stop offset="0%" stopColor="#FF8C00" />
-          <stop offset="100%" stopColor="#0B1120" stopOpacity="0.4" />
+          <stop offset="0%" stopColor="#FF6B47" />
+          <stop offset="100%" stopColor="#182444" stopOpacity="0.4" />
         </linearGradient>
       </defs>
       <path
@@ -111,7 +111,7 @@ export function HowItWorksTimeline() {
               <motion.div
                 whileHover={prefersReducedMotion ? undefined : { scale: 1.12, rotate: 6 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                className="relative z-10 h-16 w-16 bg-orange-50 text-[#FF8C00] rounded-2xl flex items-center justify-center mx-auto mb-5 border border-orange-100 group-hover:shadow-[0_0_0_8px_rgba(249,115,22,0.08)] transition-shadow duration-300"
+                className="relative z-10 h-16 w-16 bg-orange-50 text-[#FF6B47] rounded-2xl flex items-center justify-center mx-auto mb-5 border border-orange-100 group-hover:shadow-[0_0_0_8px_rgba(255,107,71,0.08)] transition-shadow duration-300"
               >
                 <Icon className="h-7 w-7" strokeWidth={2.25} />
               </motion.div>

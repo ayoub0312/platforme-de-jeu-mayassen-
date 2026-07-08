@@ -1,13 +1,14 @@
 'use client'
 
-import { Trash2, Plus, ImageIcon } from 'lucide-react'
+import { Trash2, Plus, ImageIcon, Calendar } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
+import { Disclosure } from '../ui/Disclosure'
 import type { GameConfigData, ConfigPrize } from './types'
 
 function makePrize(order: number): ConfigPrize {
   return {
     name: `Lot ${order + 1}`,
-    color: '#F97316',
+    color: '#FF6B47',
     imageData: null,
     imageMimeType: null,
     winProbability: 0,
@@ -73,7 +74,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
       templateUsed: tpl.id,
       prizes: tpl.prizes.map((pr, i) => ({
         name: pr.name,
-        color: '#F97316',
+        color: '#FF6B47',
         imageData: null,
         imageMimeType: null,
         winProbability: 0,
@@ -89,37 +90,42 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
 
   return (
     <div className="space-y-6">
-      {templatesQuery.data && templatesQuery.data.some((t) => t.gameMode === 'DRAW') && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-bold text-slate-400 self-center mr-1">Templates :</span>
-          {templatesQuery.data.filter((t) => t.gameMode === 'DRAW').map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => applyTemplate(t.id)}
-              className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 cursor-pointer transition-all"
-            >
-              {t.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Date du tirage au sort *</label>
+      {/* Date du tirage — mise en avant : c'est le réglage le plus important
+          de cet écran, l'admin doit la voir en un coup d'œil. */}
+      <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
+        <label className="flex items-center gap-1.5 text-xs font-black text-slate-600 uppercase tracking-wide mb-2">
+          <Calendar className="h-3.5 w-3.5 text-[#FF6B47]" /> Date du tirage au sort *
+        </label>
         <input
           type="datetime-local"
           value={sharedDrawDate ? sharedDrawDate.slice(0, 16) : ''}
           onChange={(e) => setDrawDateForAll(e.target.value)}
-          className="w-full sm:w-64 bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+          className="w-full sm:w-64 bg-white border border-orange-200 text-slate-900 px-4 h-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
         />
       </div>
+
+      {templatesQuery.data && templatesQuery.data.some((t) => t.gameMode === 'DRAW') && (
+        <Disclosure label="Templates préconfigurés">
+          <div className="flex flex-wrap gap-2">
+            {templatesQuery.data.filter((t) => t.gameMode === 'DRAW').map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t.id)}
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 cursor-pointer transition-all"
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </Disclosure>
+      )}
 
       <div>
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Lots à gagner</label>
         <div className="space-y-2">
           {prizes.map((prize, index) => (
-            <div key={index} className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div key={index} className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <label className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden">
                 {prize.imageData ? (
                   <img src={`data:${prize.imageMimeType};base64,${prize.imageData}`} className="h-full w-full object-cover" alt="" />
@@ -133,16 +139,16 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
                 value={prize.name}
                 onChange={(e) => updatePrize(index, { name: e.target.value })}
                 placeholder="Nom du lot"
-                className="flex-1 min-w-0 bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                className="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
               />
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
                 <span className="text-[10px] text-slate-400 font-bold">Gagnants</span>
                 <input
                   type="number"
                   min={1}
                   value={prize.totalStock}
                   onChange={(e) => updatePrize(index, { totalStock: Math.max(1, Number(e.target.value)) })}
-                  className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                  className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                 />
               </div>
               <button type="button" onClick={() => deletePrize(index)} className="p-2 text-red-400 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all shrink-0 cursor-pointer">
@@ -161,16 +167,15 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
         </button>
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Message affiché après inscription</label>
+      <Disclosure label="Message affiché après inscription (optionnel)">
         <textarea
           value={data.postSignupMessage}
           onChange={(e) => setData((p) => ({ ...p, postSignupMessage: e.target.value }))}
           placeholder="Ex: Merci pour votre participation ! Le tirage aura lieu le..."
           rows={3}
-          className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all resize-none"
+          className="w-full bg-white border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all resize-none"
         />
-      </div>
+      </Disclosure>
     </div>
   )
 }

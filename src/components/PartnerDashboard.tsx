@@ -21,6 +21,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { EmptyState } from '@/components/ui/EmptyState'
 import {
   Users,
   Play,
@@ -331,7 +332,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
-        <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#FF8C00] transition-all mb-6">
+        <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#FF6B47] transition-all mb-6">
           <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
         </Link>
         <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-slate-200/85 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
@@ -342,7 +343,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           <div className="relative z-10">
             <div className="flex flex-col items-center mb-8">
               <div className="p-4 bg-orange-500/10 rounded-2xl mb-4 border border-orange-500/15">
-                <ShieldAlert className="h-8 w-8 text-[#FF8C00]" />
+                <ShieldAlert className="h-8 w-8 text-[#FF6B47]" />
               </div>
               <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center">
                 Connexion Partenaire
@@ -363,7 +364,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   placeholder="admin@agency.com"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
               </div>
 
@@ -377,7 +378,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
               </div>
 
@@ -391,7 +392,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <button
                 type="submit"
                 disabled={loginPending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-[#FF8C00] hover:bg-[#E07B00] disabled:bg-orange-400 text-white rounded-xl text-sm font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-[#FF6B47] hover:bg-[#E85530] disabled:bg-orange-400 text-white rounded-xl text-sm font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
               >
                 {loginPending ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
@@ -409,7 +410,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
-        <RefreshCw className="h-8 w-8 animate-spin text-[#FF8C00]" />
+        <RefreshCw className="h-8 w-8 animate-spin text-[#FF6B47]" />
         <span className="text-sm font-semibold">Chargement du tableau de bord d'administration...</span>
       </div>
     )
@@ -711,7 +712,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 resolve()
               },
               onError: (err) => {
-                showToast(err.message, 'error')
+                showToast(err.message || 'Erreur lors du tirage au sort.', 'error')
                 resolve()
               },
             }
@@ -876,7 +877,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       Suivi Analytique : {stats.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm">
-                      <LinkIcon className="h-4 w-4 text-[#FF8C00]" />
+                      <LinkIcon className="h-4 w-4 text-[#FF6B47]" />
                       <span>Domaine dynamic CORS :</span>
                       <span className="text-slate-700 font-mono text-xs bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
                         {stats.allowedDomains || '(Aucun domaine whitelisté)'}
@@ -889,7 +890,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <select
                       value={activeCampaignIdVal}
                       onChange={(e) => setSelectedCampaignId(e.target.value)}
-                      className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer shadow-sm w-full lg:w-auto"
+                      className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-full lg:w-auto"
                     >
                       {stats.campaigns.map(c => (
                         <option key={c.id} value={c.id}>
@@ -905,7 +906,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider">Total Leads</span>
-                      <Users className="h-5 w-5 text-[#FF8C00]" />
+                      <Users className="h-5 w-5 text-[#FF6B47]" />
                     </div>
                     <div className="text-3xl font-black text-slate-850 mt-3">{activeCampaign.totalLeads}</div>
                     <p className="text-xs text-slate-400 mt-2">Contacts capturés sur cette campagne</p>
@@ -923,7 +924,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider font-sans">Engagement</span>
-                      <ArrowUpRight className="h-5 w-5 text-[#FF8C00]" />
+                      <ArrowUpRight className="h-5 w-5 text-[#FF6B47]" />
                     </div>
                     <div className="text-3xl font-black text-slate-850 mt-3">{conversionRate}%</div>
                     <p className="text-xs text-slate-400 mt-2">Leads ayant effectué au moins un lancer</p>
@@ -943,8 +944,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
                 {/* Real-time Prize stocks */}
                 <div className="mt-8 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-                  <h3 className="text-lg font-bold text-[#1A1A1A] mb-4 flex items-center gap-2">
-                    <Package className="h-5 w-5 text-[#FF8C00]" /> État Réel des Stocks
+                  <h3 className="text-lg font-bold text-[#241F1C] mb-4 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-[#FF6B47]" /> État Réel des Stocks
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {activeCampaign.prizes.map((prize: any) => {
@@ -988,7 +989,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-[#FF8C00]" /> Maintenance
+                        <Settings className="h-5 w-5 text-[#FF6B47]" /> Maintenance
                       </h3>
                       <p className="text-slate-400 text-xs mt-1">
                         Gérez et optimisez le stockage des jetons de jeu.
@@ -998,7 +999,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       <button
                         onClick={handleCleanStaleTokens}
                         disabled={expireStaleTokensMut.isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-[#FF8C00] disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-[#FF6B47] disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
                       >
                         {expireStaleTokensMut.isPending ? (
                           <>
@@ -1150,7 +1151,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                             href={`data:${sub.fileMimeType};base64,${sub.fileData}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-[#FF8C00] hover:text-[#E07B00] rounded-lg text-xs font-bold transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-[#FF6B47] hover:text-[#E85530] rounded-lg text-xs font-bold transition-colors"
                           >
                             Voir le PDF (nouvel onglet)
                           </a>
@@ -1281,14 +1282,14 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Rechercher une campagne..."
                   value={campaignSearch}
                   onChange={(e) => setCampaignSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-48 sm:w-56"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48 sm:w-56"
                 />
               </div>
 
               <select
                 value={campaignPartnerFilter}
                 onChange={(e) => setCampaignPartnerFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer shadow-sm w-44"
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
               >
                 <option value="all">Toutes les entreprises</option>
                 <option value="system">Système Général</option>
@@ -1364,10 +1365,31 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-ink-500">Aucune campagne ne correspond à cette recherche.</div>
+                <EmptyState
+                  icon={Search}
+                  title="Aucune campagne ne correspond à cette recherche"
+                  description="Essayez un autre mot-clé ou changez le filtre par entreprise."
+                  action={
+                    <Button
+                      variant="secondary"
+                      onClick={() => { setCampaignSearch(''); setCampaignPartnerFilter('all') }}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  }
+                />
               )
             })() : (
-              <div className="text-center py-12 text-ink-500">Aucune campagne configurée.</div>
+              <EmptyState
+                icon={LayoutDashboard}
+                title="Aucune campagne configurée"
+                description="Créez votre première campagne pour lancer une roulette ou un tirage au sort."
+                action={
+                  <Button onClick={() => setWizardOpen(true)}>
+                    <Plus className="h-4 w-4" /> Nouvelle campagne
+                  </Button>
+                }
+              />
             )}
           </div>
         </div>
@@ -1390,14 +1412,14 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Rechercher un lot..."
                   value={prizeSearch}
                   onChange={(e) => setPrizeSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] w-48 sm:w-56"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48 sm:w-56"
                 />
               </div>
 
               <select
                 value={prizePartnerFilter}
                 onChange={(e) => setPrizePartnerFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer shadow-sm w-44"
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
               >
                 <option value="all">Toutes les entreprises</option>
                 <option value="system">Système Général</option>
@@ -1408,7 +1430,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               <button
                 onClick={() => openPrizeModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                className="flex items-center gap-2 px-4 py-2 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
               >
                 <Plus className="h-4 w-4" /> Ajouter
               </button>
@@ -1424,7 +1446,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   p.campaign.partnerId === prizePartnerFilter
                 return matchesSearch && matchesPartner
               })
-              return (
+              return filtered.length > 0 ? (
                 <table className="w-full text-left text-sm text-slate-500">
                   <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
                     <tr>
@@ -1488,7 +1510,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                           <td className="px-6 py-4">
                             {p.drawDate ? (
                               <div className="flex flex-col gap-1">
-                                <span className="bg-orange-50 text-[#FF8C00] border border-orange-100 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide inline-block w-max">
+                                <span className="bg-orange-50 text-[#FF6B47] border border-orange-100 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide inline-block w-max">
                                   Tirage
                                 </span>
                                 <span className="text-[10px] text-slate-550 font-semibold">
@@ -1496,7 +1518,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                                 </span>
                                 <button
                                   onClick={() => setParticipantsModal({ open: true, prizeName: p.name, list: p.participants || [] })}
-                                  className="text-[10px] text-slate-550 hover:text-[#FF8C00] hover:border-[#FF8C00] hover:bg-orange-50/20 font-bold bg-slate-100 border border-slate-200/50 px-1.5 py-0.5 rounded w-max transition-all cursor-pointer flex items-center gap-0.5"
+                                  className="text-[10px] text-slate-550 hover:text-[#FF6B47] hover:border-[#FF6B47] hover:bg-orange-50/20 font-bold bg-slate-100 border border-slate-200/50 px-1.5 py-0.5 rounded w-max transition-all cursor-pointer flex items-center gap-0.5"
                                   title="Cliquez pour voir la liste des inscrits"
                                 >
                                   🎫 {p.participantCount || 0} inscrit(s)
@@ -1550,9 +1572,32 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     })}
                   </tbody>
                 </table>
+              ) : (
+                <EmptyState
+                  icon={Search}
+                  title="Aucun lot ne correspond à cette recherche"
+                  description="Essayez un autre mot-clé ou changez le filtre par entreprise."
+                  action={
+                    <Button
+                      variant="secondary"
+                      onClick={() => { setPrizeSearch(''); setPrizePartnerFilter('all') }}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  }
+                />
               )
             })() : (
-              <div className="text-center py-12 text-slate-400">Aucun lot configuré.</div>
+              <EmptyState
+                icon={Gift}
+                title="Aucun lot configuré"
+                description="Ajoutez un lot pour définir les récompenses de vos campagnes."
+                action={
+                  <Button onClick={() => openPrizeModal('create')}>
+                    <Plus className="h-4 w-4" /> Ajouter un lot
+                  </Button>
+                }
+              />
             )}
           </div>
         </div>
@@ -1706,7 +1751,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           {/* Hero video/poster card */}
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
-              <Video className="h-5 w-5 text-[#FF8C00]" /> Vidéo du Hero (Page d'Accueil)
+              <Video className="h-5 w-5 text-[#FF6B47]" /> Vidéo du Hero (Page d'Accueil)
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-5">
               Vidéo de fond en boucle affichée en haut de la page d'accueil. Courte et compressée, 4 Mo max.
@@ -1751,7 +1796,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <button
                 onClick={handleSaveHero}
                 disabled={updateSiteSettingsMut.isPending}
-                className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
               >
                 {updateSiteSettingsMut.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 Sauvegarder le Hero
@@ -1762,7 +1807,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           {/* Promo banners marquee card */}
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
-              <LayoutTemplate className="h-5 w-5 text-[#FF8C00]" /> Bandeau Publicitaire (Marquee)
+              <LayoutTemplate className="h-5 w-5 text-[#FF6B47]" /> Bandeau Publicitaire (Marquee)
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-5">
               Images défilantes affichées sous la liste des campagnes.
@@ -1792,7 +1837,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   onClick={handleAddBanner}
                   disabled={createPromoBannerMut.isPending}
-                  className="px-4 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0"
+                  className="px-4 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" /> Ajouter
                 </button>
@@ -1830,7 +1875,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </button>
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Globe className="h-5 w-5 text-[#FF8C00]" />
+              <Globe className="h-5 w-5 text-[#FF6B47]" />
               {partnerModal.mode === 'create' ? 'Ajouter un Partenaire' : 'Modifier le Partenaire'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -1877,7 +1922,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Ex: localhost:3000, gourmetbistro.com, secure.net"
                   value={partnerForm.allowedDomains}
                   onChange={(e) => setPartnerForm(p => ({ ...p, allowedDomains: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
                 <span className="text-[10px] text-slate-400 mt-2 block leading-normal font-semibold">
                   Séparez plusieurs domaines par des virgules sans espaces. Laissez vide pour tout bloquer hors origine principale.
@@ -1895,7 +1940,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createPartnerMut.isPending || updatePartnerMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createPartnerMut.isPending || updatePartnerMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1922,7 +1967,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </button>
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Sliders className="h-5 w-5 text-[#FF8C00]" />
+              <Sliders className="h-5 w-5 text-[#FF6B47]" />
               {campaignModal.mode === 'create' ? 'Créer une Campagne' : 'Modifier la Campagne'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -1964,7 +2009,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Ex: Grand Jeu d'Été Boulangerie"
                   value={campaignForm.title}
                   onChange={(e) => setCampaignForm(p => ({ ...p, title: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
               </div>
 
@@ -1973,7 +2018,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <select
                   value={campaignForm.partnerId}
                   onChange={(e) => setCampaignForm(p => ({ ...p, partnerId: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                 >
                   <option value="">Aucun - Campagne Système Générale</option>
                   {partners?.map(p => (
@@ -1990,7 +2035,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     required
                     value={campaignForm.startDate}
                     onChange={(e) => setCampaignForm(p => ({ ...p, startDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                 </div>
                 <div>
@@ -2000,7 +2045,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     required
                     value={campaignForm.endDate}
                     onChange={(e) => setCampaignForm(p => ({ ...p, endDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                 </div>
               </div>
@@ -2011,7 +2056,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   id="campaignActive"
                   checked={campaignForm.isActive}
                   onChange={(e) => setCampaignForm(p => ({ ...p, isActive: e.target.checked }))}
-                  className="h-5 w-5 rounded-md border-slate-300 text-[#FF8C00] focus:ring-[#FF8C00] cursor-pointer accent-orange-500"
+                  className="h-5 w-5 rounded-md border-slate-300 text-[#FF6B47] focus:ring-[#FF6B47] cursor-pointer accent-orange-500"
                 />
                 <label htmlFor="campaignActive" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
                   Campagne active et ouverte aux participations immédiates
@@ -2026,7 +2071,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'ROULETTE' }))}
                     className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
                       campaignForm.gameMode === 'ROULETTE'
-                        ? 'bg-[#FF8C00] border-[#FF8C00] text-white shadow-md shadow-orange-500/10'
+                        ? 'bg-[#FF6B47] border-[#FF6B47] text-white shadow-md shadow-orange-500/10'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -2037,7 +2082,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'DRAW' }))}
                     className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
                       campaignForm.gameMode === 'DRAW'
-                        ? 'bg-[#FF8C00] border-[#FF8C00] text-white shadow-md shadow-orange-500/10'
+                        ? 'bg-[#FF6B47] border-[#FF6B47] text-white shadow-md shadow-orange-500/10'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -2102,7 +2147,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="agence@gmail.com"
                       value={campaignForm.senderEmail}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmail: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                     />
                   </div>
                   <div>
@@ -2114,7 +2159,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
                       value={campaignForm.senderEmailPassword}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmailPassword: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                     />
                   </div>
                 </div>
@@ -2124,7 +2169,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     href="https://myaccount.google.com/apppasswords"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#FF8C00] hover:underline"
+                    className="text-[#FF6B47] hover:underline"
                   >
                     mot de passe d'application Google
                   </a>{' '}
@@ -2143,7 +2188,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
                 {/* Slide 1 */}
                 <div className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl mb-4 space-y-3">
-                  <span className="text-[10px] font-black text-[#FF8C00] uppercase tracking-wider">Slide 1</span>
+                  <span className="text-[10px] font-black text-[#FF6B47] uppercase tracking-wider">Slide 1</span>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
                       <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Badge</label>
@@ -2152,7 +2197,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: ✈️ Offre Spéciale"
                         value={campaignForm.adBadge1}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge1: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                     <div className="col-span-2">
@@ -2162,7 +2207,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: Seychelles avec -15%"
                         value={campaignForm.adTitle1}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle1: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                   </div>
@@ -2172,7 +2217,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="Ex: Entrez le code promo SEYCH15 lors de votre réservation..."
                       value={campaignForm.adDesc1}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc1: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
                     />
                   </div>
                 </div>
@@ -2188,7 +2233,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: 🏝️ Grand tirage"
                         value={campaignForm.adBadge2}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge2: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                     <div className="col-span-2">
@@ -2198,7 +2243,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: Gagnez un séjour aux Maldives !"
                         value={campaignForm.adTitle2}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle2: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                   </div>
@@ -2208,7 +2253,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="Ex: Le grand prix de la roulette Obooking est un séjour complet de 5 jours..."
                       value={campaignForm.adDesc2}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc2: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
                     />
                   </div>
                 </div>
@@ -2224,7 +2269,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: 🛒 Partenaire"
                         value={campaignForm.adBadge3}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge3: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                     <div className="col-span-2">
@@ -2234,7 +2279,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: Faites vos achats et Gagnez !"
                         value={campaignForm.adTitle3}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle3: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                   </div>
@@ -2244,7 +2289,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="Ex: Scannez votre ticket de caisse dans l'onglet des défis..."
                       value={campaignForm.adDesc3}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc3: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
                     />
                   </div>
                 </div>
@@ -2268,7 +2313,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: Seychelles Island Escape"
                         value={campaignForm.promoTitle}
                         onChange={(e) => setCampaignForm(p => ({ ...p, promoTitle: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                     <div>
@@ -2278,7 +2323,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         placeholder="Ex: SEYCH15"
                         value={campaignForm.promoCode}
                         onChange={(e) => setCampaignForm(p => ({ ...p, promoCode: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                       />
                     </div>
                   </div>
@@ -2289,7 +2334,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="Ex: https://obooking.com"
                       value={campaignForm.promoUrl}
                       onChange={(e) => setCampaignForm(p => ({ ...p, promoUrl: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                     />
                   </div>
                   <div>
@@ -2298,7 +2343,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       placeholder="Ex: Voyagez à prix réduit vers les îles Seychelles avec le code promo exclusif d'Obooking..."
                       value={campaignForm.promoDesc}
                       onChange={(e) => setCampaignForm(p => ({ ...p, promoDesc: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
                     />
                   </div>
                 </div>
@@ -2315,7 +2360,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createCampaignMut.isPending || updateCampaignMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createCampaignMut.isPending || updateCampaignMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2342,7 +2387,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </button>
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Trophy className="h-5 w-5 text-[#FF8C00]" />
+              <Trophy className="h-5 w-5 text-[#FF6B47]" />
               {prizeModal.mode === 'create' ? 'Ajouter un Lot' : 'Modifier le Lot'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -2384,7 +2429,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <select
                   value={prizeForm.campaignId}
                   onChange={(e) => setPrizeForm(p => ({ ...p, campaignId: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                 >
                   {campaigns?.map(c => (
                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -2400,7 +2445,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Ex: T-Shirt Vintage, 10% de réduction"
                   value={prizeForm.name}
                   onChange={(e) => setPrizeForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
               </div>
 
@@ -2410,7 +2455,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <select
                     value={prizeForm.type}
                     onChange={(e) => setPrizeForm(p => ({ ...p, type: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                   >
                     <option value="PHYSICAL">Lot Physique (Stock limité)</option>
                     <option value="DIGITAL">Lot Digital (Code / Bon d'achat)</option>
@@ -2424,7 +2469,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     required
                     value={prizeForm.totalStock}
                     onChange={(e) => setPrizeForm(p => ({ ...p, totalStock: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                 </div>
               </div>
@@ -2440,7 +2485,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     required
                     value={prizeForm.winProbability}
                     onChange={(e) => setPrizeForm(p => ({ ...p, winProbability: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                 </div>
 
@@ -2449,7 +2494,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <select
                     value={prizeForm.fallbackPrizeId}
                     onChange={(e) => setPrizeForm(p => ({ ...p, fallbackPrizeId: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                   >
                     <option value="">Aucun fallback (Lot de consolation par défaut)</option>
                     {prizes
@@ -2469,7 +2514,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   type="datetime-local"
                   value={prizeForm.drawDate}
                   onChange={(e) => setPrizeForm(p => ({ ...p, drawDate: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                   Si définie, ce lot est attribué par tirage au sort   à la date indiquée et n'apparaîtra pas sur la roulette. La probabilité de gain sera ignorée.
@@ -2491,7 +2536,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   required
                   value={prizeForm.validityDays}
                   onChange={(e) => setPrizeForm(p => ({ ...p, validityDays: Number(e.target.value) }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                   Nombre de jours durant lesquels le lot digital ou la remise reste valide après avoir été gagné (ex: 30).
@@ -2509,7 +2554,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createPrizeMut.isPending || updatePrizeMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createPrizeMut.isPending || updatePrizeMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2536,7 +2581,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </button>
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <UserCheck className="h-5 w-5 text-[#FF8C00]" />
+              <UserCheck className="h-5 w-5 text-[#FF6B47]" />
               {userModal.mode === 'create' ? 'Créer un Utilisateur' : 'Modifier le Profil & Crédits'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -2605,7 +2650,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     placeholder="Ex: +33 6 12 34 56 78"
                     value={userForm.phone}
                     onChange={(e) => setUserForm(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                 </div>
               </div>
@@ -2616,7 +2661,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm(p => ({ ...p, role: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                   >
                     <option value="PLAYER">PLAYER (Joueur de roulette)</option>
                     <option value="PARTNER">PARTNER (Accès aux analytiques de sa marque)</option>
@@ -2627,7 +2672,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               {/* Spin Credit Granting Section */}
               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3 mt-4">
-                <h4 className="text-xs font-bold text-[#FF8C00] uppercase tracking-wide flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-[#FF6B47] uppercase tracking-wide flex items-center gap-1.5">
                   <Play className="h-4 w-4 fill-orange-500" /> Crédits de lancers (Lancers NON UTILISÉS)
                 </h4>
 
@@ -2640,7 +2685,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       const currentUnused = userModal.data?.tokensByCampaign?.[cId]?.unused || 0
                       setUserForm(p => ({ ...p, campaignIdForTokens: cId, playTokensCount: currentUnused }))
                     }}
-                    className="w-full bg-white border border-slate-200 text-slate-800 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] cursor-pointer"
+                    className="w-full bg-white border border-slate-200 text-slate-800 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
                   >
                     {campaigns?.map(c => (
                       <option key={c.id} value={c.id}>{c.title}</option>
@@ -2655,7 +2700,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     min="0"
                     value={userForm.playTokensCount}
                     onChange={(e) => setUserForm(p => ({ ...p, playTokensCount: Number(e.target.value) }))}
-                    className="w-full bg-white border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF8C00] transition-all"
+                    className="w-full bg-white border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
                   />
                   <span className="text-[9px] text-slate-400 mt-1 block font-semibold leading-normal">
                     La sauvegarde ajoutera ou supprimera des PlayTokens inutilisés pour correspondre exactement à cette valeur.
@@ -2674,7 +2719,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createUserMut.isPending || updateUserMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createUserMut.isPending || updateUserMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2701,7 +2746,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </button>
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Users className="h-5 w-5 text-[#FF8C00]" />
+              <Users className="h-5 w-5 text-[#FF6B47]" />
               Inscrits au Tirage
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -2728,7 +2773,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       <tr key={u.id || idx} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 font-extrabold text-slate-800">{u.name || 'N/A'}</td>
                         <td className="px-4 py-3 font-semibold text-slate-655">{u.email}</td>
-                        <td className="px-4 py-3 font-mono font-bold text-[#FF8C00]">{u.phone || 'N/A'}</td>
+                        <td className="px-4 py-3 font-mono font-bold text-[#FF6B47]">{u.phone || 'N/A'}</td>
                         <td className="px-4 py-3 text-right text-slate-400 font-semibold">
                           {new Date(u.createdAt).toLocaleString('fr-FR')}
                         </td>

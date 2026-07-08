@@ -52,16 +52,16 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
   return (
     <div className="w-full bg-white p-6 relative overflow-hidden">
       <div className="relative text-center mb-6">
-        <div className="inline-flex p-3 rounded-2xl bg-orange-50 border border-orange-100 text-[#FF8C00] mb-3">
+        <div className="inline-flex p-3 rounded-2xl bg-orange-50 border border-orange-100 text-[#FF6B47] mb-3">
           <Gift className="h-6 w-6" />
         </div>
-        <h3 className="text-xl font-extrabold text-[#1A1A1A] tracking-tight">Tentez votre chance !</h3>
+        <h3 className="text-xl font-extrabold text-[#241F1C] tracking-tight">Tentez votre chance !</h3>
         <p className="text-slate-500 text-xs mt-2 leading-relaxed">
-          Enregistrez vos coordonnées pour obtenir vos <span className="text-[#FF8C00] font-bold">lancers gratuits</span> et tenter de remporter un lot exceptionnel !
+          Enregistrez vos coordonnées pour obtenir vos <span className="text-[#FF6B47] font-bold">lancers gratuits</span> et tenter de remporter un lot exceptionnel !
         </p>
 
         {referredByCode && (
-          <div className="mt-3 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-xxs font-semibold text-[#FF8C00] inline-flex items-center gap-1.5">
+          <div className="mt-3 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-xxs font-semibold text-[#FF6B47] inline-flex items-center gap-1.5">
             🎁 Parrainage actif : {referralBonusSpins} lancer{referralBonusSpins > 1 ? 's' : ''} bonus offert{referralBonusSpins > 1 ? 's' : ''} au parrain !
           </div>
         )}
@@ -79,7 +79,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={leadMutation.isPending}
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] focus:border-[#FF8C00] transition-all disabled:opacity-50"
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
@@ -93,7 +93,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={leadMutation.isPending}
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] focus:border-[#FF8C00] transition-all disabled:opacity-50"
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
@@ -106,7 +106,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             disabled={leadMutation.isPending}
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF8C00] focus:border-[#FF8C00] transition-all disabled:opacity-50"
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
@@ -114,7 +114,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
         {leadMutation.isError && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-650 text-xs">
             <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-            <span>{leadMutation.error.message}</span>
+            <span>{leadMutation.error.message || "Impossible de valider votre inscription pour le moment. Réessayez."}</span>
           </div>
         )}
 
@@ -122,7 +122,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSucc
         <button
           type="submit"
           disabled={leadMutation.isPending || !email || !name}
-          className="w-full h-12 flex items-center justify-center gap-2 bg-[#FF8C00] hover:bg-[#e07b00] disabled:bg-slate-100 text-white disabled:text-slate-450 rounded-xl font-bold text-sm shadow-md shadow-orange-500/10 hover:shadow-orange-500/20 transition-all cursor-pointer disabled:cursor-not-allowed"
+          className="w-full h-12 flex items-center justify-center gap-2 bg-[#FF6B47] hover:bg-[#e85530] disabled:bg-slate-100 text-white disabled:text-slate-450 rounded-xl font-bold text-sm shadow-md shadow-orange-500/10 hover:shadow-orange-500/20 transition-all cursor-pointer disabled:cursor-not-allowed"
         >
           {leadMutation.isPending ? (
             <>

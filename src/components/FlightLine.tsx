@@ -20,8 +20,8 @@ export function FlightLine({ className = '', fixed = false, dim = false }: Fligh
       className={`${fixed ? 'fixed' : 'absolute'} inset-x-0 flex items-center overflow-hidden pointer-events-none ${className}`}
       aria-hidden="true"
     >
-      <div className={`h-px w-full bg-gradient-to-r from-transparent ${dim ? 'via-[#F97316]/12' : 'via-[#F97316]/25'} to-transparent`} />
-      <div className={`absolute animate-flight-cross ${dim ? 'text-[#FF8C00]/22' : 'text-[#FF8C00]/45'}`}>
+      <div className={`h-px w-full bg-gradient-to-r from-transparent ${dim ? 'via-[#FF6B47]/12' : 'via-[#FF6B47]/25'} to-transparent`} />
+      <div className={`absolute animate-flight-cross ${dim ? 'text-[#FF6B47]/22' : 'text-[#FF6B47]/45'}`}>
         <Plane className="h-4 w-4 rotate-90" strokeWidth={2} />
       </div>
     </div>

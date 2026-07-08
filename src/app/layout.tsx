@@ -54,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F58220",
+  themeColor: "#FF6B47",
 };
 
 export default function RootLayout({
@@ -67,7 +67,7 @@ export default function RootLayout({
       lang="fr"
       className={`${inter.variable} ${geistMono.variable} ${clashDisplay.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#FAFAFA] text-[#1A1A1A] flex flex-col">
+      <body className="min-h-full bg-[#FAFAFA] text-[#241F1C] flex flex-col">
         <GlobalBackgroundLayer />
         <CustomCursor />
         <ScrollProgressBar />

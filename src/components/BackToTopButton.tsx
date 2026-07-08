@@ -26,7 +26,7 @@ export function BackToTopButton() {
           transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
           onClick={() => window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })}
           aria-label="Retour en haut de page"
-          className="fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full bg-[#FF8C00] hover:bg-[#e07b00] text-white shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+          className="fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full bg-[#FF6B47] hover:bg-[#e85530] text-white shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-transform"
         >
           <ArrowUp className="h-5 w-5" />
         </motion.button>

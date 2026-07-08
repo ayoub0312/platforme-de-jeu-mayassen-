@@ -99,7 +99,7 @@ export function CustomCursor() {
             height: t.size,
             marginLeft: (CURSOR_SIZE - t.size) / 2,
             marginTop: (CURSOR_SIZE - t.size) / 2,
-            backgroundColor: '#FF8C00',
+            backgroundColor: '#FF6B47',
           }}
           animate={{ opacity: hidden || isOverInteractive ? 0 : t.opacity }}
           transition={{ duration: 0.2 }}
@@ -113,8 +113,8 @@ export function CustomCursor() {
           y,
           width: CURSOR_SIZE,
           height: CURSOR_SIZE,
-          backgroundColor: isOverInteractive ? 'transparent' : '#FF8C00',
-          border: isOverInteractive ? '1.5px solid #FF8C00' : 'none',
+          backgroundColor: isOverInteractive ? 'transparent' : '#FF6B47',
+          border: isOverInteractive ? '1.5px solid #FF6B47' : 'none',
         }}
         animate={{
           scale: hidden ? 0 : isOverInteractive ? 2.3 : 1,

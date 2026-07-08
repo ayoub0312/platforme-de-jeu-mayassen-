@@ -152,7 +152,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
         },
         onError: (err) => {
           setIsSubmitting(false)
-          showToast(err.message)
+          showToast(err.message || 'Impossible de finaliser votre inscription pour le moment. Réessayez.')
         }
       }
     )
@@ -217,7 +217,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
           refetchPlayer()
         },
         onError: (err) => {
-          showToast(err.message)
+          showToast(err.message || "Impossible de valider cette action pour le moment. Réessayez.")
         }
       }
     )
@@ -238,7 +238,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
           refetchPlayer()
         },
         onError: (err) => {
-          showToast(err.message)
+          showToast(err.message || "Impossible de valider cette action pour le moment. Réessayez.")
         }
       }
     )
@@ -260,10 +260,10 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
 
   const pName = activeCampaign.partner?.name || ' '
   const isToutEstLa = pName.toLowerCase().includes('tout est la') || pName.toLowerCase().includes('tout')
-  const brandAccent = isToutEstLa ? 'bg-[#10B981] hover:bg-[#059669]' : 'bg-[#FF8C00] hover:bg-[#e07b00]'
-  const brandText = isToutEstLa ? 'text-[#10B981]' : 'text-[#FF8C00]'
-  const brandBorder = isToutEstLa ? 'border-[#10B981]/20' : 'border-[#FF8C00]/20'
-  const brandBg = isToutEstLa ? 'bg-[#10B981]/10' : 'bg-[#FF8C00]/10'
+  const brandAccent = isToutEstLa ? 'bg-[#10B981] hover:bg-[#059669]' : 'bg-[#FF6B47] hover:bg-[#e85530]'
+  const brandText = isToutEstLa ? 'text-[#10B981]' : 'text-[#FF6B47]'
+  const brandBorder = isToutEstLa ? 'border-[#10B981]/20' : 'border-[#FF6B47]/20'
+  const brandBg = isToutEstLa ? 'bg-[#10B981]/10' : 'bg-[#FF6B47]/10'
 
   return (
     <div className="font-sans antialiased text-slate-900 selection:bg-orange-500/30">
@@ -273,7 +273,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
         <button
           onClick={() => setIsOpen(true)}
           className={`fixed bottom-6 right-6 h-14 w-14 rounded-full flex items-center justify-center text-white shadow-[0_12px_24px_-4px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all duration-300 z-999 cursor-pointer group animate-bounce ${
-            isToutEstLa ? 'bg-linear-to-r from-emerald-500 to-emerald-600' : 'bg-linear-to-r from-[#FF8C00] to-[#E07B00]'
+            isToutEstLa ? 'bg-linear-to-r from-emerald-500 to-emerald-600' : 'bg-linear-to-r from-[#FF6B47] to-[#E85530]'
           }`}
           title="Tentez votre chance !"
         >
@@ -362,7 +362,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                     /* Lead capture form */
                     <form onSubmit={handleRegister} className="space-y-4 py-4 text-left">
                       <div className="text-center space-y-2 mb-6">
-                        <div className="inline-flex p-3 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#FF8C00]">
+                        <div className="inline-flex p-3 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#FF6B47]">
                           <Sparkles className="h-6 w-6 animate-pulse" />
                         </div>
                         <h4 className="text-sm font-black text-white">Rejoignez la Loterie !</h4>
@@ -427,7 +427,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                         </div>
                         <div className="text-right">
                           <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Lancers restants</div>
-                          <div className="text-xs font-black text-[#FF8C00]">{spinsLeft} Spins</div>
+                          <div className="text-xs font-black text-[#FF6B47]">{spinsLeft} Spins</div>
                         </div>
                       </div>
 
@@ -450,9 +450,9 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                 <div className="space-y-4 text-left py-1">
                   <div className="flex items-center justify-between px-1">
                     <h4 className="text-xs font-black text-white flex items-center gap-1">
-                      <Target className="h-4 w-4 text-[#FF8C00]" /> Gagnez des Spins Bonus
+                      <Target className="h-4 w-4 text-[#FF6B47]" /> Gagnez des Spins Bonus
                     </h4>
-                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-[9px] font-black text-[#FF8C00]">
+                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-[9px] font-black text-[#FF6B47]">
                       +4 lancers
                     </span>
                   </div>
@@ -463,7 +463,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-white">✈️ Visiter notre site</span>
-                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-[#FF8C00] text-[8px] font-black">+2 Spins</span>
+                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-[#FF6B47] text-[8px] font-black">+2 Spins</span>
                         </div>
                         <p className="text-[9px] text-slate-400 mt-0.5 leading-relaxed font-semibold">
                           Visitez l'agence Obooking Voyage pour obtenir vos spins.
@@ -489,7 +489,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-white">📸 Suivre sur Instagram</span>
-                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-[#FF8C00] text-[8px] font-black">+2 Spins</span>
+                          <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-[#FF6B47] text-[8px] font-black">+2 Spins</span>
                         </div>
                         <p className="text-[9px] text-slate-400 mt-0.5 leading-relaxed font-semibold">
                           Suivez Obooking sur Instagram pour obtenir vos spins.
@@ -517,14 +517,14 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
               {activeTab === 'prizes' && playerEmail && (
                 <div className="space-y-4 text-left py-1">
                   <h4 className="text-xs font-black text-white flex items-center gap-1">
-                    <Trophy className="h-4 w-4 text-[#FF8C00]" /> Liste des Lots
+                    <Trophy className="h-4 w-4 text-[#FF6B47]" /> Liste des Lots
                   </h4>
 
                   <div className="grid grid-cols-1 gap-2.5">
                     {activeCampaign.prizes.map((prize) => (
                       <div key={prize.id} className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-[#FF8C00]/10 rounded-lg text-[#FF8C00]">
+                          <div className="p-1.5 bg-[#FF6B47]/10 rounded-lg text-[#FF6B47]">
                             <Trophy className="h-3.5 w-3.5" />
                           </div>
                           <div>
@@ -551,18 +551,18 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
                       <button
                         onClick={() => handleCopyPromo(activeCampaign.promoCode!)}
                         className={`w-full group/btn flex items-center justify-between bg-[#0E0C1B] hover:bg-[#151228] border ${
-                          isPromoCopied ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-400' : 'border-white/5 hover:border-[#FF8C00]/30 text-white'
+                          isPromoCopied ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-400' : 'border-white/5 hover:border-[#FF6B47]/30 text-white'
                         } rounded-xl p-3 mt-3 cursor-pointer transition-all active:scale-97`}
                       >
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[7px] text-slate-500 font-bold uppercase tracking-wider">Code promo</span>
                           <span className="text-xs font-mono font-black text-white tracking-wide">{activeCampaign.promoCode}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-[9px] font-black text-[#FF8C00] uppercase tracking-wider">
+                        <div className="flex items-center gap-1 text-[9px] font-black text-[#FF6B47] uppercase tracking-wider">
                           {isPromoCopied ? (
                             <span className="text-emerald-400 flex items-center gap-0.5">✔ COPIÉ</span>
                           ) : (
-                            <span className="flex items-center gap-1 text-slate-400 group-hover/btn:text-[#FF8C00] transition-colors">
+                            <span className="flex items-center gap-1 text-slate-400 group-hover/btn:text-[#FF6B47] transition-colors">
                               <Copy className="h-3 w-3" /> COPIER
                             </span>
                           )}

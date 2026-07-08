@@ -38,7 +38,7 @@ export function ChallengesTab({
   return (
     <div className="w-full text-left space-y-4">
       <div className="bg-orange-50/50 border border-orange-100 p-4 rounded-2xl mb-2">
-        <h3 className="text-xs font-bold text-[#FF8C00] uppercase tracking-wide flex items-center gap-1.5">
+        <h3 className="text-xs font-bold text-[#FF6B47] uppercase tracking-wide flex items-center gap-1.5">
           <Target className="h-4 w-4" /> Défis & Missions
         </h3>
         <p className="text-slate-550 text-[11px] mt-1.5 leading-relaxed font-semibold">
@@ -53,7 +53,7 @@ export function ChallengesTab({
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-sky-500 shrink-0" />
               <span className="text-xs font-extrabold text-slate-800">Visiter l'agence Obooking</span>
-              <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-orange-100 text-[#FF8C00] uppercase tracking-wide">
+              <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-orange-100 text-[#FF6B47] uppercase tracking-wide">
                 +1 Lancer
               </span>
             </div>
@@ -69,7 +69,7 @@ export function ChallengesTab({
           ) : (
             <button
               onClick={handleVisitWebsite}
-              className="px-3.5 py-2 bg-[#FF8C00] hover:bg-[#e07b00] text-white font-extrabold text-xxs rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-end sm:self-center shrink-0 active:scale-95"
+              className="px-3.5 py-2 bg-[#FF6B47] hover:bg-[#e85530] text-white font-extrabold text-xxs rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-end sm:self-center shrink-0 active:scale-95"
             >
               Visiter <ArrowUpRight className="h-3 w-3" />
             </button>
@@ -82,7 +82,7 @@ export function ChallengesTab({
             <div className="flex items-center gap-2">
               <Instagram className="h-4 w-4 text-[#E100C6] shrink-0" />
               <span className="text-xs font-extrabold text-slate-800">Suivre Obooking sur Instagram</span>
-              <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-orange-100 text-[#FF8C00] uppercase tracking-wide">
+              <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-orange-100 text-[#FF6B47] uppercase tracking-wide">
                 +1 Lancer
               </span>
             </div>

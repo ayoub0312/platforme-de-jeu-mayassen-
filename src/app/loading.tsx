@@ -10,7 +10,7 @@ export default function Loading() {
     >
       <div className="relative h-24 w-24 flex items-center justify-center">
         <div className="absolute bottom-2 h-px w-16 bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
-        <div className="animate-plane-takeoff text-[#FF8C00]">
+        <div className="animate-plane-takeoff text-[#FF6B47]">
           <Plane className="h-10 w-10 -rotate-45" strokeWidth={2} />
         </div>
       </div>

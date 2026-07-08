@@ -22,8 +22,8 @@ export function GameTab({
   return (
     <div className="w-full flex flex-col items-center justify-center">
       {/* Real-time credits indicator */}
-      <div className="mb-2 px-4 py-2 bg-orange-50 border border-orange-100 rounded-full text-[#FF8C00] font-black text-xs flex items-center gap-2 tracking-wide shadow-sm">
-        <Play className="h-3.5 w-3.5 fill-[#FF8C00]" />
+      <div className="mb-2 px-4 py-2 bg-orange-50 border border-orange-100 rounded-full text-[#FF6B47] font-black text-xs flex items-center gap-2 tracking-wide shadow-sm">
+        <Play className="h-3.5 w-3.5 fill-[#FF6B47]" />
         {spinsLeft} lancers restants
       </div>
 

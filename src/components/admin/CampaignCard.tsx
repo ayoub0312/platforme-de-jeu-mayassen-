@@ -115,7 +115,13 @@ export function CampaignCard({
           </span>
         </div>
 
-        <div className="mt-4 pt-3 border-t border-black/[0.06] flex items-center justify-between gap-2">
+        {/* Perforation — signature "billet d'embarquement" cutout */}
+        <div className="relative mt-4 h-0 border-t border-dashed border-black/[0.12]" aria-hidden="true">
+          <span className="absolute left-0 -top-2.5 -translate-x-1/2 h-5 w-5 rounded-full bg-surface-alt" />
+          <span className="absolute right-0 -top-2.5 translate-x-1/2 h-5 w-5 rounded-full bg-surface-alt" />
+        </div>
+
+        <div className="pt-3 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={onToggleActive}

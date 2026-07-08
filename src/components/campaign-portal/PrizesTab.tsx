@@ -12,7 +12,7 @@ export function PrizesTab({ playerInfo }: PrizesTabProps) {
   return (
     <div className="w-full text-left">
       <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 mb-3">
-        <Trophy className="h-4 w-4 text-[#FF8C00]" /> Vos gains enregistrés ({prizes.length})
+        <Trophy className="h-4 w-4 text-[#FF6B47]" /> Vos gains enregistrés ({prizes.length})
       </h3>
 
       {prizes.length > 0 ? (

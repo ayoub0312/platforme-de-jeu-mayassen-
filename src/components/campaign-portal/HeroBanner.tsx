@@ -29,7 +29,7 @@ export function HeroBanner({
 
   const pName = activeCampaign.partner?.name || ' '
   const isToutEstLa = pName.toLowerCase().includes('tout est la') || pName.toLowerCase().includes('tout')
-  const brandButton = 'bg-linear-to-r from-[#FF8C00] to-[#e07b00] hover:from-[#e07b00] hover:to-[#c66c00] shadow-[#FF8C00]/20 hover:shadow-[#FF8C00]/35'
+  const brandButton = 'bg-linear-to-r from-[#FF6B47] to-[#e85530] hover:from-[#e85530] hover:to-[#C23F1F] shadow-[#FF6B47]/20 hover:shadow-[#FF6B47]/35'
   const brandGlow1 = 'bg-orange-500/[0.03]'
 
   return (
@@ -145,7 +145,7 @@ export function HeroBanner({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PROMO FLASH DU MOMENT</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8C00] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B47] animate-pulse" />
               </div>
               <h4 className="text-xs font-black text-slate-900 capitalize">
                 {activeCampaign.promoTitle || "🌴 Seychelles Island Escape"}
@@ -166,7 +166,7 @@ export function HeroBanner({
                   {isPromoCopied ? (
                     <span className="text-emerald-600 text-[10px]">✔</span>
                   ) : (
-                    <Copy className="h-3 w-3 text-slate-400 group-hover/promo:text-[#FF8C00] transition-colors" />
+                    <Copy className="h-3 w-3 text-slate-400 group-hover/promo:text-[#FF6B47] transition-colors" />
                   )}
                 </button>
               )}
@@ -176,7 +176,7 @@ export function HeroBanner({
                   href={activeCampaign.promoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-[#FF8C00]/10 hover:bg-[#FF8C00]/20 border border-[#FF8C00]/20 hover:border-[#FF8C00]/30 text-[#FF8C00] hover:text-[#FF8C00] font-extrabold text-[10px] rounded-lg transition-all flex items-center gap-1 uppercase tracking-wider cursor-pointer"
+                  className="px-3.5 py-2 bg-[#FF6B47]/10 hover:bg-[#FF6B47]/20 border border-[#FF6B47]/20 hover:border-[#FF6B47]/30 text-[#FF6B47] hover:text-[#FF6B47] font-extrabold text-[10px] rounded-lg transition-all flex items-center gap-1 uppercase tracking-wider cursor-pointer"
                 >
                   Réserver <ChevronRight className="h-3 w-3" />
                 </a>

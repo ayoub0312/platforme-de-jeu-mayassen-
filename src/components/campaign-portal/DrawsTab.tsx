@@ -40,8 +40,8 @@ export function DrawsTab({
         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 text-orange-100/30 pointer-events-none">
           <Trophy className="h-24 w-24 stroke-[1.5]" />
         </div>
-        <h3 className="text-xs font-black text-[#FF8C00] uppercase tracking-wider flex items-center gap-2">
-          <span className="p-1 rounded-lg bg-orange-100/80 text-[#FF8C00]">
+        <h3 className="text-xs font-black text-[#FF6B47] uppercase tracking-wider flex items-center gap-2">
+          <span className="p-1 rounded-lg bg-orange-100/80 text-[#FF6B47]">
             <Trophy className="h-3.5 w-3.5" />
           </span>
           Tirages au Sort Actifs
@@ -109,7 +109,7 @@ export function DrawsTab({
 
                       <button
                         onClick={handleJoinDraw}
-                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-[#FF8C00] hover:from-[#e07b00] hover:to-[#FF8C00] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 cursor-pointer active:scale-95"
+                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-[#FF6B47] hover:from-[#e85530] hover:to-[#FF6B47] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 cursor-pointer active:scale-95"
                       >
                         🎟️ M'inscrire au tirage
                       </button>

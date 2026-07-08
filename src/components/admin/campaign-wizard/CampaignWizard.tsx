@@ -88,7 +88,7 @@ export function CampaignWizard({ open, onClose, partners }: CampaignWizardProps)
       prizes: saved.map((p) => ({
         id: p.id,
         name: p.name,
-        color: p.color || '#F58220',
+        color: p.color || '#FF6B47',
         imageData: p.imageData,
         imageMimeType: p.imageMimeType,
         winProbability: p.winProbability,

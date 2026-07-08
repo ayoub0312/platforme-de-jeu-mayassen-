@@ -8,6 +8,7 @@ import { GripVertical, Trash2, Plus, ImageIcon, Palette, PlayCircle, Crop } from
 import { RouletteWheel } from '../RouletteWheel'
 import { SEGMENT_COLOR_PALETTE, type GameConfigData, type ConfigPrize } from './types'
 import { ImageCropModal } from './ImageCropModal'
+import { Disclosure } from '../ui/Disclosure'
 import { trpc } from '@/utils/trpc'
 
 const SEGMENT_COUNTS = [6, 8, 10, 12]
@@ -74,14 +75,14 @@ function SortableSegmentRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="grid grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 items-center p-3 bg-slate-50 border border-slate-200 rounded-xl"
+      className="flex flex-wrap sm:grid sm:grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 items-center p-3 bg-slate-50 border border-slate-200 rounded-xl"
     >
       <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 shrink-0" aria-label="Réordonner">
         <GripVertical className="h-4 w-4" />
       </button>
 
       {/* Fond du segment : couleur unie ou photo */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 shrink-0">
           <button
             type="button"
@@ -89,7 +90,7 @@ function SortableSegmentRow({
             title="Couleur unie"
             aria-pressed={mode === 'color'}
             className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
-              mode === 'color' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+              mode === 'color' ? 'bg-[#FF6B47] text-white' : 'text-slate-400 hover:bg-slate-100'
             }`}
           >
             <Palette className="h-3.5 w-3.5" />
@@ -100,7 +101,7 @@ function SortableSegmentRow({
             title="Image"
             aria-pressed={mode === 'image'}
             className={`h-7 w-7 rounded-md flex items-center justify-center cursor-pointer transition-all ${
-              mode === 'image' ? 'bg-[#FF8C00] text-white' : 'text-slate-400 hover:bg-slate-100'
+              mode === 'image' ? 'bg-[#FF6B47] text-white' : 'text-slate-400 hover:bg-slate-100'
             }`}
           >
             <ImageIcon className="h-3.5 w-3.5" />
@@ -156,17 +157,17 @@ function SortableSegmentRow({
         value={segment.name}
         onChange={(e) => onChange(index, { name: e.target.value })}
         placeholder="Nom du lot"
-        className="min-w-0 bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+        className="min-w-0 basis-full sm:basis-auto bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
       />
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-1 sm:flex-none min-w-[70px]">
         <input
           type="number"
           min={0}
           max={100}
           value={Math.round(segment.winProbability * 100)}
           onChange={(e) => onChange(index, { winProbability: Math.max(0, Math.min(100, Number(e.target.value))) / 100 })}
-          className="w-full min-w-0 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+          className="w-full min-w-0 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
           title="Probabilité de gain (%)"
         />
         <span className="text-[10px] text-slate-400 font-bold shrink-0">%</span>
@@ -176,7 +177,7 @@ function SortableSegmentRow({
         type="number"
         value={segment.totalStock}
         onChange={(e) => onChange(index, { totalStock: Number(e.target.value) })}
-        className="w-full min-w-0 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
+        className="flex-1 sm:flex-none min-w-[70px] sm:w-[78px] bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
         title="Stock disponible (-1 = illimité)"
       />
 
@@ -284,24 +285,8 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
 
   return (
     <div className="space-y-6">
-      {/* Templates préconfigurés */}
-      {templatesQuery.data && templatesQuery.data.some((t) => t.gameMode === 'ROULETTE') && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-bold text-slate-400 self-center mr-1">Templates :</span>
-          {templatesQuery.data.filter((t) => t.gameMode === 'ROULETTE').map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => applyTemplate(t.id)}
-              className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 cursor-pointer transition-all"
-            >
-              {t.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Nombre de segments */}
+      {/* Nombre de segments — reste au premier plan : c'est ce qui façonne
+          directement la roue, contrairement aux réglages ci-dessous. */}
       <div>
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Nombre de segments</label>
         <div className="flex gap-2">
@@ -311,7 +296,7 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
               type="button"
               onClick={() => setSegmentCount(count)}
               className={`px-4 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                segments.length === count ? 'bg-[#FF8C00] border-[#FF8C00] text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                segments.length === count ? 'bg-[#FF6B47] border-[#FF6B47] text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
               }`}
             >
               {count}
@@ -320,18 +305,37 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
         </div>
       </div>
 
-      {/* Limite de lancers par client */}
-      <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Lancers offerts par client</label>
-        <input
-          type="number"
-          min={1}
-          max={20}
-          value={data.spinsPerClient}
-          onChange={(e) => setData((p) => ({ ...p, spinsPerClient: Math.max(1, Number(e.target.value)) }))}
-          className="w-24 bg-slate-50 border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-sm font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF8C00]"
-        />
-      </div>
+      {/* Réglages secondaires — repliés par défaut pour laisser les segments
+          et l'aperçu dominer visuellement l'écran. */}
+      <Disclosure label="Réglages avancés (templates, lancers par client)">
+        {templatesQuery.data && templatesQuery.data.some((t) => t.gameMode === 'ROULETTE') && (
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs font-bold text-slate-400 self-center mr-1">Templates :</span>
+            {templatesQuery.data.filter((t) => t.gameMode === 'ROULETTE').map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t.id)}
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 cursor-pointer transition-all"
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Lancers offerts par client</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={data.spinsPerClient}
+            onChange={(e) => setData((p) => ({ ...p, spinsPerClient: Math.max(1, Number(e.target.value)) }))}
+            className="w-24 bg-white border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-sm font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+          />
+        </div>
+      </Disclosure>
 
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         {/* Éditeur de segments */}
@@ -343,8 +347,8 @@ export function RouletteConfigEditor({ data, setData }: RouletteConfigEditorProp
             </span>
           </div>
 
-          {/* En-têtes de colonnes — alignés sur la même grille que chaque ligne */}
-          <div className="grid grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 px-3 mb-1.5">
+          {/* En-têtes de colonnes — alignés sur la même grille que chaque ligne (desktop uniquement, la ligne mobile est empilée) */}
+          <div className="hidden sm:grid sm:grid-cols-[22px_150px_minmax(120px,1fr)_78px_78px_32px] gap-2 px-3 mb-1.5">
             <span />
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Fond</span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Nom du lot</span>

@@ -91,14 +91,14 @@ export function ReferralTab({
         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 text-orange-100/30 pointer-events-none">
           <Share2 className="h-24 w-24 stroke-[1.5]" />
         </div>
-        <h3 className="text-xs font-black text-[#FF8C00] uppercase tracking-wider flex items-center gap-2">
-          <span className="p-1 rounded-lg bg-orange-100/80 text-[#FF8C00]">
+        <h3 className="text-xs font-black text-[#FF6B47] uppercase tracking-wider flex items-center gap-2">
+          <span className="p-1 rounded-lg bg-orange-100/80 text-[#FF6B47]">
             <Share2 className="h-3.5 w-3.5" />
           </span>
           Partagez votre lien de parrainage
         </h3>
         <p className="text-slate-650 text-xs mt-3 leading-relaxed font-semibold">
-          Chaque filleul inscrit vous fait gagner instantanément <span className="text-[#FF8C00] font-black">+2 lancers bonus</span> et ils reçoivent leurs lancers gratuits dès leur arrivée !
+          Chaque filleul inscrit vous fait gagner instantanément <span className="text-[#FF6B47] font-black">+2 lancers bonus</span> et ils reçoivent leurs lancers gratuits dès leur arrivée !
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export function ReferralTab({
           />
           <button
             onClick={handleCopyLink}
-            className="px-5 py-3 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-95 shrink-0"
+            className="px-5 py-3 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-95 shrink-0"
           >
             {isCopied ? (
               <>

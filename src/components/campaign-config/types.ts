@@ -22,4 +22,4 @@ export interface GameConfigData {
   prizes: ConfigPrize[]
 }
 
-export const SEGMENT_COLOR_PALETTE = ['#F97316', '#0B1120', '#D4AF6A', '#E2E8F0', '#C2410C', '#1E293B']
+export const SEGMENT_COLOR_PALETTE = ['#FF6B47', '#182444', '#E8A33D', '#E8E6E1', '#C23F1F', '#0EA5A0']

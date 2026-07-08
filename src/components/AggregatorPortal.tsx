@@ -207,7 +207,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
       >
         {/* Fine gradient border, only visible once opaque */}
         <div
-          className={`absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#FF8C00]/50 to-transparent transition-opacity duration-300 ${
+          className={`absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#FF6B47]/50 to-transparent transition-opacity duration-300 ${
             isScrolledPastHero ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -239,7 +239,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
           >
             <Link
               href="/"
-              className={`nav-link-underline relative py-1 ${isScrolledPastHero ? 'text-[#FF8C00] hover:text-[#e07b00]' : 'hover:text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'}`}
+              className={`nav-link-underline relative py-1 ${isScrolledPastHero ? 'text-[#FF6B47] hover:text-[#e85530]' : 'hover:text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'}`}
             >
               Explorer
             </Link>
@@ -344,7 +344,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Rechercher un jeu-concours"
-              className="w-full pl-13 pr-4 py-4 bg-white border border-slate-200/80 rounded-2xl text-slate-800 placeholder-slate-450 focus:outline-hidden focus:border-[#FF8C00] focus:ring-4 focus:ring-orange-500/10 transition-all font-medium text-sm"
+              className="w-full pl-13 pr-4 py-4 bg-white border border-slate-200/80 rounded-2xl text-slate-800 placeholder-slate-450 focus:outline-hidden focus:border-[#FF6B47] focus:ring-4 focus:ring-orange-500/10 transition-all font-medium text-sm"
               style={{ boxShadow: 'var(--shadow-premium-md)' }}
             />
           </div>
@@ -356,7 +356,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
         {/* Category & Type Filters Nav */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
           <div className="flex items-center gap-2">
-            <button className="px-4 py-2 rounded-xl text-xs font-black shrink-0 bg-[#FF8C00] text-white shadow-md shadow-orange-500/15 cursor-default">
+            <button className="px-4 py-2 rounded-xl text-xs font-black shrink-0 bg-[#FF6B47] text-white shadow-md shadow-orange-500/15 cursor-default">
               Tous
               <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] bg-white/20 text-white">
                 {initialCampaigns.length}
@@ -437,7 +437,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                         {cat === 'Hôtels & Séjours' && <Bed className="h-7 w-7 text-emerald-500" />}
                         {cat === 'Omra' && <Compass className="h-7 w-7 text-indigo-500" />}
                         {cat === 'Bons de Réduction' && <Ticket className="h-7 w-7 text-amber-500" />}
-                        {cat === 'Autres Cadeaux' && <Gift className="h-7 w-7 text-[#FF8C00]" />}
+                        {cat === 'Autres Cadeaux' && <Gift className="h-7 w-7 text-[#FF6B47]" />}
                       </div>
                     )}
                   </div>
@@ -456,7 +456,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                       </div>
 
                       {/* Campaign Title */}
-                      <h4 className="text-sm font-extrabold text-slate-800 group-hover:text-[#FF8C00] transition-colors leading-tight line-clamp-2">
+                      <h4 className="text-sm font-extrabold text-slate-800 group-hover:text-[#FF6B47] transition-colors leading-tight line-clamp-2">
                         {campaign.title}
                       </h4>
 
@@ -470,15 +470,22 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                           </div>
                         ))}
                         {campaign.prizes.length > 2 && (
-                          <span className="text-[10px] text-[#FF8C00] font-bold block mt-1">
+                          <span className="text-[10px] text-[#FF6B47] font-bold block mt-1">
                             + {campaign.prizes.length - 2} autre(s) lot(s)
                           </span>
                         )}
                       </div>
                     </div>
 
+                    {/* Perforation — signature "billet d'embarquement" cutout, separating
+                        the campaign details from the CTA stub like a boarding pass */}
+                    <div className="relative mt-5 h-0 border-t border-dashed border-ink-900/15" aria-hidden="true">
+                      <span className="absolute left-0 -top-2.5 -translate-x-1/2 h-5 w-5 rounded-full bg-[#F7F7F4]" />
+                      <span className="absolute right-0 -top-2.5 translate-x-1/2 h-5 w-5 rounded-full bg-[#F7F7F4]" />
+                    </div>
+
                     {/* Bottom CTA Button */}
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-4 flex items-center justify-between gap-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-semibold text-slate-450 flex items-center gap-1">
                           <Clock className="h-3 w-3" /> Expire le {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
@@ -494,7 +501,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                           className="cta-flash bg-gradient-brand relative inline-flex items-center gap-1 px-3 py-2 text-white rounded-lg text-xxs font-black tracking-tight transition-all hover:brightness-110 hover:scale-105 active:scale-95 cursor-pointer shrink-0"
                           style={{ boxShadow: 'var(--shadow-premium-glow)' }}
                         >
-                          <span className="absolute inset-0 rounded-lg animate-ping-slow bg-[#FF8C00]/60 motion-reduce:hidden" aria-hidden="true" />
+                          <span className="absolute inset-0 rounded-lg animate-ping-slow bg-[#FF6B47]/60 motion-reduce:hidden" aria-hidden="true" />
                           <span className="relative flex items-center gap-1">
                             Jouer <ArrowUpRight className="h-3.5 w-3.5" />
                           </span>
@@ -597,14 +604,14 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                 <a
                   href="#"
                   aria-label="Obooking Gift sur Facebook"
-                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF8C00] hover:border-[#FF8C00] hover:-translate-y-0.5 transition-all duration-300"
+                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF6B47] hover:border-[#FF6B47] hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <FacebookIcon className="h-4 w-4" />
                 </a>
                 <a
                   href="#"
                   aria-label="Obooking Gift sur Instagram"
-                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF8C00] hover:border-[#FF8C00] hover:-translate-y-0.5 transition-all duration-300"
+                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF6B47] hover:border-[#FF6B47] hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <InstagramIcon className="h-4 w-4" />
                 </a>

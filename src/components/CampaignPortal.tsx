@@ -87,7 +87,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
           toast.success(data.message)
         },
         onError: (err) => {
-          toast.error(err.message)
+          toast.error(err.message || "Impossible de valider cette action pour le moment. Réessayez.")
         }
       }
     )
@@ -109,7 +109,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
           toast.success(data.message)
         },
         onError: (err) => {
-          toast.error(err.message)
+          toast.error(err.message || "Impossible de valider cette action pour le moment. Réessayez.")
         }
       }
     )
@@ -155,7 +155,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
           },
           onError: (err) => {
             setUploadingReceipt(false)
-            toast.error(err.message)
+            toast.error(err.message || "Impossible d'envoyer ce ticket pour le moment. Réessayez.")
           }
         }
       )
@@ -180,7 +180,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
           toast.success(data.message)
         },
         onError: (err) => {
-          toast.error(err.message)
+          toast.error(err.message || "Impossible de valider votre inscription au tirage pour le moment. Réessayez.")
         }
       }
     )
@@ -341,7 +341,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
             {playerEmail && playerName && (
               <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8C00] font-extrabold text-sm uppercase">
+                  <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF6B47] font-extrabold text-sm uppercase">
                     {playerName.slice(0, 2)}
                   </div>
                   <div>

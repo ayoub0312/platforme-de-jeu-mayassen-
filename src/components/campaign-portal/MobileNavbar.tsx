@@ -48,11 +48,11 @@ export function MobileNavbar({
             }}
             className={`flex flex-col items-center justify-center gap-1 py-1.5 px-2 rounded-xl transition-all border cursor-pointer ${
               isActive
-                ? 'bg-white border-[#FF8C00] text-[#FF8C00] font-bold shadow-sm'
+                ? 'bg-white border-[#FF6B47] text-[#FF6B47] font-bold shadow-sm'
                 : 'border-transparent text-slate-800 hover:text-slate-950'
             }`}
           >
-            <Icon className={`h-4 w-4 ${isActive ? 'text-[#FF8C00]' : 'text-slate-800'}`} />
+            <Icon className={`h-4 w-4 ${isActive ? 'text-[#FF6B47]' : 'text-slate-800'}`} />
             <span className="text-[9px]">{t.label}</span>
           </button>
         )

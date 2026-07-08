@@ -71,7 +71,9 @@ function KpiCard({ icon: Icon, label, value, suffix, trend }: KpiCardProps) {
           <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
-      <div className="font-display text-3xl font-semibold text-ink-900 mt-3">
+      {/* Geist Mono for stats — visually distinguishes "data" from "content"
+          headings (which stay on Clash Display) across the admin. */}
+      <div className="font-mono text-3xl font-semibold text-ink-900 mt-3 tabular-nums">
         <AnimatedCounter value={value} suffix={suffix} />
       </div>
       <div className="mt-2 h-4">{trend !== undefined && <TrendBadge percent={trend} />}</div>

@@ -52,14 +52,14 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     return (
       <main className="relative z-10 min-h-screen text-slate-800 flex items-center justify-center p-4 overflow-hidden">
         <div className="relative z-10 bg-white border border-slate-200/80 rounded-[32px] p-8 max-w-md w-full shadow-xl text-center">
-          <AlertTriangle className="h-12 w-12 text-[#FF8C00] mx-auto mb-4 animate-pulse" />
+          <AlertTriangle className="h-12 w-12 text-[#FF6B47] mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-black text-slate-800">Partenaire Introuvable</h2>
           <p className="text-slate-550 text-xs mt-2 leading-relaxed">
             Le lien de jeu auquel vous tentez d'accéder n'est pas valide ou l'entreprise n'est pas encore enregistrée.
           </p>
           <Link
             href="/"
-            className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FF8C00] hover:bg-[#e07b00] text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
+            className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
           >
             <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
           </Link>
