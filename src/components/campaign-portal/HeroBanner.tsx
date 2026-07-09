@@ -130,7 +130,7 @@ export function HeroBanner({
              Relever les Défis &amp; Jouer
           </button>
           <a
-            href={activeCampaign.promoUrl || "https://obooking.com"}
+            href="https://www.obooking.tn/"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:max-w-[260px] h-12 inline-flex justify-center items-center bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 hover:text-slate-900 font-extrabold text-xs rounded-xl transition-all duration-300 gap-2 active:scale-97 cursor-pointer hover:scale-[1.02]"

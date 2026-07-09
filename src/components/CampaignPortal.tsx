@@ -74,7 +74,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
   const handleVisitWebsite = () => {
     if (!activeCampaign) return
     if (playerInfo?.completedTasks?.includes('VISIT_WEBSITE')) return
-    window.open('https://obooking.com', '_blank')
+    window.open('https://www.obooking.tn/', '_blank')
     claimTaskMutation.mutate(
       {
         email: playerEmail || '',
