@@ -43,6 +43,20 @@ async function logActivity(params: {
   }
 }
 
+// Génère un slug URL-safe unique à partir du nom d'un partenaire (ex: "Tout
+// est là" -> "tout-est-la"), en ajoutant un suffixe numérique en cas de
+// collision avec un slug existant.
+async function generateUniquePartnerSlug(name: string): Promise<string> {
+  const base = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'partenaire'
+  let slug = base
+  let suffix = 1
+  while (await prisma.partner.findUnique({ where: { slug } })) {
+    suffix += 1
+    slug = `${base}-${suffix}`
+  }
+  return slug
+}
+
 // Templates préconfigurés proposés à l'étape "Config" du wizard de création de
 // campagne (Phase 2). Statiques pour l'instant — pas besoin d'une table dédiée.
 const CAMPAIGN_TEMPLATES = [
@@ -1478,9 +1492,11 @@ export const appRouter = router({
       })
     )
     .mutation(async ({ input }) => {
+      const slug = await generateUniquePartnerSlug(input.name)
       return prisma.partner.create({
         data: {
           name: input.name,
+          slug,
           allowedDomains: input.allowedDomains,
         },
       })

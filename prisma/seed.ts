@@ -71,6 +71,7 @@ async function main() {
   const partner1 = await prisma.partner.create({
     data: {
       name: 'obooking',
+      slug: 'obooking',
       allowedDomains: 'localhost:3000,localhost:3001,obooking.com,play.obooking.com',
     },
   })
@@ -78,6 +79,7 @@ async function main() {
   const partner2 = await prisma.partner.create({
     data: {
       name: 'tout est la',
+      slug: 'tout-est-la',
       allowedDomains: 'localhost:3000,localhost:3001,toutestla.com,play.toutestla.com',
     },
   })

@@ -6,9 +6,14 @@ datasource db {
   provider = "sqlite"
 }
 
-// Singleton row (id: "main") holding site-wide homepage configuration.
+// Ligne globale (id: "main", partnerId: null) = réglages/branding par défaut du
+// site. Un partenaire n'a de ligne dédiée que s'il a déjà personnalisé ses
+// réglages (créée à la volée par updateSiteSettings) ; tant qu'il n'en a pas,
+// il hérite en lecture de la ligne "main". Voir MIGRATION_PROD.md.
 model SiteSettings {
   id                  String  @id @default(cuid())
+  partnerId           String? @unique
+  partner             Partner? @relation(fields: [partnerId], references: [id])
   heroVideoData       String? // base64, capped at ~4MB client + server side
   heroVideoMimeType   String?
   heroPosterData      String? // shown when no video is configured, or as <video poster>
@@ -38,6 +43,11 @@ model User {
   role  Role    @default(PLAYER)
   passwordHash String?
   normalizedEmail String? // Email normalisé pour détecter les alias (Gmail +tag, dots)
+
+  // Rôle PARTNER uniquement : partenaire auquel ce compte est rattaché.
+  // Remplace l'ancienne résolution par heuristique (domaine email) au login.
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id])
 
   //  partage
   referralCode String  @unique @default(cuid())
@@ -70,9 +80,17 @@ enum GameMode {
 model Partner {
   id             String        @id @default(cuid())
   name           String
+  slug           String        @unique // Identifiant URL-safe, généré à la création (ex: "obooking")
+  isActive       Boolean       @default(true) // Un partenaire désactivé ne peut plus se connecter
+  email          String? // Email de contact du partenaire (distinct des emails des comptes User liés)
+  logoUrl        String?
+  primaryColor   String?
+  secondaryColor String?
   allowedDomains String // Ex: "supermarche.com,boutique.fr"
   campaigns      Campaign[]
   capturedLeads  LeadCapture[]
+  users          User[]
+  siteSettings   SiteSettings?
 }
 
 model Campaign {
@@ -254,6 +272,7 @@ model OtpCode {
 model ActivityLog {
   id         String   @id @default(cuid())
   userEmail  String
+  partnerId  String? // Renseigné pour les actions faites par/sur un compte PARTNER ; null = action SUPERADMIN globale
   action     String
   targetType String
   targetId   String
@@ -261,4 +280,5 @@ model ActivityLog {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+  @@index([partnerId])
 }
