@@ -34,6 +34,13 @@ yarn-error.log*
 .env*
 !.env.example
 
+# base de données locale (contient des hashes de mot de passe et des emails
+# de test réels issus des sessions de dev/QA — ne doit jamais être dans git)
+dev.db
+dev.db-journal
+dev.db-wal
+dev.db-shm
+
 # vercel
 .vercel
 
