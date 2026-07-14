@@ -2141,10 +2141,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Adresse Gmail</label>
+                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Adresse d'envoi</label>
                     <input
                       type="email"
-                      placeholder="agence@gmail.com"
+                      placeholder="gift@obooking.tn"
                       value={campaignForm.senderEmail}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmail: e.target.value }))}
                       className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
@@ -2152,11 +2152,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">
-                      Mot de Passe d'Application {campaignForm.hasSenderEmailPassword && <span className="text-emerald-500 normal-case font-semibold">(déjà configuré)</span>}
+                      Clé API Resend {campaignForm.hasSenderEmailPassword && <span className="text-emerald-500 normal-case font-semibold">(déjà configurée)</span>}
                     </label>
                     <input
                       type="password"
-                      placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
+                      placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 're_xxxxxxxxxxxxxxxx'}
                       value={campaignForm.senderEmailPassword}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmailPassword: e.target.value }))}
                       className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
@@ -2164,16 +2164,15 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 font-semibold">
-                  Laissez le mot de passe vide pour conserver celui déjà enregistré. Générez un{' '}
+                  Laissez la clé vide pour conserver celle déjà enregistrée. L'adresse d'envoi doit être sur un domaine{' '}
                   <a
-                    href="https://myaccount.google.com/apppasswords"
+                    href="https://resend.com/domains"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#FF6B47] hover:underline"
                   >
-                    mot de passe d'application Google
-                  </a>{' '}
-                  (pas le mot de passe habituel du compte).
+                    vérifié dans Resend
+                  </a>.
                 </p>
               </div>
 

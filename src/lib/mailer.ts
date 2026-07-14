@@ -2,20 +2,39 @@ import nodemailer from 'nodemailer'
 import QRCode from 'qrcode'
 import { decryptSecret } from './crypto'
 
+// Sent via Resend's SMTP relay rather than a partner's own Gmail account —
+// Gmail's fraud detection repeatedly revoked app passwords used from a cloud
+// server IP, which made delivery unreliable. The "sender password" field now
+// holds a Resend API key instead of a Gmail app password; the "from" address
+// must be on a domain verified in Resend (Gmail addresses can't be used as
+// the From here, since Resend can't authenticate on Gmail's behalf).
+function createTransporter(apiKey: string) {
+  return nodemailer.createTransport({
+    host: 'smtp.resend.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: 'resend',
+      pass: apiKey,
+    },
+  })
+}
+
 interface SendWinnerEmailParams {
   to: string
   winnerName: string | null
   prizeName: string
   partnerName: string
   senderEmail: string
-  senderEmailPassword: string // encrypted
+  senderEmailPassword: string // encrypted Resend API key
   confirmationCode: string // short reference the partner's staff can look up at pickup
   voucherUrl: string // scanning the QR opens this page, showing the voucher
 }
 
-// Sends the "you won" notification from the winning partner/agency's own Gmail account.
-// Never throws — a failed send must not break the spin/draw flow, so callers should
-// still wrap this in try/catch and only log on failure.
+// Sends the "you won" notification, "from" the winning partner/agency's own
+// verified address. Never throws — a failed send must not break the
+// spin/draw flow, so callers should still wrap this in try/catch and only
+// log on failure.
 export async function sendWinnerEmail({
   to,
   winnerName,
@@ -26,15 +45,8 @@ export async function sendWinnerEmail({
   confirmationCode,
   voucherUrl,
 }: SendWinnerEmailParams): Promise<void> {
-  const password = decryptSecret(senderEmailPassword)
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: senderEmail,
-      pass: password,
-    },
-  })
+  const apiKey = decryptSecret(senderEmailPassword)
+  const transporter = createTransporter(apiKey)
 
   const greeting = winnerName ? `Bonjour ${winnerName}` : 'Bonjour'
 
@@ -131,7 +143,7 @@ interface SendDrawRegistrationEmailParams {
   campaignTitle: string
   partnerName: string
   senderEmail: string
-  senderEmailPassword: string // encrypted
+  senderEmailPassword: string // encrypted Resend API key
   drawDate: Date | null
 }
 
@@ -147,15 +159,8 @@ export async function sendDrawRegistrationEmail({
   senderEmailPassword,
   drawDate,
 }: SendDrawRegistrationEmailParams): Promise<void> {
-  const password = decryptSecret(senderEmailPassword)
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: senderEmail,
-      pass: password,
-    },
-  })
+  const apiKey = decryptSecret(senderEmailPassword)
+  const transporter = createTransporter(apiKey)
 
   const greeting = participantName ? `Bonjour ${participantName}` : 'Bonjour'
   const drawDateLabel = drawDate

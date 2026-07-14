@@ -63,28 +63,28 @@ export function SettingsTab() {
           <Mail className="h-5 w-5 text-brand-500" /> Email d'envoi par défaut
         </h3>
         <p className="text-ink-500 text-xs font-semibold mb-5">
-          Utilisée pour notifier les gagnants quand une campagne n'a pas sa propre adresse configurée.
+          Utilisée pour notifier les gagnants quand une campagne n'a pas sa propre adresse configurée. Envoyée via Resend.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             type="email"
-            label="Adresse Gmail"
-            placeholder="agence@gmail.com"
+            label="Adresse d'envoi"
+            placeholder="gift@obooking.tn"
             value={defaultSenderEmail}
             onChange={(e) => setDefaultSenderEmail(e.target.value)}
           />
           <Input
             type="password"
-            label={`Mot de passe d'application${settings?.hasDefaultSenderEmailPassword ? ' (déjà configuré)' : ''}`}
-            placeholder={settings?.hasDefaultSenderEmailPassword ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
+            label={`Clé API Resend${settings?.hasDefaultSenderEmailPassword ? ' (déjà configurée)' : ''}`}
+            placeholder={settings?.hasDefaultSenderEmailPassword ? '••••••••••••••••' : 're_xxxxxxxxxxxxxxxx'}
             value={defaultSenderEmailPassword}
             onChange={(e) => setDefaultSenderEmailPassword(e.target.value)}
           />
         </div>
         <p className="text-[10px] text-ink-500 mt-2 font-semibold">
-          Laissez le mot de passe vide pour conserver celui déjà enregistré. Générez un{' '}
-          <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
-            mot de passe d'application Google
+          Laissez la clé vide pour conserver celle déjà enregistrée. L'adresse d'envoi doit être sur un domaine{' '}
+          <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+            vérifié dans Resend
           </a>.
         </p>
       </Card>

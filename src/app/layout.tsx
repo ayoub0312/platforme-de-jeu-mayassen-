@@ -35,7 +35,11 @@ const clashDisplay = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://game-myassin.vercel.app"),
+  // Suit APP_BASE_URL (déjà utilisée pour les liens email et les QR codes de
+  // voucher) plutôt qu'un domaine en dur, pour que les aperçus Open Graph
+  // pointent vers le bon domaine sans avoir à toucher au code lors d'un
+  // changement de domaine — seule la variable d'env doit changer.
+  metadataBase: new URL(process.env.APP_BASE_URL || "https://game-myassin.vercel.app"),
   title: "Obooking Gift | Jeux-Concours & Cadeaux Obooking",
   description: "Participez aux jeux-concours Obooking Gift et tentez de remporter voyages, séjours et bons d'achat exclusifs.",
   openGraph: {
