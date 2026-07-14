@@ -1317,6 +1317,10 @@ export const appRouter = router({
         })
       }
 
+      if (ctx.userSession!.role !== Role.SUPERADMIN && submission.campaign.partnerId !== ctx.userSession!.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette soumission n'appartient pas à votre partenaire." })
+      }
+
       const email = ctx.userSession!.email
 
       if (input.decision === 'APPROVED') {
@@ -2328,7 +2332,15 @@ export const appRouter = router({
         drawDate: z.coerce.date().nullable(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
+      const campaign = await prisma.campaign.findUnique({ where: { id: input.campaignId } })
+      if (!campaign) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaign.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
+      }
       await prisma.campaign.update({
         where: { id: input.campaignId },
         data: { allowMultipleWins: input.allowMultipleWins },
@@ -2342,7 +2354,18 @@ export const appRouter = router({
 
   updatePrizeWinnerCount: writeProcedure
     .input(z.object({ prizeId: z.string(), totalStock: z.number().int().min(1) }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
+      const prize = await prisma.prize.findUnique({
+        where: { id: input.prizeId },
+        include: { campaign: true },
+      })
+      if (!prize) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Lot introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && prize.campaign.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Ce lot n'appartient pas à votre partenaire." })
+      }
       return prisma.prize.update({
         where: { id: input.prizeId },
         data: { totalStock: input.totalStock },
@@ -2526,6 +2549,15 @@ export const appRouter = router({
   setCampaignGameMode: writeProcedure
     .input(z.object({ id: z.string(), gameMode: z.enum(['ROULETTE', 'DRAW']) }))
     .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
+      const campaignToUpdate = await prisma.campaign.findUnique({ where: { id: input.id } })
+      if (!campaignToUpdate) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaignToUpdate.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
+      }
+
       const updated = await prisma.campaign.update({
         where: { id: input.id },
         data: { gameMode: input.gameMode },
@@ -2558,7 +2590,13 @@ export const appRouter = router({
         limit: z.number().int().min(1).max(200).default(50),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // ActivityLog n'a pas encore de colonne partnerId (prévue en Phase 1) : en
+      // attendant, on refuse l'accès aux comptes PARTNER plutôt que de renvoyer
+      // un journal non filtré qui exposerait l'activité d'autres partenaires.
+      if (ctx.userSession!.role !== Role.SUPERADMIN) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Action réservée aux super-administrateurs.' })
+      }
       return prisma.activityLog.findMany({
         where: {
           ...(input?.targetType ? { targetType: input.targetType } : {}),
@@ -2581,8 +2619,16 @@ export const appRouter = router({
         postSignupMessage: z.string().nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
       const { id, ...rest } = input
+      const campaignToUpdate = await prisma.campaign.findUnique({ where: { id } })
+      if (!campaignToUpdate) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaignToUpdate.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
+      }
       const data: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(rest)) {
         if (value !== undefined) data[key] = value
@@ -2592,13 +2638,17 @@ export const appRouter = router({
 
   getCampaignWithPrizes: adminProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const session = ctx.userSession!
       const campaign = await prisma.campaign.findUnique({
         where: { id: input.id },
         include: { prizes: { orderBy: { order: 'asc' } } },
       })
       if (!campaign) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaign.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
       }
       return campaign
     }),
@@ -2629,10 +2679,14 @@ export const appRouter = router({
         ),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
       const campaignExists = await prisma.campaign.findUnique({ where: { id: input.campaignId } })
       if (!campaignExists) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaignExists.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
       }
 
       const existing = await prisma.prize.findMany({
