@@ -1538,8 +1538,10 @@ export const appRouter = router({
 
   // Crée le Partner et son compte de connexion (User role=PARTNER) en une seule
   // transaction — un partenaire sans compte lié ne pourrait jamais se
-  // connecter à son propre espace. Le mot de passe temporaire n'est renvoyé
-  // qu'ici, une seule fois : jamais stocké en clair, jamais loggé.
+  // connecter à son propre espace. Le super admin choisit lui-même le mot de
+  // passe initial (saisi dans le formulaire, éventuellement via le bouton
+  // "Générer") — jamais stocké en clair, jamais loggé, seul le hash bcrypt
+  // est conservé.
   createPartner: superAdminProcedure
     .input(
       z.object({
@@ -1547,6 +1549,7 @@ export const appRouter = router({
         slug: z.string().min(2, 'Le slug doit contenir au moins 2 caractères.')
           .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Le slug ne peut contenir que des lettres minuscules, chiffres et tirets.'),
         email: z.string().trim().email('Adresse email invalide.'),
+        password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères.'),
         allowedDomains: z.string().default(''),
         logoUrl: z.string().nullable().optional(),
         primaryColor: z.string().nullable().optional(),
@@ -1563,8 +1566,7 @@ export const appRouter = router({
         throw new TRPCError({ code: 'CONFLICT', message: `L'adresse ${input.email} est déjà utilisée par un compte existant.` })
       }
 
-      const temporaryPassword = generateSecurePassword()
-      const passwordHash = await bcrypt.hash(temporaryPassword, 10)
+      const passwordHash = await bcrypt.hash(input.password, 10)
 
       const { partner, user } = await prisma.$transaction(async (tx) => {
         const partner = await tx.partner.create({
@@ -1597,7 +1599,7 @@ export const appRouter = router({
         partnerId: partner.id,
       })
 
-      return { partner, accountEmail: user.email, temporaryPassword }
+      return { partner, accountEmail: user.email }
     }),
 
   updatePartner: superAdminProcedure

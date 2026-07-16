@@ -85,6 +85,15 @@ const partnerFormSchema = z.object({
 const slugifyPartnerName = (name: string): string =>
   name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
+// Pré-remplit le champ mot de passe à la création — juste une suggestion de
+// départ, éditable, le super admin choisit toujours le mot de passe final.
+const generateSuggestedPassword = (length = 16): string => {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => charset[b % charset.length]).join('')
+}
+
 const userFormSchema = z.object({
   email: z.string().trim().email('Adresse email invalide.'),
   name: z.string(),
@@ -290,12 +299,14 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     name: '',
     slug: '',
     email: '',
+    password: '',
     allowedDomains: '',
     logoUrl: '',
     primaryColor: '#FF6B47',
     secondaryColor: '#0EA5A0',
   })
-  const [partnerFormErrors, setPartnerFormErrors] = useState<{ name?: string; slug?: string; email?: string }>({})
+  const [partnerFormErrors, setPartnerFormErrors] = useState<{ name?: string; slug?: string; email?: string; password?: string }>({})
+  const [showPartnerPassword, setShowPartnerPassword] = useState(false)
   // Tant que le super admin n'a pas touché au slug lui-même, on le fait suivre
   // le nom automatiquement (uniquement en création — en édition le slug est figé).
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
@@ -613,6 +624,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
       name: data?.name || '',
       slug: data?.slug || '',
       email: data?.email || '',
+      password: mode === 'create' ? generateSuggestedPassword() : '',
       allowedDomains: data?.allowedDomains || '',
       logoUrl: data?.logoUrl || '',
       primaryColor: data?.primaryColor || '#FF6B47',
@@ -620,6 +632,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     })
     setPartnerFormErrors({})
     setSlugManuallyEdited(mode === 'edit')
+    setShowPartnerPassword(false)
     setPartnerModal({ open: true, mode, data })
   }
 
@@ -2044,7 +2057,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
               {partnerModal.mode === 'create'
-                ? "Crée le partenaire et son compte de connexion (rôle Partenaire) en une fois. Le mot de passe généré ne sera affiché qu'une seule fois."
+                ? "Crée le partenaire et son compte de connexion (rôle Partenaire) en une fois. Choisis toi-même le mot de passe initial, ou utilise celui suggéré."
                 : "Les paramètres CORS limitent les domaines d'appels autorisés pour capturer des leads."}
             </p>
 
@@ -2061,19 +2074,18 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   })
                   return
                 }
+                if (partnerModal.mode === 'create' && partnerForm.password.length < 8) {
+                  setPartnerFormErrors(prev => ({ ...prev, password: 'Le mot de passe doit contenir au moins 8 caractères.' }))
+                  return
+                }
                 setPartnerFormErrors({})
                 try {
                   if (partnerModal.mode === 'create') {
                     const res = await createPartnerMut.mutateAsync(partnerForm)
                     setPartnerModal(p => ({ ...p, open: false }))
-                    setPasswordRevealModal({
-                      open: true,
-                      email: res.accountEmail,
-                      password: res.temporaryPassword,
-                      title: 'Partenaire créé',
-                    })
+                    showToast(`Partenaire créé. Identifiant : ${res.accountEmail}`)
                   } else {
-                    const { slug, ...editableFields } = partnerForm
+                    const { slug, password, ...editableFields } = partnerForm
                     await updatePartnerMut.mutateAsync({ id: partnerModal.data.id, ...editableFields })
                     setPartnerModal(p => ({ ...p, open: false }))
                     showToast('Partenaire enregistré.')
@@ -2130,6 +2142,43 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   ? "C'est aussi l'identifiant de connexion du compte partenaire créé."
                   : "L'identifiant de connexion du compte reste inchangé même si ce champ l'était (non modifiable ici)."}
               </p>
+
+              {partnerModal.mode === 'create' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Mot de passe initial *</label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showPartnerPassword ? 'text' : 'password'}
+                        value={partnerForm.password}
+                        onChange={(e) => setPartnerForm(p => ({ ...p, password: e.target.value }))}
+                        className={`w-full bg-slate-50 border text-slate-900 px-4 pr-10 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 transition-all ${
+                          partnerFormErrors.password ? 'border-[var(--danger)] focus:ring-[var(--danger)]' : 'border-slate-200 focus:ring-[#FF6B47]'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPartnerPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showPartnerPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPartnerForm(p => ({ ...p, password: generateSuggestedPassword() }))}
+                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all whitespace-nowrap"
+                    >
+                      Générer
+                    </button>
+                  </div>
+                  {partnerFormErrors.password ? (
+                    <p className="text-xs font-semibold text-[var(--danger)] mt-1.5">{partnerFormErrors.password}</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 mt-1.5 font-semibold">Au moins 8 caractères. Transmets-le toi-même au partenaire — il ne sera pas réaffiché ensuite.</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Logo</label>
