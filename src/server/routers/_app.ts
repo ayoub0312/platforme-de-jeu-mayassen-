@@ -35,6 +35,7 @@ async function logActivity(params: {
   action: string
   targetType: string
   targetId: string
+  partnerId?: string
 }) {
   try {
     await prisma.activityLog.create({ data: params })
@@ -173,6 +174,16 @@ export const appRouter = router({
             })
           }
           await prisma.user.update({ where: { id: user.id }, data: { partnerId: partner.id } })
+          // Trace pour audit a posteriori : cette résolution passe par
+          // l'heuristique (domaine email), pas par un partnerId déjà fiable —
+          // utile pour repérer d'éventuels rattachements incorrects après coup.
+          await logActivity({
+            userEmail: user.email,
+            action: 'PARTNER_ID_RESOLVED_VIA_EMAIL_HEURISTIC',
+            targetType: 'User',
+            targetId: user.id,
+            partnerId: partner.id,
+          })
         }
 
         if (!partner.isActive) {
