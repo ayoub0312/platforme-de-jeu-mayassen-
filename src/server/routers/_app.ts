@@ -58,6 +58,17 @@ async function generateUniquePartnerSlug(name: string): Promise<string> {
   return slug
 }
 
+// Mot de passe temporaire cryptographiquement sûr pour un compte partenaire
+// nouvellement créé ou réinitialisé — jamais stocké ni loggé en clair, retourné
+// une seule fois dans la réponse de la mutation qui l'a généré.
+function generateSecurePassword(length = 16): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%'
+  const bytes = crypto.randomBytes(length)
+  let out = ''
+  for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length]
+  return out
+}
+
 // Templates préconfigurés proposés à l'étape "Config" du wizard de création de
 // campagne (Phase 2). Statiques pour l'instant — pas besoin d'une table dédiée.
 const CAMPAIGN_TEMPLATES = [
@@ -1512,27 +1523,81 @@ export const appRouter = router({
 
   // Partners CRUD
   getPartners: superAdminProcedure.query(async () => {
-    return prisma.partner.findMany({
-      orderBy: { name: 'asc' }
+    const partners = await prisma.partner.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { campaigns: true, users: true } },
+      },
     })
+    return partners.map((p) => ({
+      ...p,
+      campaignCount: p._count.campaigns,
+      accountCount: p._count.users,
+    }))
   }),
 
+  // Crée le Partner et son compte de connexion (User role=PARTNER) en une seule
+  // transaction — un partenaire sans compte lié ne pourrait jamais se
+  // connecter à son propre espace. Le mot de passe temporaire n'est renvoyé
+  // qu'ici, une seule fois : jamais stocké en clair, jamais loggé.
   createPartner: superAdminProcedure
     .input(
       z.object({
-        name: z.string().min(2, 'Name must be at least 2 characters'),
+        name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères.'),
+        slug: z.string().min(2, 'Le slug doit contenir au moins 2 caractères.')
+          .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Le slug ne peut contenir que des lettres minuscules, chiffres et tirets.'),
+        email: z.string().trim().email('Adresse email invalide.'),
         allowedDomains: z.string().default(''),
+        logoUrl: z.string().nullable().optional(),
+        primaryColor: z.string().nullable().optional(),
+        secondaryColor: z.string().nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const slug = await generateUniquePartnerSlug(input.name)
-      return prisma.partner.create({
-        data: {
-          name: input.name,
-          slug,
-          allowedDomains: input.allowedDomains,
-        },
+    .mutation(async ({ input, ctx }) => {
+      const existingSlug = await prisma.partner.findUnique({ where: { slug: input.slug } })
+      if (existingSlug) {
+        throw new TRPCError({ code: 'CONFLICT', message: `Le slug "${input.slug}" est déjà utilisé par un autre partenaire.` })
+      }
+      const existingUser = await prisma.user.findUnique({ where: { email: input.email } })
+      if (existingUser) {
+        throw new TRPCError({ code: 'CONFLICT', message: `L'adresse ${input.email} est déjà utilisée par un compte existant.` })
+      }
+
+      const temporaryPassword = generateSecurePassword()
+      const passwordHash = await bcrypt.hash(temporaryPassword, 10)
+
+      const { partner, user } = await prisma.$transaction(async (tx) => {
+        const partner = await tx.partner.create({
+          data: {
+            name: input.name,
+            slug: input.slug,
+            email: input.email,
+            allowedDomains: input.allowedDomains,
+            logoUrl: input.logoUrl || null,
+            primaryColor: input.primaryColor || null,
+            secondaryColor: input.secondaryColor || null,
+          },
+        })
+        const user = await tx.user.create({
+          data: {
+            email: input.email,
+            role: Role.PARTNER,
+            partnerId: partner.id,
+            passwordHash,
+          },
+        })
+        return { partner, user }
       })
+
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: 'PARTNER_CREATED',
+        targetType: 'Partner',
+        targetId: partner.id,
+        partnerId: partner.id,
+      })
+
+      return { partner, accountEmail: user.email, temporaryPassword }
     }),
 
   updatePartner: superAdminProcedure
@@ -1541,6 +1606,10 @@ export const appRouter = router({
         id: z.string(),
         name: z.string().min(2, 'Name must be at least 2 characters'),
         allowedDomains: z.string().default(''),
+        email: z.string().trim().email('Adresse email invalide.').nullable().optional(),
+        logoUrl: z.string().nullable().optional(),
+        primaryColor: z.string().nullable().optional(),
+        secondaryColor: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -1549,8 +1618,59 @@ export const appRouter = router({
         data: {
           name: input.name,
           allowedDomains: input.allowedDomains,
+          email: input.email ?? undefined,
+          logoUrl: input.logoUrl ?? undefined,
+          primaryColor: input.primaryColor ?? undefined,
+          secondaryColor: input.secondaryColor ?? undefined,
         },
       })
+    }),
+
+  // Active/désactive un partenaire — un partenaire désactivé ne peut plus se
+  // connecter (vérifié dans loginAdmin). N'affecte pas ses données existantes.
+  togglePartnerActive: superAdminProcedure
+    .input(z.object({ id: z.string(), isActive: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const partner = await prisma.partner.update({
+        where: { id: input.id },
+        data: { isActive: input.isActive },
+      })
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: input.isActive ? 'PARTNER_ACTIVATED' : 'PARTNER_DEACTIVATED',
+        targetType: 'Partner',
+        targetId: partner.id,
+        partnerId: partner.id,
+      })
+      return partner
+    }),
+
+  // Régénère le mot de passe du compte de connexion d'un partenaire — utile
+  // si le partenaire l'a perdu ou en cas de doute sur une fuite. Retourné en
+  // clair une seule fois dans la réponse ; jamais stocké ni loggé.
+  resetPartnerAccountPassword: superAdminProcedure
+    .input(z.object({ partnerId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const account = await prisma.user.findFirst({
+        where: { partnerId: input.partnerId, role: Role.PARTNER },
+      })
+      if (!account) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Aucun compte partenaire trouvé pour ce partenaire.' })
+      }
+
+      const temporaryPassword = generateSecurePassword()
+      const passwordHash = await bcrypt.hash(temporaryPassword, 10)
+      await prisma.user.update({ where: { id: account.id }, data: { passwordHash } })
+
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: 'PARTNER_PASSWORD_RESET',
+        targetType: 'User',
+        targetId: account.id,
+        partnerId: input.partnerId,
+      })
+
+      return { accountEmail: account.email, temporaryPassword }
     }),
 
   deletePartner: superAdminProcedure

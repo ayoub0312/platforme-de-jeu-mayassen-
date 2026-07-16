@@ -52,7 +52,13 @@ import {
   Upload,
   LayoutTemplate,
   Video,
-  LayoutDashboard
+  LayoutDashboard,
+  Power,
+  PowerOff,
+  KeyRound,
+  Copy,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
@@ -67,8 +73,17 @@ type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'wi
 // Schémas de validation FR — messages affichés sous chaque champ (voir Input.error).
 const partnerFormSchema = z.object({
   name: z.string().trim().min(2, 'Le nom doit contenir au moins 2 caractères.'),
+  slug: z.string().trim().min(2, 'Le slug doit contenir au moins 2 caractères.')
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Minuscules, chiffres et tirets uniquement (ex: mon-partenaire).'),
+  email: z.string().trim().email('Adresse email invalide.'),
   allowedDomains: z.string(),
 })
+
+// Dérive un slug à partir d'un nom, au même format que côté serveur
+// (generateUniquePartnerSlug) — juste une aide de saisie, l'unicité réelle
+// est de toute façon vérifiée par la mutation.
+const slugifyPartnerName = (name: string): string =>
+  name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 const userFormSchema = z.object({
   email: z.string().trim().email('Adresse email invalide.'),
@@ -166,6 +181,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   // Filter States
   const [campaignPartnerFilter, setCampaignPartnerFilter] = useState<string>('all')
   const [prizePartnerFilter, setPrizePartnerFilter] = useState<string>('all')
+  const [partnerStatusFilter, setPartnerStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   // 1. Fetch data from tRPC queries
   const { data: stats, refetch: refetchStats, isLoading: statsLoading } = trpc.getPartnerStats.useQuery(
@@ -205,6 +221,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const createPartnerMut = trpc.createPartner.useMutation()
   const updatePartnerMut = trpc.updatePartner.useMutation()
   const deletePartnerMut = trpc.deletePartner.useMutation()
+  const togglePartnerActiveMut = trpc.togglePartnerActive.useMutation()
+  const resetPartnerAccountPasswordMut = trpc.resetPartnerAccountPassword.useMutation()
 
   const createCampaignMut = trpc.createCampaign.useMutation()
   const updateCampaignMut = trpc.updateCampaign.useMutation()
@@ -268,8 +286,27 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const [wizardOpen, setWizardOpen] = useState(false)
 
   // 4. Modal Form Inputs
-  const [partnerForm, setPartnerForm] = useState({ name: '', allowedDomains: '' })
-  const [partnerFormErrors, setPartnerFormErrors] = useState<{ name?: string }>({})
+  const [partnerForm, setPartnerForm] = useState({
+    name: '',
+    slug: '',
+    email: '',
+    allowedDomains: '',
+    logoUrl: '',
+    primaryColor: '#FF6B47',
+    secondaryColor: '#0EA5A0',
+  })
+  const [partnerFormErrors, setPartnerFormErrors] = useState<{ name?: string; slug?: string; email?: string }>({})
+  // Tant que le super admin n'a pas touché au slug lui-même, on le fait suivre
+  // le nom automatiquement (uniquement en création — en édition le slug est figé).
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
+  // Résultat de creation/reset — mot de passe affiché une seule fois, jamais
+  // stocké au-delà de cette modale (fermer la modale l'efface de l'état React).
+  const [passwordRevealModal, setPasswordRevealModal] = useState<{ open: boolean; email: string; password: string; title: string }>({
+    open: false,
+    email: '',
+    password: '',
+    title: '',
+  })
   const [campaignForm, setCampaignForm] = useState({
     title: '',
     partnerId: '',
@@ -574,10 +611,74 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const openPartnerModal = (mode: 'create' | 'edit', data: any = null) => {
     setPartnerForm({
       name: data?.name || '',
+      slug: data?.slug || '',
+      email: data?.email || '',
       allowedDomains: data?.allowedDomains || '',
+      logoUrl: data?.logoUrl || '',
+      primaryColor: data?.primaryColor || '#FF6B47',
+      secondaryColor: data?.secondaryColor || '#0EA5A0',
     })
     setPartnerFormErrors({})
+    setSlugManuallyEdited(mode === 'edit')
     setPartnerModal({ open: true, mode, data })
+  }
+
+  const handlePartnerLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner un fichier image (JPEG, PNG, WEBP...).', 'error')
+      return
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      showToast('Le logo dépasse la limite de 1 Mo.', 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPartnerForm(p => ({ ...p, logoUrl: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleTogglePartnerActive = (id: string, name: string, nextActive: boolean) => {
+    askConfirm({
+      title: nextActive ? 'Réactiver ce partenaire ?' : 'Désactiver ce partenaire ?',
+      description: nextActive
+        ? `"${name}" pourra de nouveau se connecter à son espace.`
+        : `"${name}" ne pourra plus se connecter à son espace tant qu'il n'est pas réactivé. Ses données sont conservées.`,
+      danger: !nextActive,
+      onConfirm: async () => {
+        try {
+          await togglePartnerActiveMut.mutateAsync({ id, isActive: nextActive })
+          showToast(nextActive ? 'Partenaire réactivé.' : 'Partenaire désactivé.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || "Une erreur est survenue.", 'error')
+        }
+      },
+    })
+  }
+
+  const handleResetPartnerPassword = (partnerId: string, name: string) => {
+    askConfirm({
+      title: 'Réinitialiser le mot de passe ?',
+      description: `Un nouveau mot de passe sera généré pour le compte de "${name}". L'ancien ne fonctionnera plus.`,
+      onConfirm: async () => {
+        try {
+          const res = await resetPartnerAccountPasswordMut.mutateAsync({ partnerId })
+          setPasswordRevealModal({
+            open: true,
+            email: res.accountEmail,
+            password: res.temporaryPassword,
+            title: 'Mot de passe réinitialisé',
+          })
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || "Une erreur est survenue.", 'error')
+        }
+      },
+    })
   }
 
   const openCampaignModal = (mode: 'create' | 'edit', data: any = null) => {
@@ -1202,23 +1303,66 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold text-ink-900">Gestion des Partenaires</h3>
-              <p className="text-ink-500 text-xs mt-1">Créez et configurez les comptes B2B autorisés à intégrer les widgets.</p>
+              <p className="text-ink-500 text-xs mt-1">Créez des espaces partenaires avec leur propre compte de connexion.</p>
             </div>
-            <Button size="sm" onClick={() => openPartnerModal('create')}>
-              <Plus className="h-4 w-4" /> Ajouter
-            </Button>
+            <div className="flex items-center gap-3">
+              <select
+                value={partnerStatusFilter}
+                onChange={(e) => setPartnerStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                className="bg-surface-alt border border-black/[0.08] text-ink-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm"
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="active">Actifs</option>
+                <option value="inactive">Désactivés</option>
+              </select>
+              <Button size="sm" onClick={() => openPartnerModal('create')}>
+                <Plus className="h-4 w-4" /> Ajouter
+              </Button>
+            </div>
           </div>
 
           <div className="p-6">
             <DataTable
               columns={[
                 {
-                  key: 'id', header: 'ID Partenaire', sortValue: (p: any) => p.id,
-                  render: (p: any) => <span className="font-mono text-xs text-ink-500">{p.id}</span>,
+                  key: 'name', header: 'Nom complet', sortValue: (p: any) => p.name,
+                  render: (p: any) => (
+                    <div className="flex items-center gap-2">
+                      {p.logoUrl ? (
+                        <img src={p.logoUrl} alt="" className="h-7 w-7 rounded-lg object-cover border border-black/[0.06]" />
+                      ) : (
+                        <div className="h-7 w-7 rounded-lg bg-surface-alt border border-black/[0.06] flex items-center justify-center text-ink-500">
+                          <Globe className="h-3.5 w-3.5" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-extrabold text-ink-900">{p.name}</div>
+                        <div className="font-mono text-[10px] text-ink-500">{p.slug}</div>
+                      </div>
+                    </div>
+                  ),
                 },
                 {
-                  key: 'name', header: 'Nom complet', sortValue: (p: any) => p.name,
-                  render: (p: any) => <span className="font-extrabold text-ink-900">{p.name}</span>,
+                  key: 'status', header: 'Statut', sortValue: (p: any) => (p.isActive ? 1 : 0),
+                  render: (p: any) => (
+                    p.isActive ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-[var(--success)]/10 text-[var(--success)]">
+                        <CheckCircle className="h-3 w-3" /> Actif
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-[var(--danger)]/10 text-[var(--danger)]">
+                        <PowerOff className="h-3 w-3" /> Désactivé
+                      </span>
+                    )
+                  ),
+                },
+                {
+                  key: 'campaignCount', header: 'Campagnes', sortValue: (p: any) => p.campaignCount,
+                  render: (p: any) => <span className="font-mono text-xs text-ink-700">{p.campaignCount}</span>,
+                },
+                {
+                  key: 'accountCount', header: 'Comptes', sortValue: (p: any) => p.accountCount,
+                  render: (p: any) => <span className="font-mono text-xs text-ink-700">{p.accountCount}</span>,
                 },
                 {
                   key: 'domains', header: 'Domaines whitelistés (CORS)',
@@ -1234,21 +1378,37 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openPartnerModal('edit', p)}
+                        title="Modifier"
                         className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeletePartner(p.id, p.name)}
-                        className="p-2 text-[var(--danger)] hover:text-white hover:bg-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/20 rounded-lg transition-all cursor-pointer"
+                        onClick={() => handleResetPartnerPassword(p.id, p.name)}
+                        title="Réinitialiser le mot de passe"
+                        disabled={p.accountCount === 0}
+                        className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <KeyRound className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleTogglePartnerActive(p.id, p.name, !p.isActive)}
+                        title={p.isActive ? 'Désactiver' : 'Réactiver'}
+                        className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                          p.isActive
+                            ? 'text-[var(--danger)] border-[var(--danger)]/20 bg-[var(--danger)]/10 hover:bg-[var(--danger)] hover:text-white'
+                            : 'text-[var(--success)] border-[var(--success)]/20 bg-[var(--success)]/10 hover:bg-[var(--success)] hover:text-white'
+                        }`}
+                      >
+                        {p.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                       </button>
                     </div>
                   ),
                 },
               ]}
-              data={partners?.filter((p) => p.name.toLowerCase().includes(partnerSearch.toLowerCase()))}
+              data={partners
+                ?.filter((p) => p.name.toLowerCase().includes(partnerSearch.toLowerCase()))
+                .filter((p) => partnerStatusFilter === 'all' || (partnerStatusFilter === 'active' ? p.isActive : !p.isActive))}
               isLoading={partnersLoading}
               getRowId={(p: any) => p.id}
               emptyIcon={Globe}
@@ -1257,6 +1417,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               exportColumns={[
                 { header: 'ID', value: (p: any) => p.id },
                 { header: 'Nom', value: (p: any) => p.name },
+                { header: 'Slug', value: (p: any) => p.slug },
+                { header: 'Statut', value: (p: any) => (p.isActive ? 'Actif' : 'Désactivé') },
+                { header: 'Campagnes', value: (p: any) => p.campaignCount },
+                { header: 'Comptes', value: (p: any) => p.accountCount },
                 { header: 'Domaines', value: (p: any) => p.allowedDomains || '' },
               ]}
               exportFilename="partenaires"
@@ -1876,10 +2040,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
             <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
               <Globe className="h-5 w-5 text-[#FF6B47]" />
-              {partnerModal.mode === 'create' ? 'Ajouter un Partenaire' : 'Modifier le Partenaire'}
+              {partnerModal.mode === 'create' ? 'Créer un espace partenaire' : 'Modifier le partenaire'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
-              Les paramètres CORS limitent les domaines d'appels autorisés pour capturer des leads.
+              {partnerModal.mode === 'create'
+                ? "Crée le partenaire et son compte de connexion (rôle Partenaire) en une fois. Le mot de passe généré ne sera affiché qu'une seule fois."
+                : "Les paramètres CORS limitent les domaines d'appels autorisés pour capturer des leads."}
             </p>
 
             <form
@@ -1887,18 +2053,31 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 e.preventDefault()
                 const parsed = partnerFormSchema.safeParse(partnerForm)
                 if (!parsed.success) {
-                  setPartnerFormErrors({ name: parsed.error.flatten().fieldErrors.name?.[0] })
+                  const fieldErrors = parsed.error.flatten().fieldErrors
+                  setPartnerFormErrors({
+                    name: fieldErrors.name?.[0],
+                    slug: fieldErrors.slug?.[0],
+                    email: fieldErrors.email?.[0],
+                  })
                   return
                 }
                 setPartnerFormErrors({})
                 try {
                   if (partnerModal.mode === 'create') {
-                    await createPartnerMut.mutateAsync(partnerForm)
+                    const res = await createPartnerMut.mutateAsync(partnerForm)
+                    setPartnerModal(p => ({ ...p, open: false }))
+                    setPasswordRevealModal({
+                      open: true,
+                      email: res.accountEmail,
+                      password: res.temporaryPassword,
+                      title: 'Partenaire créé',
+                    })
                   } else {
-                    await updatePartnerMut.mutateAsync({ id: partnerModal.data.id, ...partnerForm })
+                    const { slug, ...editableFields } = partnerForm
+                    await updatePartnerMut.mutateAsync({ id: partnerModal.data.id, ...editableFields })
+                    setPartnerModal(p => ({ ...p, open: false }))
+                    showToast('Partenaire enregistré.')
                   }
-                  setPartnerModal(p => ({ ...p, open: false }))
-                  showToast('Partenaire enregistré.')
                   refetchAll()
                 } catch (err: any) {
                   console.error(err)
@@ -1911,9 +2090,90 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 label="Nom du Partenaire *"
                 placeholder="Ex: Gourmet Bistro, Boulangerie Co."
                 value={partnerForm.name}
-                onChange={(e) => setPartnerForm(p => ({ ...p, name: e.target.value }))}
+                onChange={(e) => {
+                  const name = e.target.value
+                  setPartnerForm(p => ({
+                    ...p,
+                    name,
+                    slug: (!slugManuallyEdited && partnerModal.mode === 'create') ? slugifyPartnerName(name) : p.slug,
+                  }))
+                }}
                 error={partnerFormErrors.name}
               />
+
+              <Input
+                label="Identifiant (slug) *"
+                placeholder="ex: gourmet-bistro"
+                value={partnerForm.slug}
+                disabled={partnerModal.mode === 'edit'}
+                onChange={(e) => {
+                  setSlugManuallyEdited(true)
+                  setPartnerForm(p => ({ ...p, slug: e.target.value.toLowerCase() }))
+                }}
+                error={partnerFormErrors.slug}
+              />
+              {partnerModal.mode === 'edit' && (
+                <p className="text-[10px] text-slate-400 -mt-3 font-semibold">L'identifiant ne peut plus être modifié après la création.</p>
+              )}
+
+              <Input
+                label="Email de contact *"
+                placeholder="contact@partenaire.com"
+                type="email"
+                value={partnerForm.email}
+                disabled={partnerModal.mode === 'edit'}
+                onChange={(e) => setPartnerForm(p => ({ ...p, email: e.target.value }))}
+                error={partnerFormErrors.email}
+              />
+              <p className="text-[10px] text-slate-400 -mt-3 font-semibold">
+                {partnerModal.mode === 'create'
+                  ? "C'est aussi l'identifiant de connexion du compte partenaire créé."
+                  : "L'identifiant de connexion du compte reste inchangé même si ce champ l'était (non modifiable ici)."}
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Logo</label>
+                <div className="flex items-center gap-3">
+                  {partnerForm.logoUrl ? (
+                    <img src={partnerForm.logoUrl} alt="" className="h-14 w-14 rounded-xl object-cover border border-slate-200" />
+                  ) : (
+                    <div className="h-14 w-14 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300">
+                      <ImageIcon className="h-6 w-6" />
+                    </div>
+                  )}
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all">
+                    <Upload className="h-3.5 w-3.5" /> Choisir un fichier
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePartnerLogoChange} />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Couleur primaire</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={partnerForm.primaryColor}
+                      onChange={(e) => setPartnerForm(p => ({ ...p, primaryColor: e.target.value }))}
+                      className="h-10 w-12 rounded-lg border border-slate-200 cursor-pointer"
+                    />
+                    <span className="font-mono text-xs text-slate-500">{partnerForm.primaryColor}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Couleur secondaire</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={partnerForm.secondaryColor}
+                      onChange={(e) => setPartnerForm(p => ({ ...p, secondaryColor: e.target.value }))}
+                      className="h-10 w-12 rounded-lg border border-slate-200 cursor-pointer"
+                    />
+                    <span className="font-mono text-xs text-slate-500">{partnerForm.secondaryColor}</span>
+                  </div>
+                </div>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Domaines dynamic CORS whitelistés</label>
@@ -1951,6 +2211,61 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PASSWORD REVEAL MODAL — affiché une seule fois après création/reset,
+          jamais reconsultable ensuite (le mot de passe n'est jamais renvoyé
+          par une query, uniquement par la réponse de la mutation). */}
+      {passwordRevealModal.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
+              <KeyRound className="h-5 w-5 text-[#FF6B47]" />
+              {passwordRevealModal.title}
+            </h3>
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs font-semibold mb-5">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              Ce mot de passe ne sera plus jamais affiché. Note-le ou transmets-le au partenaire maintenant.
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Identifiant</label>
+                <div className="font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800">
+                  {passwordRevealModal.email}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mot de passe temporaire</label>
+                <div className="flex items-center gap-2">
+                  <div className="font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 flex-1 truncate">
+                    {passwordRevealModal.password}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(passwordRevealModal.password)
+                      showToast('Mot de passe copié.')
+                    }}
+                    className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition-all cursor-pointer"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPasswordRevealModal({ open: false, email: '', password: '', title: '' })}
+                className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all"
+              >
+                J'ai noté le mot de passe
+              </button>
+            </div>
           </div>
         </div>
       )}
