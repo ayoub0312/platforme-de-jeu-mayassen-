@@ -2652,9 +2652,11 @@ export const appRouter = router({
       }).optional()
     )
     .query(async ({ input, ctx }) => {
-      // ActivityLog n'a pas encore de colonne partnerId (prévue en Phase 1) : en
-      // attendant, on refuse l'accès aux comptes PARTNER plutôt que de renvoyer
-      // un journal non filtré qui exposerait l'activité d'autres partenaires.
+      // ActivityLog a une colonne partnerId depuis la Phase 1, mais aucun
+      // filtre par partenaire n'a encore été écrit ici : on continue de
+      // refuser l'accès aux comptes PARTNER plutôt que de renvoyer un
+      // journal non filtré qui exposerait l'activité d'autres partenaires
+      // (vérifié : aucune autre procédure ne lit ActivityLog).
       if (ctx.userSession!.role !== Role.SUPERADMIN) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Action réservée aux super-administrateurs.' })
       }
