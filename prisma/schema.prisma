@@ -60,6 +60,11 @@ model User {
   wonPrizes  UserPrize[]
   leads      LeadCapture[]
   receiptSubmissions ReceiptSubmission[]
+  // Lien optionnel vers un compte client final (espace client, auth séparée
+  // de celle-ci) — un Customer qui joue à un jeu se voit relier au User
+  // PLAYER existant/créé par le flux de jeu (même email), pour réutiliser
+  // tel quel tout le système de campagnes/lots/participations.
+  customer   Customer?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -87,10 +92,25 @@ model Partner {
   primaryColor   String?
   secondaryColor String?
   allowedDomains String // Ex: "supermarche.com,boutique.fr"
+
+  // Auto-inscription (formulaire public /partner/signup) : un partenaire créé
+  // par le Super Admin (Phase 3) est directement APPROVED ; un partenaire
+  // auto-inscrit démarre PENDING et ne peut pas se connecter tant qu'il n'est
+  // pas validé (voir loginAdmin).
+  status      PartnerStatus @default(PENDING)
+  requestedAt DateTime      @default(now())
+  reviewedAt  DateTime?
+
   campaigns      Campaign[]
   capturedLeads  LeadCapture[]
   users          User[]
   siteSettings   SiteSettings?
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Campaign {
@@ -281,4 +301,37 @@ model ActivityLog {
   @@index([targetType, targetId])
   @@index([createdAt])
   @@index([partnerId])
+}
+
+// Espace client final (voyageurs) — auth et modèle entièrement séparés de
+// User/Role (SUPERADMIN/PARTNER/READONLY). Un Customer n'est jamais un
+// compte admin et ne doit jamais pouvoir passer superAdminProcedure/
+// partnerProcedure. Lié en option à un User (PLAYER) pour réutiliser le
+// système de jeu existant (campagnes/lots/participations) sans le dupliquer.
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  phone        String?
+  userId       String?  @unique
+  user         User?    @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  passwordResetTokens CustomerPasswordReset[]
+}
+
+// Jetons de réinitialisation de mot de passe côté client — jamais stockés en
+// clair (tokenHash uniquement), courte durée de vie, à usage unique.
+model CustomerPasswordReset {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId])
 }
