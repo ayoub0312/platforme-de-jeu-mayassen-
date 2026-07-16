@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure } from '../trpc'
+import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure } from '../trpc'
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
 import { redis } from '../../lib/redis'
@@ -142,28 +142,47 @@ export const appRouter = router({
         })
       }
 
-      // Resolve partnerId for PARTNER role dynamically
+      // Resolve partnerId for PARTNER role : lit User.partnerId en priorité.
+      // Repli sur l'ancienne heuristique (domaine email) uniquement si ce
+      // compte n'a pas encore été rattaché (ex: comptes créés avant la
+      // migration partner_spaces, ou avant que le script de backfill n'ait
+      // tourné en prod) — et auto-guérit en écrivant partnerId à ce moment,
+      // pour ne plus jamais retomber sur l'heuristique aux logins suivants.
       let partnerId: string | null = null
       if (user.role === Role.PARTNER) {
-        const domainPart = user.email.split('@')[1] || ''
-        const domainPrefix = domainPart.split('.')[0]?.toLowerCase() || ''
+        let partner = user.partnerId
+          ? await prisma.partner.findUnique({ where: { id: user.partnerId } })
+          : null
 
-        const partner = await prisma.partner.findFirst({
-          where: {
-            OR: [
-              { name: { contains: domainPrefix } },
-              { allowedDomains: { contains: domainPart } }
-            ]
+        if (!partner) {
+          const domainPart = user.email.split('@')[1] || ''
+          const domainPrefix = domainPart.split('.')[0]?.toLowerCase() || ''
+
+          partner = await prisma.partner.findFirst({
+            where: {
+              OR: [
+                { name: { contains: domainPrefix } },
+                { allowedDomains: { contains: domainPart } }
+              ]
+            }
+          })
+          if (!partner) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: "Aucun partenaire correspondant trouvé dans la base de données.",
+            })
           }
-        })
-        if (partner) {
-          partnerId = partner.id
-        } else {
+          await prisma.user.update({ where: { id: user.id }, data: { partnerId: partner.id } })
+        }
+
+        if (!partner.isActive) {
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: "Aucun partenaire correspondant trouvé dans la base de données.",
+            code: 'FORBIDDEN',
+            message: "Ce compte partenaire a été désactivé.",
           })
         }
+
+        partnerId = partner.id
       }
 
       // 2. Generate token
@@ -1324,15 +1343,18 @@ export const appRouter = router({
         })
       }
 
+      // Vérifie l'appartenance avant tout check métier, pour ne pas laisser
+      // fuiter d'informations (ex: statut déjà traité) sur une soumission
+      // d'un autre partenaire via les messages d'erreur.
+      if (ctx.userSession!.role !== Role.SUPERADMIN && submission.campaign.partnerId !== ctx.userSession!.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette soumission n'appartient pas à votre partenaire." })
+      }
+
       if (submission.status !== 'PENDING') {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Cette soumission a déjà été traitée.',
         })
-      }
-
-      if (ctx.userSession!.role !== Role.SUPERADMIN && submission.campaign.partnerId !== ctx.userSession!.partnerId) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette soumission n'appartient pas à votre partenaire." })
       }
 
       const email = ctx.userSession!.email
@@ -2145,9 +2167,10 @@ export const appRouter = router({
       })
     }),
 
-  runDraw: superAdminProcedure
+  runDraw: partnerProcedure
     .input(z.object({ prizeId: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
       const prize = await prisma.prize.findUnique({
         where: { id: input.prizeId },
         include: { winners: { include: { user: true } } }
@@ -2158,6 +2181,15 @@ export const appRouter = router({
           message: "Le lot n'existe pas.",
         })
       }
+
+      // Vérifie l'appartenance avant tout check métier, pour ne pas laisser
+      // fuiter d'informations sur l'état d'un lot d'un autre partenaire
+      // (ex: "pas configuré pour un tirage") via les messages d'erreur.
+      const campaignForDraw = await prisma.campaign.findUnique({ where: { id: prize.campaignId } })
+      if (session.role !== Role.SUPERADMIN && campaignForDraw?.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Ce lot n'appartient pas à votre partenaire." })
+      }
+
       if (!prize.drawDate) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -2170,8 +2202,6 @@ export const appRouter = router({
           message: "Le tirage au sort a déjà été effectué pour ce lot.",
         })
       }
-
-      const campaignForDraw = await prisma.campaign.findUnique({ where: { id: prize.campaignId } })
 
       // 1. Fetch all participants for this campaign who completed JOIN_DRAW
       const participants = await prisma.playToken.findMany({
@@ -2292,9 +2322,10 @@ export const appRouter = router({
 
   // Vue dédiée pour la page de réglages "Tirage au sort" d'une campagne :
   // lots, nombre d'inscrits par lot, gagnants déjà tirés, et réglages globaux.
-  getDrawCampaignOverview: superAdminProcedure
+  getDrawCampaignOverview: partnerProcedure
     .input(z.object({ campaignId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const session = ctx.userSession!
       const campaign = await prisma.campaign.findUnique({
         where: { id: input.campaignId },
         include: {
@@ -2306,6 +2337,9 @@ export const appRouter = router({
       })
       if (!campaign) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+      }
+      if (session.role !== Role.SUPERADMIN && campaign.partnerId !== session.partnerId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
       }
 
       const prizesWithCounts = await Promise.all(
@@ -2340,7 +2374,7 @@ export const appRouter = router({
       }
     }),
 
-  updateDrawSettings: writeProcedure
+  updateDrawSettings: partnerProcedure
     .input(
       z.object({
         campaignId: z.string(),
@@ -2368,7 +2402,7 @@ export const appRouter = router({
       return { success: true }
     }),
 
-  updatePrizeWinnerCount: writeProcedure
+  updatePrizeWinnerCount: partnerProcedure
     .input(z.object({ prizeId: z.string(), totalStock: z.number().int().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const session = ctx.userSession!
@@ -2672,7 +2706,7 @@ export const appRouter = router({
   // Remplace en bloc les lots/segments d'une campagne (création + mise à jour +
   // suppression de ceux retirés) — simplifie l'édition depuis le wizard, qui
   // manipule toute la liste d'un coup plutôt qu'un lot à la fois.
-  upsertPrizesForCampaign: writeProcedure
+  upsertPrizesForCampaign: partnerProcedure
     .input(
       z.object({
         campaignId: z.string(),

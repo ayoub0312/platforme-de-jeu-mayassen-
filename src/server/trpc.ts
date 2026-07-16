@@ -109,3 +109,39 @@ const writeMiddleware = t.middleware(({ ctx, next }) => {
 
 export const writeProcedure = t.procedure.use(writeMiddleware)
 
+// Partner-or-SuperAdmin middleware: gates entry to endpoints that manage
+// roulette/tirage config for a single campaign. A SUPERADMIN session passes
+// through unrestricted; a PARTNER session must already have a resolved
+// partnerId (set at login), and is blocked outright if their partner account
+// has been deactivated in the meantime. This only gates *entry* — each
+// procedure still has to load the target row and verify its own partnerId
+// matches ctx.userSession.partnerId before acting on it (a valid session
+// here does not imply the specific resource belongs to this partner).
+const partnerMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.userSession) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Non autorisé. Veuillez vous connecter.',
+    })
+  }
+  if (ctx.userSession.role === 'READONLY') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: "Votre rôle Lecteur ne permet pas d'effectuer cette action.",
+    })
+  }
+  if (ctx.userSession.role === 'PARTNER' && !ctx.userSession.partnerId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Aucun partenaire associé à votre compte.',
+    })
+  }
+  return next({
+    ctx: {
+      userSession: ctx.userSession,
+    },
+  })
+})
+
+export const partnerProcedure = t.procedure.use(partnerMiddleware)
+
