@@ -594,6 +594,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                 <li><Link href="/" className="hover:text-white transition-colors">Explorer les campagnes</Link></li>
                 <li><a href="#how-it-works" className="hover:text-white transition-colors">Comment ça marche</a></li>
                 <li><Link href="/partner" className="hover:text-white transition-colors">Espace Partenaire</Link></li>
+                <li><Link href="/client/signup" className="hover:text-white transition-colors">Créer un compte client</Link></li>
               </ul>
             </div>
 

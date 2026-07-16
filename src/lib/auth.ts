@@ -106,3 +106,79 @@ export async function verifySessionToken(token: string | undefined): Promise<Use
     return null;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Espace client final (voyageurs) — session strictement séparée de
+// UserSession/admin_session ci-dessus : cookie distinct (customer_session),
+// payload distinct (pas de role/partnerId), pour qu'il soit structurellement
+// impossible de confondre les deux même en cas de bug de lecture de cookie.
+// Duplique le mécanisme HMAC ci-dessus plutôt que de le généraliser, pour ne
+// jamais toucher aux fonctions UserSession existantes (loginAdmin ne doit pas
+// être affaibli).
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface CustomerSession {
+  customerId: string;
+  email: string;
+  exp: number;
+}
+
+export async function createCustomerSessionToken(payload: Omit<CustomerSession, 'exp'>, expiresInDays = 30): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + (expiresInDays * 24 * 60 * 60);
+  const sessionData: CustomerSession = {
+    ...payload,
+    exp,
+  };
+
+  const enc = new TextEncoder();
+  const serialized = JSON.stringify(sessionData);
+  const payloadBase64 = bufferToBase64Url(enc.encode(serialized).buffer);
+
+  const key = await getCryptoKey();
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    enc.encode(payloadBase64)
+  );
+  const signatureBase64 = bufferToBase64Url(signature);
+
+  return `${payloadBase64}.${signatureBase64}`;
+}
+
+export async function verifyCustomerSessionToken(token: string | undefined): Promise<CustomerSession | null> {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+
+  const [payloadBase64, signatureBase64] = parts;
+  try {
+    const key = await getCryptoKey();
+    const enc = new TextEncoder();
+
+    const sigBytes = new Uint8Array(
+      Array.from(base64UrlToString(signatureBase64), (c) => c.charCodeAt(0))
+    );
+
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      enc.encode(payloadBase64)
+    );
+
+    if (!isValid) return null;
+
+    const payloadStr = base64UrlToString(payloadBase64);
+    const session: CustomerSession = JSON.parse(payloadStr);
+
+    if (session.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+
+    return session;
+
+  } catch (err) {
+    console.error('Failed to verify customer session token:', err);
+    return null;
+  }
+}

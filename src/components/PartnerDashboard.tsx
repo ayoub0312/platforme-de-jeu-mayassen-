@@ -58,7 +58,8 @@ import {
   KeyRound,
   Copy,
   Eye,
-  EyeOff
+  EyeOff,
+  Clock
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
@@ -201,6 +202,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     undefined,
     { enabled: isAuthenticated && isSuperAdmin }
   )
+  const { data: pendingPartners, refetch: refetchPendingPartners, isLoading: pendingPartnersLoading } = trpc.getPendingPartners.useQuery(
+    undefined,
+    { enabled: isAuthenticated && isSuperAdmin }
+  )
   const { data: campaigns, refetch: refetchCampaigns, isLoading: campaignsLoading } = trpc.getAllCampaigns.useQuery(
     undefined,
     { enabled: isAuthenticated && isSuperAdmin }
@@ -232,6 +237,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const deletePartnerMut = trpc.deletePartner.useMutation()
   const togglePartnerActiveMut = trpc.togglePartnerActive.useMutation()
   const resetPartnerAccountPasswordMut = trpc.resetPartnerAccountPassword.useMutation()
+  const approvePartnerMut = trpc.approvePartner.useMutation()
+  const rejectPartnerMut = trpc.rejectPartner.useMutation()
 
   const createCampaignMut = trpc.createCampaign.useMutation()
   const updateCampaignMut = trpc.updateCampaign.useMutation()
@@ -449,6 +456,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 )}
               </button>
             </form>
+
+            <p className="text-center text-xs text-slate-450 font-semibold mt-6">
+              Pas encore de compte ?{' '}
+              <Link href="/partner/signup" className="text-[#FF6B47] hover:underline font-bold">
+                Créer un espace partenaire
+              </Link>
+            </p>
           </div>
         </div>
       </div>
@@ -470,6 +484,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     refetchReceipts()
     if (isSuperAdmin) {
       refetchPartners()
+      refetchPendingPartners()
       refetchCampaigns()
       refetchPrizes()
       refetchUsers()
@@ -694,6 +709,40 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     })
   }
 
+  const handleApprovePartnerRequest = (id: string, name: string) => {
+    askConfirm({
+      title: 'Approuver cette demande ?',
+      description: `"${name}" pourra se connecter avec le compte qu'il a créé lui-même à l'inscription.`,
+      onConfirm: async () => {
+        try {
+          await approvePartnerMut.mutateAsync({ id })
+          showToast('Partenaire approuvé.')
+          refetchAll()
+        } catch (err: any) {
+          showToast(err.message || "Une erreur est survenue.", 'error')
+        }
+      },
+    })
+  }
+
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string; reason: string }>({
+    open: false,
+    id: '',
+    name: '',
+    reason: '',
+  })
+
+  const handleRejectPartnerRequest = async () => {
+    try {
+      await rejectPartnerMut.mutateAsync({ id: rejectModal.id, reason: rejectModal.reason.trim() || undefined })
+      setRejectModal({ open: false, id: '', name: '', reason: '' })
+      showToast('Demande rejetée.')
+      refetchAll()
+    } catch (err: any) {
+      showToast(err.message || "Une erreur est survenue.", 'error')
+    }
+  }
+
   const openCampaignModal = (mode: 'create' | 'edit', data: any = null) => {
     setCampaignForm({
       title: data?.title || '',
@@ -888,7 +937,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     { id: 'receipts', label: 'Tickets à vérifier', icon: CheckCircle },
     ...(isSuperAdmin
       ? [
-        { id: 'partners', label: 'Partenaires', icon: Globe },
+        { id: 'partners', label: 'Partenaires', icon: Globe, badge: pendingPartners?.length || 0 },
         { id: 'campaigns', label: 'Campagnes', icon: Sliders },
         { id: 'prizes', label: 'Cadeaux / Lots', icon: Gift },
         { id: 'users', label: 'Utilisateurs', icon: UserCheck },
@@ -1312,6 +1361,51 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* TAB CONTENT: PARTNERS CRUD */}
       {activeTab === 'partners' && (
+        <>
+        {!!pendingPartners?.length && (
+          <Card className="overflow-hidden mb-6 border-2 border-brand-500/30">
+            <div className="p-6 border-b border-black/[0.06]">
+              <h3 className="text-xl font-bold text-ink-900 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-brand-500" /> Demandes en attente ({pendingPartners.length})
+              </h3>
+              <p className="text-ink-500 text-xs mt-1">Auto-inscriptions à valider avant que le partenaire puisse se connecter.</p>
+            </div>
+            <div className="divide-y divide-black/[0.05]">
+              {pendingPartnersLoading ? (
+                <div className="p-6 text-sm text-ink-500">Chargement…</div>
+              ) : pendingPartners.map((p: any) => {
+                const account = p.users?.[0]
+                return (
+                  <div key={p.id} className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div>
+                      <div className="font-extrabold text-ink-900">{p.name}</div>
+                      <div className="text-xs text-ink-500 mt-1 space-y-0.5">
+                        <div>{account?.email}</div>
+                        {account?.name && <div>Contact : {account.name}</div>}
+                        {account?.phone && <div>Tél : {account.phone}</div>}
+                        <div>Demandé le {new Date(p.requestedAt).toLocaleString('fr-FR')}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleApprovePartnerRequest(p.id, p.name)}
+                        className="px-4 py-2 bg-[var(--success)] hover:opacity-90 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Approuver
+                      </button>
+                      <button
+                        onClick={() => setRejectModal({ open: true, id: p.id, name: p.name, reason: '' })}
+                        className="px-4 py-2 bg-[var(--danger)]/10 hover:bg-[var(--danger)] hover:text-white text-[var(--danger)] rounded-xl text-xs font-bold transition-all border border-[var(--danger)]/20 cursor-pointer"
+                      >
+                        Rejeter
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        )}
         <Card className="overflow-hidden">
           <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -1440,6 +1534,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             />
           </div>
         </Card>
+        </>
       )}
 
       {/* TAB CONTENT: CAMPAIGNS CRUD */}
@@ -2313,6 +2408,42 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all"
               >
                 J'ai noté le mot de passe
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT PARTNER REQUEST MODAL — motif optionnel */}
+      {rejectModal.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-800 mb-2">Rejeter la demande de "{rejectModal.name}" ?</h3>
+            <p className="text-slate-400 text-xs font-semibold mb-4">
+              Motif optionnel (conservé dans le journal d'activité, non transmis automatiquement au partenaire).
+            </p>
+            <textarea
+              value={rejectModal.reason}
+              onChange={(e) => setRejectModal(m => ({ ...m, reason: e.target.value }))}
+              rows={3}
+              placeholder="Ex : informations incomplètes, domaine déjà couvert par un autre partenaire..."
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all resize-none"
+            />
+            <div className="pt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setRejectModal({ open: false, id: '', name: '', reason: '' })}
+                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-655 font-bold rounded-xl text-sm transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectPartnerRequest}
+                disabled={rejectPartnerMut.isPending}
+                className="px-6 py-2.5 bg-[var(--danger)] hover:opacity-90 text-white font-bold rounded-xl text-sm transition-all"
+              >
+                Rejeter la demande
               </button>
             </div>
           </div>

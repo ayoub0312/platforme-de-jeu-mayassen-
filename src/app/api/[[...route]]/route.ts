@@ -75,7 +75,7 @@ app.use(
 )
 
 import { getCookie } from 'hono/cookie'
-import { verifySessionToken } from '@/lib/auth'
+import { verifySessionToken, verifyCustomerSessionToken } from '@/lib/auth'
 
 // Mount tRPC server on Hono
 app.use(
@@ -89,10 +89,16 @@ app.use(
       const token = getCookie(c, 'admin_session')
       const userSession = await verifySessionToken(token)
 
+      // Espace client final — cookie et payload strictement distincts de
+      // admin_session/userSession ci-dessus.
+      const customerToken = getCookie(c, 'customer_session')
+      const customerSession = await verifyCustomerSessionToken(customerToken)
+
       return {
         ip,
         userAgent,
         userSession,
+        customerSession,
       }
     },
   })

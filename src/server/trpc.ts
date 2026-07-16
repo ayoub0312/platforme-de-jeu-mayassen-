@@ -1,11 +1,16 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { ratelimit } from '../lib/redis'
-import { UserSession } from '../lib/auth'
+import { UserSession, CustomerSession } from '../lib/auth'
 
 export interface Context {
   ip?: string
   userAgent?: string
   userSession?: UserSession | null
+  // Espace client final (voyageurs) — jamais lu par adminMiddleware/
+  // superAdminMiddleware/partnerMiddleware ci-dessous, qui ne regardent que
+  // userSession. Un Customer authentifié n'a donc structurellement aucun
+  // moyen de passer ces procédures, même en connaissant leurs noms.
+  customerSession?: CustomerSession | null
 }
 
 const t = initTRPC.context<Context>().create()
@@ -144,4 +149,24 @@ const partnerMiddleware = t.middleware(async ({ ctx, next }) => {
 })
 
 export const partnerProcedure = t.procedure.use(partnerMiddleware)
+
+// Espace client final — vérifie ctx.customerSession (cookie customer_session,
+// jamais admin_session). Complètement indépendant des middlewares admin
+// ci-dessus : n'accorde jamais, même indirectement, l'accès à adminProcedure/
+// superAdminProcedure/partnerProcedure, qui ne lisent que ctx.userSession.
+const customerMiddleware = t.middleware(({ ctx, next }) => {
+  if (!ctx.customerSession) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Non autorisé. Veuillez vous connecter.',
+    })
+  }
+  return next({
+    ctx: {
+      customerSession: ctx.customerSession,
+    },
+  })
+})
+
+export const customerProcedure = t.procedure.use(customerMiddleware)
 

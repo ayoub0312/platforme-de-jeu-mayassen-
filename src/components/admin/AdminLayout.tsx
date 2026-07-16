@@ -9,6 +9,7 @@ export interface AdminNavItem {
   id: string
   label: string
   icon: React.ComponentType<{ className?: string }>
+  badge?: number
 }
 
 export interface AdminLayoutProps {
@@ -83,7 +84,20 @@ export function AdminLayout({
               }`}
             >
               <Icon className="h-4.5 w-4.5 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && (
+                <>
+                  <span className="truncate flex-1 text-left">{item.label}</span>
+                  {!!item.badge && (
+                    <span
+                      className={`shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                        isActive ? 'bg-white/25 text-white' : 'bg-brand-500 text-white'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </>
+              )}
             </button>
           )
         })}

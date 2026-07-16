@@ -27,6 +27,11 @@ export interface RateLimiter {
 
 let redis: RedisClient
 let ratelimit: RateLimiter
+// Limiteur dédié aux formulaires publics sensibles (inscription partenaire,
+// inscription/connexion client) : 3 tentatives par identifiant (IP préfixée
+// par l'action) et par heure — bien plus strict que le limiteur générique
+// ci-dessus, qui protège des abus généraux mais pas du brute-force ciblé.
+let authRatelimit: RateLimiter
 
 if (isRedisConfigured) {
   const realRedis = Redis.fromEnv()
@@ -36,6 +41,13 @@ if (isRedisConfigured) {
     redis: realRedis,
     limiter: Ratelimit.slidingWindow(20, '10 s'), // 20 requests per 10 seconds
     analytics: true,
+  })
+
+  authRatelimit = new Ratelimit({
+    redis: realRedis,
+    limiter: Ratelimit.slidingWindow(3, '1 h'),
+    analytics: true,
+    prefix: 'authratelimit',
   })
 } else {
   // Local in-memory mock store for development
@@ -115,11 +127,11 @@ if (isRedisConfigured) {
       const now = Date.now()
       const windowMs = 10000 // 10s window
       const limit = 20 // limit to 20 hits per window
-      
+
       let timestamps = rateLimitHits.get(identifier) || []
       // Filter out timestamps outside current window
       timestamps = timestamps.filter((t) => now - t < windowMs)
-      
+
       const success = timestamps.length < limit
       if (success) {
         timestamps.push(now)
@@ -134,6 +146,34 @@ if (isRedisConfigured) {
       }
     }
   }
+
+  // Même mécanisme que ci-dessus, fenêtre/limite différentes, store séparé
+  // pour ne pas mélanger les compteurs des deux limiteurs.
+  const authRateLimitHits = new Map<string, number[]>()
+
+  authRatelimit = {
+    limit: async (identifier: string) => {
+      const now = Date.now()
+      const windowMs = 60 * 60 * 1000 // 1h
+      const limit = 3
+
+      let timestamps = authRateLimitHits.get(identifier) || []
+      timestamps = timestamps.filter((t) => now - t < windowMs)
+
+      const success = timestamps.length < limit
+      if (success) {
+        timestamps.push(now)
+      }
+      authRateLimitHits.set(identifier, timestamps)
+
+      return {
+        success,
+        limit,
+        remaining: Math.max(0, limit - timestamps.length),
+        reset: now + windowMs,
+      }
+    }
+  }
 }
 
-export { redis, ratelimit, isRedisConfigured }
+export { redis, ratelimit, authRatelimit, isRedisConfigured }

@@ -230,3 +230,64 @@ export async function sendDrawRegistrationEmail({
 </table>`,
   })
 }
+
+interface SendCustomerPasswordResetEmailParams {
+  to: string
+  resetUrl: string
+  senderEmail: string
+  senderEmailPassword: string // encrypted Resend API key (même mécanisme que le reste)
+}
+
+// Réinitialisation de mot de passe pour l'espace client final — best-effort,
+// ne doit jamais faire échouer la mutation qui l'appelle (même contrat que
+// les autres envois de ce fichier : l'appelant doit envelopper dans un
+// try/catch et ne logger qu'un avertissement en cas d'échec).
+export async function sendCustomerPasswordResetEmail({
+  to,
+  resetUrl,
+  senderEmail,
+  senderEmailPassword,
+}: SendCustomerPasswordResetEmailParams): Promise<void> {
+  const apiKey = decryptSecret(senderEmailPassword)
+  const transporter = createTransporter(apiKey)
+
+  await transporter.sendMail({
+    from: `"Obooking Gift" <${senderEmail}>`,
+    to,
+    subject: 'Réinitialisation de votre mot de passe',
+    text: [
+      'Bonjour,',
+      '',
+      'Une réinitialisation de mot de passe a été demandée pour votre compte.',
+      `Cliquez sur ce lien pour choisir un nouveau mot de passe (valable 1 heure) : ${resetUrl}`,
+      "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
+    ].join('\n'),
+    html: `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:32px 16px; font-family:Arial,Helvetica,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #eceff1;">
+        <tr>
+          <td style="padding:28px 32px 8px 32px; color:#241f1c; font-size:14px;">
+            <p style="margin:0 0 12px 0;">Bonjour,</p>
+            <p style="margin:0 0 16px 0;">Une réinitialisation de mot de passe a été demandée pour votre compte.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 32px 8px 32px; text-align:center;">
+            <a href="${resetUrl}" style="display:inline-block; background:#FF6B47; color:#ffffff; text-decoration:none; font-weight:700; font-size:13px; padding:12px 24px; border-radius:10px;">
+              Choisir un nouveau mot de passe
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 28px 32px; text-align:center; font-size:12px; color:#9ca3af;">
+            Valable 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`,
+  })
+}

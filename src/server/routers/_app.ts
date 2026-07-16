@@ -1,14 +1,15 @@
 import { z } from 'zod'
-import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure } from '../trpc'
+import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure, customerProcedure } from '../trpc'
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
-import { redis } from '../../lib/redis'
+import { redis, authRatelimit } from '../../lib/redis'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
-import { createSessionToken } from '../../lib/auth'
+import { createSessionToken, createCustomerSessionToken } from '../../lib/auth'
 import bcrypt from 'bcryptjs'
 import { encryptSecret } from '../../lib/crypto'
-import { sendWinnerEmail, sendDrawRegistrationEmail } from '../../lib/mailer'
+import { sendWinnerEmail, sendDrawRegistrationEmail, sendCustomerPasswordResetEmail } from '../../lib/mailer'
+import { obookingDataSource } from '../../lib/obookingDataSource'
 
 // Jetons de jeu valides pendant 90 jours après leur création
 const TOKEN_VALIDITY_DAYS = 90
@@ -67,6 +68,21 @@ function generateSecurePassword(length = 16): string {
   let out = ''
   for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length]
   return out
+}
+
+// Vérifie une force minimale pour les mots de passe choisis par l'utilisateur
+// lui-même sur les formulaires publics (auto-inscription partenaire,
+// inscription client) — au-delà de la longueur, exige une diversité de
+// caractères. Retourne un message d'erreur, ou null si le mot de passe passe.
+function checkPasswordStrength(password: string): string | null {
+  if (password.length < 12) {
+    return 'Le mot de passe doit contenir au moins 12 caractères.'
+  }
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter((re) => re.test(password)).length
+  if (classes < 3) {
+    return 'Le mot de passe doit combiner au moins 3 types de caractères parmi : minuscules, majuscules, chiffres, symboles.'
+  }
+  return null
 }
 
 // Templates préconfigurés proposés à l'étape "Config" du wizard de création de
@@ -204,6 +220,18 @@ export const appRouter = router({
           })
         }
 
+        // Auto-inscription (formulaire public) : le partenaire ne peut pas se
+        // connecter tant que le Super Admin ne l'a pas approuvé. Message
+        // volontairement neutre et identique pour PENDING et REJECTED — ne
+        // pas révéler si la demande a été activement rejetée ou juste pas
+        // encore traitée.
+        if (partner.status !== 'APPROVED') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Ce compte partenaire est en attente de validation.',
+          })
+        }
+
         partnerId = partner.id
       }
 
@@ -225,6 +253,85 @@ export const appRouter = router({
   logoutAdmin: publicProcedure.mutation(async () => {
     return { success: true }
   }),
+
+  // Auto-inscription partenaire (formulaire public /partner/signup). Crée un
+  // Partner en status PENDING + son compte User (role=PARTNER) en une
+  // transaction — il ne peut pas se connecter tant qu'un Super Admin ne l'a
+  // pas approuvé (voir loginAdmin). Anti-énumération : réponse générique
+  // identique que l'email existe déjà ou non.
+  registerPartner: publicProcedure
+    .input(
+      z.object({
+        agencyName: z.string().trim().min(2, "Le nom de l'agence doit contenir au moins 2 caractères."),
+        email: z.string().trim().email('Adresse email invalide.'),
+        password: z.string(),
+        phone: z.string().trim().min(1, 'Le téléphone est requis.'),
+        contactName: z.string().trim().min(1, 'Le nom du contact est requis.'),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const identifier = `partner-signup:${ctx.ip || 'unknown'}`
+      let allowed = true
+      try {
+        const res = await authRatelimit.limit(identifier)
+        allowed = res.success
+      } catch (err) {
+        console.warn('[Redis Warning] authRatelimit failed for registerPartner, allowing request:', err)
+      }
+      if (!allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+      }
+
+      const strengthError = checkPasswordStrength(input.password)
+      if (strengthError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: strengthError })
+      }
+
+      const GENERIC_MESSAGE = "Votre demande a été enregistrée. Vous serez contacté(e) par email une fois votre compte validé."
+
+      // Ne jamais révéler si cet email est déjà utilisé — même réponse dans
+      // les deux cas, aucune création en cas de collision.
+      const existingUser = await prisma.user.findUnique({ where: { email: input.email } })
+      if (existingUser) {
+        return { success: true, message: GENERIC_MESSAGE }
+      }
+
+      const slug = await generateUniquePartnerSlug(input.agencyName)
+      const passwordHash = await bcrypt.hash(input.password, 10)
+
+      const partner = await prisma.$transaction(async (tx) => {
+        const partner = await tx.partner.create({
+          data: {
+            name: input.agencyName,
+            slug,
+            email: input.email,
+            allowedDomains: '',
+            status: 'PENDING',
+          },
+        })
+        await tx.user.create({
+          data: {
+            email: input.email,
+            name: input.contactName,
+            phone: input.phone,
+            role: Role.PARTNER,
+            partnerId: partner.id,
+            passwordHash,
+          },
+        })
+        return partner
+      })
+
+      await logActivity({
+        userEmail: input.email,
+        action: 'PARTNER_SIGNUP_REQUESTED',
+        targetType: 'Partner',
+        targetId: partner.id,
+        partnerId: partner.id,
+      })
+
+      return { success: true, message: GENERIC_MESSAGE }
+    }),
 
   getCampaigns: publicProcedure
     .input(z.object({
@@ -1523,7 +1630,11 @@ export const appRouter = router({
 
   // Partners CRUD
   getPartners: superAdminProcedure.query(async () => {
+    // Les demandes PENDING/REJECTED vivent dans la file de validation
+    // (getPendingPartners) — cette liste ne montre que les partenaires actifs
+    // dans le système (créés par le Super Admin ou déjà approuvés).
     const partners = await prisma.partner.findMany({
+      where: { status: 'APPROVED' },
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { campaigns: true, users: true } },
@@ -1578,6 +1689,10 @@ export const appRouter = router({
             logoUrl: input.logoUrl || null,
             primaryColor: input.primaryColor || null,
             secondaryColor: input.secondaryColor || null,
+            // Créé directement par le Super Admin : pas de file de validation
+            // à passer, contrairement à l'auto-inscription publique.
+            status: 'APPROVED',
+            reviewedAt: new Date(),
           },
         })
         const user = await tx.user.create({
@@ -1673,6 +1788,66 @@ export const appRouter = router({
       })
 
       return { accountEmail: account.email, temporaryPassword }
+    }),
+
+  // File de validation des demandes d'auto-inscription partenaire (statut
+  // PENDING). Le compte de connexion existe déjà (créé PENDING par
+  // registerPartner) : approuver/rejeter ne fait que changer le statut, ne
+  // recrée rien.
+  getPendingPartners: superAdminProcedure.query(async () => {
+    return prisma.partner.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { requestedAt: 'asc' },
+      include: { users: { where: { role: Role.PARTNER }, select: { email: true, name: true, phone: true } } },
+    })
+  }),
+
+  approvePartner: superAdminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const partner = await prisma.partner.findUnique({ where: { id: input.id } })
+      if (!partner) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Partenaire introuvable.' })
+      }
+      if (partner.status !== 'PENDING') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cette demande a déjà été traitée.' })
+      }
+      const updated = await prisma.partner.update({
+        where: { id: input.id },
+        data: { status: 'APPROVED', reviewedAt: new Date() },
+      })
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: 'PARTNER_APPROVED',
+        targetType: 'Partner',
+        targetId: partner.id,
+        partnerId: partner.id,
+      })
+      return updated
+    }),
+
+  rejectPartner: superAdminProcedure
+    .input(z.object({ id: z.string(), reason: z.string().trim().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const partner = await prisma.partner.findUnique({ where: { id: input.id } })
+      if (!partner) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Partenaire introuvable.' })
+      }
+      if (partner.status !== 'PENDING') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cette demande a déjà été traitée.' })
+      }
+      const updated = await prisma.partner.update({
+        where: { id: input.id },
+        data: { status: 'REJECTED', reviewedAt: new Date() },
+      })
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: input.reason ? `PARTNER_REJECTED: ${input.reason}` : 'PARTNER_REJECTED',
+        targetType: 'Partner',
+        targetId: partner.id,
+        partnerId: partner.id,
+      })
+      return updated
     }),
 
   deletePartner: superAdminProcedure
@@ -2939,6 +3114,285 @@ export const appRouter = router({
       }
 
       return prisma.prize.findMany({ where: { campaignId: input.campaignId }, orderBy: { order: 'asc' } })
+    }),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Espace client final (voyageurs) — modèle Customer, auth et session
+  // (customer_session, voir src/lib/auth.ts) entièrement séparés de
+  // User/Role (SUPERADMIN/PARTNER/READONLY). Voir ESPACE_CLIENT.md.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  registerCustomer: publicProcedure
+    .input(
+      z.object({
+        email: z.string().trim().email('Adresse email invalide.'),
+        password: z.string(),
+        name: z.string().trim().optional(),
+        phone: z.string().trim().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const identifier = `customer-signup:${ctx.ip || 'unknown'}`
+      let allowed = true
+      try {
+        const res = await authRatelimit.limit(identifier)
+        allowed = res.success
+      } catch (err) {
+        console.warn('[Redis Warning] authRatelimit failed for registerCustomer, allowing request:', err)
+      }
+      if (!allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+      }
+
+      const strengthError = checkPasswordStrength(input.password)
+      if (strengthError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: strengthError })
+      }
+
+      // Anti-énumération : réponse identique que l'email existe déjà ou non,
+      // aucune création en cas de collision.
+      const GENERIC_MESSAGE = 'Si cette adresse est valide, votre compte a été créé. Vous pouvez maintenant vous connecter.'
+
+      const existing = await prisma.customer.findUnique({ where: { email: input.email } })
+      if (existing) {
+        return { success: true, message: GENERIC_MESSAGE }
+      }
+
+      const passwordHash = await bcrypt.hash(input.password, 10)
+      await prisma.customer.create({
+        data: {
+          email: input.email,
+          passwordHash,
+          name: input.name || null,
+          phone: input.phone || null,
+        },
+      })
+
+      return { success: true, message: GENERIC_MESSAGE }
+    }),
+
+  loginCustomer: publicProcedure
+    .input(z.object({ email: z.string().email(), password: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const identifier = `customer-login:${ctx.ip || 'unknown'}`
+      let allowed = true
+      try {
+        const res = await authRatelimit.limit(identifier)
+        allowed = res.success
+      } catch (err) {
+        console.warn('[Redis Warning] authRatelimit failed for loginCustomer, allowing request:', err)
+      }
+      if (!allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+      }
+
+      // Message identique que le compte existe ou non (même logique que loginAdmin).
+      const customer = await prisma.customer.findUnique({ where: { email: input.email } })
+      if (!customer) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Adresse email ou mot de passe incorrect.' })
+      }
+      const isValid = await bcrypt.compare(input.password, customer.passwordHash)
+      if (!isValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Adresse email ou mot de passe incorrect.' })
+      }
+
+      const token = await createCustomerSessionToken({ customerId: customer.id, email: customer.email })
+      return { token }
+    }),
+
+  logoutCustomer: publicProcedure.mutation(async () => {
+    return { success: true }
+  }),
+
+  requestCustomerPasswordReset: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input, ctx }) => {
+      const identifier = `customer-reset:${ctx.ip || 'unknown'}`
+      let allowed = true
+      try {
+        const res = await authRatelimit.limit(identifier)
+        allowed = res.success
+      } catch (err) {
+        console.warn('[Redis Warning] authRatelimit failed for requestCustomerPasswordReset, allowing request:', err)
+      }
+      if (!allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+      }
+
+      const GENERIC_MESSAGE = 'Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé.'
+
+      const customer = await prisma.customer.findUnique({ where: { email: input.email } })
+      if (!customer) {
+        return { success: true, message: GENERIC_MESSAGE }
+      }
+
+      const rawToken = crypto.randomBytes(32).toString('hex')
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+      await prisma.customerPasswordReset.create({
+        data: {
+          customerId: customer.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      })
+
+      // Envoi best-effort — ne doit jamais faire échouer la mutation, ni
+      // révéler quoi que ce soit sur l'existence du compte au demandeur.
+      try {
+        const settings = await prisma.siteSettings.findUnique({ where: { id: 'main' } })
+        if (settings?.defaultSenderEmail && settings?.defaultSenderEmailPassword) {
+          const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000'
+          await sendCustomerPasswordResetEmail({
+            to: customer.email,
+            resetUrl: `${baseUrl}/client/reset-password?token=${rawToken}`,
+            senderEmail: settings.defaultSenderEmail,
+            senderEmailPassword: settings.defaultSenderEmailPassword,
+          })
+        }
+      } catch (err) {
+        console.warn('[Email Warning] Failed to send customer password reset email:', err)
+      }
+
+      return { success: true, message: GENERIC_MESSAGE }
+    }),
+
+  resetCustomerPasswordWithToken: publicProcedure
+    .input(z.object({ token: z.string(), newPassword: z.string() }))
+    .mutation(async ({ input }) => {
+      const strengthError = checkPasswordStrength(input.newPassword)
+      if (strengthError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: strengthError })
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(input.token).digest('hex')
+      const resetRequest = await prisma.customerPasswordReset.findUnique({ where: { tokenHash } })
+      if (!resetRequest || resetRequest.usedAt || resetRequest.expiresAt < new Date()) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ce lien de réinitialisation est invalide ou a expiré.' })
+      }
+
+      const passwordHash = await bcrypt.hash(input.newPassword, 10)
+      await prisma.$transaction([
+        prisma.customer.update({ where: { id: resetRequest.customerId }, data: { passwordHash } }),
+        prisma.customerPasswordReset.update({ where: { id: resetRequest.id }, data: { usedAt: new Date() } }),
+      ])
+
+      return { success: true }
+    }),
+
+  getMyProfile: customerProcedure.query(async ({ ctx }) => {
+    const customer = await prisma.customer.findUnique({
+      where: { id: ctx.customerSession!.customerId },
+      select: { id: true, email: true, name: true, phone: true, createdAt: true },
+    })
+    if (!customer) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
+    }
+    return customer
+  }),
+
+  updateMyProfile: customerProcedure
+    .input(z.object({ name: z.string().trim().nullable().optional(), phone: z.string().trim().nullable().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      return prisma.customer.update({
+        where: { id: ctx.customerSession!.customerId },
+        data: {
+          name: input.name ?? undefined,
+          phone: input.phone ?? undefined,
+        },
+        select: { id: true, email: true, name: true, phone: true },
+      })
+    }),
+
+  // Garde-fou strict : ne lit jamais un id fourni par le client, uniquement
+  // ctx.customerSession.customerId — un client ne peut donc jamais consulter
+  // les participations/lots d'un autre client ni d'un autre partenaire.
+  getMyGameActivity: customerProcedure.query(async ({ ctx }) => {
+    const customer = await prisma.customer.findUnique({ where: { id: ctx.customerSession!.customerId } })
+    if (!customer) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
+    }
+
+    let userId = customer.userId
+    if (!userId) {
+      // Rattachement best-effort : un joueur ayant déjà participé avec ce
+      // même email avant de créer un compte client est relié maintenant.
+      const existingUser = await prisma.user.findUnique({ where: { email: customer.email } })
+      if (existingUser) {
+        await prisma.customer.update({ where: { id: customer.id }, data: { userId: existingUser.id } })
+        userId = existingUser.id
+      }
+    }
+
+    if (!userId) {
+      return { participations: [], prizesWon: [] }
+    }
+
+    const [tokens, prizes] = await Promise.all([
+      prisma.playToken.findMany({
+        where: { userId },
+        include: { campaign: { select: { id: true, title: true, gameMode: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.userPrize.findMany({
+        where: { userId },
+        include: { prize: { select: { name: true, type: true, campaign: { select: { id: true, title: true } } } } },
+        orderBy: { claimedAt: 'desc' },
+      }),
+    ])
+
+    return {
+      participations: tokens.map((t) => ({
+        id: t.id,
+        campaignId: t.campaign.id,
+        campaignTitle: t.campaign.title,
+        gameMode: t.campaign.gameMode,
+        status: t.status,
+        earnedVia: t.earnedVia,
+        createdAt: t.createdAt,
+      })),
+      prizesWon: prizes.map((p) => ({
+        id: p.id,
+        prizeName: p.prize.name,
+        prizeType: p.prize.type,
+        campaignId: p.prize.campaign.id,
+        campaignTitle: p.prize.campaign.title,
+        status: p.status,
+        claimedAt: p.claimedAt,
+      })),
+    }
+  }),
+
+  // Consomme uniquement l'interface ObookingDataSource (src/lib/obookingDataSource.ts)
+  // — jamais MockObookingDataSource directement. Voir ESPACE_CLIENT.md.
+  getMyPurchases: customerProcedure.query(async ({ ctx }) => {
+    return obookingDataSource.getPurchases(ctx.customerSession!.customerId)
+  }),
+
+  getMyLoyaltyPoints: customerProcedure.query(async ({ ctx }) => {
+    return obookingDataSource.getLoyaltyPoints(ctx.customerSession!.customerId)
+  }),
+
+  // Changement de mot de passe depuis la page "Paramètres" (compte déjà
+  // authentifié) — distinct du flux de réinitialisation par email, qui
+  // reste nécessaire pour un mot de passe oublié.
+  changeMyPassword: customerProcedure
+    .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const customer = await prisma.customer.findUnique({ where: { id: ctx.customerSession!.customerId } })
+      if (!customer) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
+      }
+      const isValid = await bcrypt.compare(input.currentPassword, customer.passwordHash)
+      if (!isValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Mot de passe actuel incorrect.' })
+      }
+      const strengthError = checkPasswordStrength(input.newPassword)
+      if (strengthError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: strengthError })
+      }
+      const passwordHash = await bcrypt.hash(input.newPassword, 10)
+      await prisma.customer.update({ where: { id: customer.id }, data: { passwordHash } })
+      return { success: true }
     }),
 
 })
