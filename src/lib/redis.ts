@@ -1,15 +1,15 @@
 import { Redis } from '@upstash/redis'
-import { Ratelimit } from '@upstash/ratelimit'
 
 const isRedisConfigured = !!(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 )
 
-// Define local interfaces that match Upstash Redis/Ratelimit shapes
+// Define local interfaces that match Upstash Redis shapes
 export interface RedisClient {
   get: <T = any>(key: string) => Promise<T | null>
   set: (key: string, value: any, options?: { ex?: number; px?: number; nx?: boolean; xx?: boolean }) => Promise<'OK' | null>
   incr: (key: string) => Promise<number>
+  expire: (key: string, seconds: number) => Promise<number>
   hget: <T = any>(key: string, field: string) => Promise<T | null>
   hset: (key: string, data: Record<string, any>) => Promise<number>
   hincrby: (key: string, field: string, increment: number) => Promise<number>
@@ -26,32 +26,16 @@ export interface RateLimiter {
 }
 
 let redis: RedisClient
-let ratelimit: RateLimiter
-// Limiteur dédié aux formulaires publics sensibles (inscription partenaire,
-// inscription/connexion client) : 3 tentatives par identifiant (IP préfixée
-// par l'action) et par heure — bien plus strict que le limiteur générique
-// ci-dessus, qui protège des abus généraux mais pas du brute-force ciblé.
-let authRatelimit: RateLimiter
 
 if (isRedisConfigured) {
   const realRedis = Redis.fromEnv()
   redis = realRedis as unknown as RedisClient
-
-  ratelimit = new Ratelimit({
-    redis: realRedis,
-    limiter: Ratelimit.slidingWindow(20, '10 s'), // 20 requests per 10 seconds
-    analytics: true,
-  })
-
-  authRatelimit = new Ratelimit({
-    redis: realRedis,
-    limiter: Ratelimit.slidingWindow(3, '1 h'),
-    analytics: true,
-    prefix: 'authratelimit',
-  })
 } else {
-  // Local in-memory mock store for development
+  // Local in-memory mock store for development — simule un vrai TTL (via
+  // expiryAt) pour que le limiteur par fenêtre fixe ci-dessous se comporte
+  // à l'identique en local et en production.
   const store = new Map<string, any>()
+  const expiryAt = new Map<string, number>()
   const hashStore = new Map<string, Map<string, any>>()
 
   if (process.env.NODE_ENV !== 'production') {
@@ -60,20 +44,36 @@ if (isRedisConfigured) {
     )
   }
 
+  const dropIfExpired = (key: string) => {
+    const exp = expiryAt.get(key)
+    if (exp !== undefined && Date.now() > exp) {
+      store.delete(key)
+      expiryAt.delete(key)
+    }
+  }
+
   redis = {
     get: async <T = any>(key: string): Promise<T | null> => {
+      dropIfExpired(key)
       const val = store.get(key)
       return val !== undefined ? (val as T) : null
     },
-    set: async (key: string, value: any): Promise<'OK'> => {
+    set: async (key: string, value: any, options?: { ex?: number }): Promise<'OK'> => {
       store.set(key, value)
+      if (options?.ex) expiryAt.set(key, Date.now() + options.ex * 1000)
       return 'OK'
     },
     incr: async (key: string): Promise<number> => {
+      dropIfExpired(key)
       const current = Number(store.get(key) || 0)
       const next = current + 1
       store.set(key, next)
       return next
+    },
+    expire: async (key: string, seconds: number): Promise<number> => {
+      if (!store.has(key)) return 0
+      expiryAt.set(key, Date.now() + seconds * 1000)
+      return 1
     },
     hget: async <T = any>(key: string, field: string): Promise<T | null> => {
       const map = hashStore.get(key)
@@ -118,62 +118,42 @@ if (isRedisConfigured) {
       return deleted
     }
   }
+}
 
-  // Local sliding window rate limiter fallback
-  const rateLimitHits = new Map<string, number[]>()
-
-  ratelimit = {
+// Limiteur par fenêtre fixe (INCR + EXPIRE) — commandes Redis de base,
+// autorisées par tout token, à la différence de l'ancien algorithme "sliding
+// window" (@upstash/ratelimit) qui reposait sur EVALSHA/Lua et échouait
+// silencieusement en production faute de cette permission sur le token
+// configuré. Ne catch jamais les erreurs ici : une panne Redis (réseau,
+// permissions, etc.) doit remonter telle quelle à l'appelant, qui décide du
+// comportement fail-closed (voir server/trpc.ts et server/routers/_app.ts —
+// aucun des deux n'utilise plus le mode "on autorise si Redis échoue").
+function createFixedWindowRateLimiter(limit: number, windowSeconds: number, keyPrefix: string): RateLimiter {
+  return {
     limit: async (identifier: string) => {
-      const now = Date.now()
-      const windowMs = 10000 // 10s window
-      const limit = 20 // limit to 20 hits per window
-
-      let timestamps = rateLimitHits.get(identifier) || []
-      // Filter out timestamps outside current window
-      timestamps = timestamps.filter((t) => now - t < windowMs)
-
-      const success = timestamps.length < limit
-      if (success) {
-        timestamps.push(now)
+      const key = `${keyPrefix}:${identifier}`
+      const count = await redis.incr(key)
+      if (count === 1) {
+        // Ne pose le TTL qu'à la création du compteur, pas à chaque appel —
+        // sinon la fenêtre glisserait indéfiniment au lieu d'être fixe.
+        await redis.expire(key, windowSeconds)
       }
-      rateLimitHits.set(identifier, timestamps)
-
       return {
-        success,
+        success: count <= limit,
         limit,
-        remaining: Math.max(0, limit - timestamps.length),
-        reset: now + windowMs,
+        remaining: Math.max(0, limit - count),
+        reset: Date.now() + windowSeconds * 1000,
       }
-    }
-  }
-
-  // Même mécanisme que ci-dessus, fenêtre/limite différentes, store séparé
-  // pour ne pas mélanger les compteurs des deux limiteurs.
-  const authRateLimitHits = new Map<string, number[]>()
-
-  authRatelimit = {
-    limit: async (identifier: string) => {
-      const now = Date.now()
-      const windowMs = 60 * 60 * 1000 // 1h
-      const limit = 3
-
-      let timestamps = authRateLimitHits.get(identifier) || []
-      timestamps = timestamps.filter((t) => now - t < windowMs)
-
-      const success = timestamps.length < limit
-      if (success) {
-        timestamps.push(now)
-      }
-      authRateLimitHits.set(identifier, timestamps)
-
-      return {
-        success,
-        limit,
-        remaining: Math.max(0, limit - timestamps.length),
-        reset: now + windowMs,
-      }
-    }
+    },
   }
 }
+
+// Limiteur générique existant (ex: spinRoulette) : 20 requêtes / 10 secondes.
+const ratelimit: RateLimiter = createFixedWindowRateLimiter(20, 10, 'ratelimit')
+
+// Limiteur dédié aux formulaires publics sensibles (inscription partenaire,
+// inscription/connexion client) : 3 tentatives par identifiant (IP préfixée
+// par l'action) et par heure.
+const authRatelimit: RateLimiter = createFixedWindowRateLimiter(3, 60 * 60, 'authratelimit')
 
 export { redis, ratelimit, authRatelimit, isRedisConfigured }

@@ -271,12 +271,13 @@ export const appRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const identifier = `partner-signup:${ctx.ip || 'unknown'}`
-      let allowed = true
+      let allowed: boolean
       try {
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.warn('[Redis Warning] authRatelimit failed for registerPartner, allowing request:', err)
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour registerPartner — requête refusée par précaution (fail-closed):', err)
+        allowed = false
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
@@ -3133,12 +3134,13 @@ export const appRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const identifier = `customer-signup:${ctx.ip || 'unknown'}`
-      let allowed = true
+      let allowed: boolean
       try {
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.warn('[Redis Warning] authRatelimit failed for registerCustomer, allowing request:', err)
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour registerCustomer — requête refusée par précaution (fail-closed):', err)
+        allowed = false
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
@@ -3175,12 +3177,13 @@ export const appRouter = router({
     .input(z.object({ email: z.string().email(), password: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const identifier = `customer-login:${ctx.ip || 'unknown'}`
-      let allowed = true
+      let allowed: boolean
       try {
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.warn('[Redis Warning] authRatelimit failed for loginCustomer, allowing request:', err)
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour loginCustomer — requête refusée par précaution (fail-closed):', err)
+        allowed = false
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
@@ -3208,12 +3211,13 @@ export const appRouter = router({
     .input(z.object({ email: z.string().email() }))
     .mutation(async ({ input, ctx }) => {
       const identifier = `customer-reset:${ctx.ip || 'unknown'}`
-      let allowed = true
+      let allowed: boolean
       try {
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.warn('[Redis Warning] authRatelimit failed for requestCustomerPasswordReset, allowing request:', err)
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour requestCustomerPasswordReset — requête refusée par précaution (fail-closed):', err)
+        allowed = false
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })

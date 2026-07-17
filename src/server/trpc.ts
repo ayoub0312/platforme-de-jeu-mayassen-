@@ -19,30 +19,29 @@ const t = initTRPC.context<Context>().create()
 export const router = t.router
 export const publicProcedure = t.procedure
 
-// Reusable rate limiting middleware for sensitive/heavy procedures
+// Reusable rate limiting middleware for sensitive/heavy procedures.
+// Fail-closed : si Redis échoue (permissions, réseau, etc.), la requête est
+// refusée, jamais laissée passer — c'est l'inverse du comportement précédent,
+// qui bypassait silencieusement le rate limiting sur toute erreur Redis.
 const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
   const identifier = ctx.ip || 'global_rate_limit'
-  let success = true
-  let limit = 20
-  let remaining = 20
-  let reset = Date.now() + 10000
 
   try {
     const res = await ratelimit.limit(`trpc_limit:${identifier}`)
-    success = res.success
-    limit = res.limit
-    remaining = res.remaining
-    reset = res.reset
+    if (!res.success) {
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message: `Rate limit exceeded. Remaining requests: ${res.remaining}/${res.limit}. Reset in ${Math.ceil(
+          (res.reset - Date.now()) / 1000
+        )}s.`,
+      })
+    }
   } catch (err) {
-    console.warn('[Redis Warning] Rate limiting failed to execute in Redis, bypassing rate limit checks:', err)
-  }
-
-  if (!success) {
+    if (err instanceof TRPCError) throw err
+    console.error('[RateLimit ERROR] Échec du rate limiting Redis — requête refusée par précaution (fail-closed):', err)
     throw new TRPCError({
       code: 'TOO_MANY_REQUESTS',
-      message: `Rate limit exceeded. Remaining requests: ${remaining}/${limit}. Reset in ${Math.ceil(
-        (reset - Date.now()) / 1000
-      )}s.`,
+      message: 'Service temporairement indisponible. Réessayez dans quelques instants.',
     })
   }
 
