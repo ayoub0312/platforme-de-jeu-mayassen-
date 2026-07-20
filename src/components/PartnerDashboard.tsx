@@ -533,8 +533,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
       showToast('Veuillez sélectionner un fichier vidéo (MP4, WEBM...).', 'error')
       return
     }
-    if (file.size > 4 * 1024 * 1024) {
-      showToast('La vidéo dépasse la limite de 4 Mo. Compressez-la avant de la réimporter.', 'error')
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('La vidéo dépasse la limite de 20 Mo. Compressez-la avant de la réimporter.', 'error')
       return
     }
 
@@ -2026,11 +2026,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <Video className="h-5 w-5 text-[#FF6B47]" /> Vidéo du Hero (Page d'Accueil)
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-5">
-              Vidéo de fond en boucle affichée en haut de la page d'accueil. Courte et compressée, 4 Mo max.
+              Vidéo de fond en boucle affichée en haut de la page d'accueil. Courte et compressée, 20 Mo max.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Vidéo (MP4/WEBM, 4 Mo max)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Vidéo (MP4/WEBM, 20 Mo max)</label>
               <div className="h-32 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden mb-2">
                 {heroForm.heroVideoData ? (
                   <video

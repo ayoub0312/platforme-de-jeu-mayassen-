@@ -32,7 +32,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#1a1a1a]">
+    <div className="relative z-10 min-h-screen bg-white text-[#1a1a1a]">
       <header className="border-b border-black/[0.08]">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/client/mes-informations" className="font-semibold tracking-tight text-sm">

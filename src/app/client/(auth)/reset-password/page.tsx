@@ -28,7 +28,7 @@ function RequestReset() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+    <div className="relative z-10 min-h-screen bg-white flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <h1 className="text-xl font-semibold text-[#1a1a1a] mb-1">Mot de passe oublié</h1>
         <p className="text-sm text-[#1a1a1a]/50 mb-8">Saisissez votre email pour recevoir un lien de réinitialisation.</p>
@@ -83,7 +83,7 @@ function CompleteReset({ token }: { token: string }) {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-6">
+      <div className="relative z-10 min-h-screen bg-white flex items-center justify-center px-6">
         <div className="w-full max-w-sm">
           <h1 className="text-xl font-semibold text-[#1a1a1a] mb-3">Mot de passe mis à jour</h1>
           <Link href="/client/login" className="text-sm text-[#FF6B47] hover:underline font-medium">
@@ -95,7 +95,7 @@ function CompleteReset({ token }: { token: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+    <div className="relative z-10 min-h-screen bg-white flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <h1 className="text-xl font-semibold text-[#1a1a1a] mb-1">Choisir un nouveau mot de passe</h1>
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">

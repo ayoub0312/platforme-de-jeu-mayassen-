@@ -26,7 +26,7 @@ export default function ClientLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+    <div className="relative z-10 min-h-screen bg-white flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <h1 className="text-xl font-semibold text-[#1a1a1a] mb-1">Se connecter</h1>
         <p className="text-sm text-[#1a1a1a]/50 mb-8">Accédez à votre espace client Obooking Gift.</p>

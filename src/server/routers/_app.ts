@@ -1879,12 +1879,12 @@ export const appRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      // ~4MB raw file cap, base64 inflates size by ~4/3
-      const MAX_BASE64_LENGTH = 4 * 1024 * 1024 * 1.4
+      // ~20MB raw file cap, base64 inflates size by ~4/3
+      const MAX_BASE64_LENGTH = 20 * 1024 * 1024 * 1.4
       if (input.heroVideoData && input.heroVideoData.length > MAX_BASE64_LENGTH) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'La vidéo dépasse la limite de 4 Mo.',
+          message: 'La vidéo dépasse la limite de 20 Mo.',
         })
       }
       return prisma.siteSettings.upsert({

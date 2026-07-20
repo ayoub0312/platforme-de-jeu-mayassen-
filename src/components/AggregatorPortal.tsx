@@ -251,8 +251,19 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
             </a>
           </div>
 
-          {isAdminConnected && (
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/client/signup"
+              className={`cta-flash group relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer overflow-hidden ${
+                isScrolledPastHero
+                  ? 'border border-slate-200 hover:border-orange-200 hover:bg-orange-50/50 text-slate-700'
+                  : 'border border-white/40 hover:border-white text-white bg-white/10 backdrop-blur-sm hover:bg-white/20'
+              }`}
+            >
+              <span className="btn-shine absolute inset-0 pointer-events-none" aria-hidden="true" />
+              <Users className="h-4 w-4 relative transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" /> <span className="relative">Créer un compte client</span>
+            </Link>
+            {isAdminConnected && (
               <Link
                 href="/partner"
                 className={`cta-flash group relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer overflow-hidden ${
@@ -264,8 +275,8 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                 <span className="btn-shine absolute inset-0 pointer-events-none" aria-hidden="true" />
                 <Building2 className="h-4 w-4 relative transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" /> <span className="relative">Espace Partenaire</span>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.header>
 
@@ -286,7 +297,6 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
               ref={heroVideoRef}
               autoPlay
               muted
-              loop
               playsInline
               className="absolute inset-0"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
