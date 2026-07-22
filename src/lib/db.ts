@@ -19,6 +19,21 @@ const getPrismaClient = () => {
   let url = useRemote ? tursoUrl!.trim() : (process.env.DATABASE_URL || 'file:./dev.db').trim()
   const authToken = useRemote ? tursoToken!.trim() : undefined
 
+  // Diagnostic (masqué) : révèle un problème de valeur d'env sans exposer le
+  // secret. Aide à distinguer "URL propre", "espace parasite", "token collé
+  // dans le champ URL par erreur", etc. — visible dans les logs Vercel.
+  if (useRemote) {
+    let scheme = 'INCONNU'
+    try {
+      scheme = new URL(url).protocol
+    } catch {
+      scheme = 'INVALIDE(pas-une-URL)'
+    }
+    console.log(`[DB Diag] useRemote=true | url.length=${url.length} | debut="${url.slice(0, 14)}" | scheme=${scheme} | token.length=${authToken?.length ?? 0}`)
+  } else {
+    console.log(`[DB Diag] useRemote=false (TURSO_DATABASE_URL/TOKEN manquant ou vide) — bascule sur ${url}`)
+  }
+
   // Dynamically resolve local SQLite path ONLY in Node.js context (local dev/seeding).
   // Uses environment-safe process['cwd']() string operations to work in ESM (no require needed)
   // and avoids bundler static analysis warnings.
