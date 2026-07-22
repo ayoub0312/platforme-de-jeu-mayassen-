@@ -3,7 +3,7 @@
 import { trpc } from '@/utils/trpc'
 
 export default function MesJeuxPage() {
-  const { data: campaigns, isLoading: campaignsLoading } = trpc.getCampaigns.useQuery(undefined)
+  const { data: newGames, isLoading: newGamesLoading } = trpc.getNewGames.useQuery()
   const { data: activity, isLoading: activityLoading } = trpc.getMyGameActivity.useQuery()
 
   return (
@@ -59,22 +59,38 @@ export default function MesJeuxPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-medium text-[#1a1a1a] mb-4">Campagnes actives</h2>
-        {campaignsLoading ? (
+        <h2 className="text-sm font-medium text-[#1a1a1a] mb-4">Nouveaux jeux Obooking Gift</h2>
+        {newGamesLoading ? (
           <p className="text-sm text-[#1a1a1a]/40">Chargement…</p>
-        ) : campaigns && campaigns.length > 0 ? (
-          <ul className="divide-y divide-black/[0.06] border-t border-b border-black/[0.06]">
-            {campaigns.map((c: any) => (
-              <li key={c.id} className="py-3 flex items-center justify-between text-sm">
-                <div>
-                  <div className="text-[#1a1a1a]">{c.title}</div>
-                  <div className="text-[#1a1a1a]/40 text-xs">{c.partner?.name}</div>
+        ) : newGames && newGames.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {newGames.map((c) => (
+              <div key={c.id} className="border border-black/[0.08] rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                {c.imageData && c.imageMimeType ? (
+                  <img src={`data:${c.imageMimeType};base64,${c.imageData}`} alt={c.title} className="w-full h-32 object-cover" />
+                ) : (
+                  <div className="w-full h-32 bg-gradient-to-br from-[#FF6B47] to-[#E85530]" />
+                )}
+                <div className="p-4">
+                  <div className="text-sm font-bold text-[#1a1a1a]">{c.title}</div>
+                  <div className="text-[11px] text-[#1a1a1a]/40 mt-0.5">{c.partnerName}</div>
+                  {c.description && <p className="text-xs text-[#1a1a1a]/60 mt-2 line-clamp-2">{c.description}</p>}
+                  {c.prizeNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {c.prizeNames.slice(0, 3).map((name, i) => (
+                        <span key={i} className="text-[10px] font-bold bg-[#FF6B47]/10 text-[#FF6B47] border border-[#FF6B47]/20 rounded-full px-2 py-0.5">{name}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-[#1a1a1a]/40 mt-2">
+                    Jusqu'au {new Date(c.endDate).toLocaleDateString('fr-FR')}
+                  </div>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
-          <p className="text-sm text-[#1a1a1a]/40">Aucune campagne active actuellement.</p>
+          <p className="text-sm text-[#1a1a1a]/40">Aucun nouveau jeu pour le moment.</p>
         )}
       </section>
     </div>

@@ -57,3 +57,17 @@ next-env.d.ts
 # tmp/ directory (Windows backslashes above didn't actually match as a path
 # separator, so this had been silently unignored).
 testsprite_tests/tmp/
+
+# Turso embedded replica (local, synced from remote)
+.turso-replica.db
+.turso-replica.db-*
+
+# Backup ponctuel avant migration fidelite (peut etre supprime une fois valide)
+backup_before_loyalty.json
+
+# Fichiers locaux hors application
+.claude/
+*.docx
+*.mp4
+/obooking.png
+*.mjs.tmp

@@ -1,10 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Loader2, Trophy, Calendar, Users2, Save, CheckCircle2 } from 'lucide-react'
+import { X, Loader2, Trophy, Calendar, Users2, Save, CheckCircle2, Mail, Phone, ChevronDown } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
+
+// Convertit une date (UTC en base) vers la valeur attendue par <input
+// type="datetime-local"> = heure LOCALE au format YYYY-MM-DDTHH:mm. Sans cet
+// ajustement du décalage horaire, l'heure dérivait à chaque enregistrement.
+function toLocalDatetimeInput(date: Date | string): string {
+  const d = new Date(date)
+  const off = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - off).toISOString().slice(0, 16)
+}
 
 interface DrawManagementModalProps {
   open: boolean
@@ -25,13 +34,14 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
   const [allowMultipleWins, setAllowMultipleWins] = useState(true)
   const [drawDate, setDrawDate] = useState('')
   const [confirmState, setConfirmState] = useState<ConfirmState>(null)
+  const [showParticipants, setShowParticipants] = useState(false)
 
   const data = overviewQuery.data
 
   useEffect(() => {
     if (data) {
       setAllowMultipleWins(data.allowMultipleWins)
-      setDrawDate(data.drawDate ? new Date(data.drawDate).toISOString().slice(0, 16) : '')
+      setDrawDate(data.drawDate ? toLocalDatetimeInput(data.drawDate) : '')
     }
   }, [data])
 
@@ -176,6 +186,41 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                   {updateSettingsMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Enregistrer les réglages
                 </button>
+              </div>
+
+              {/* Participants inscrits au tirage */}
+              <div className="border border-slate-200 rounded-2xl mb-6 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowParticipants((v) => !v)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer"
+                >
+                  <span className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wide">
+                    <Users2 className="h-4 w-4 text-[#FF6B47]" />
+                    Participants inscrits ({data.participants.length})
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${showParticipants ? 'rotate-180' : ''}`} />
+                </button>
+                {showParticipants && (
+                  data.participants.length > 0 ? (
+                    <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                      {data.participants.map((p, i) => (
+                        <div key={p.id} className="flex items-center gap-3 px-5 py-2.5">
+                          <span className="w-6 shrink-0 text-[11px] font-bold text-slate-300">{i + 1}</span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-slate-800 truncate">{p.name || 'Anonyme'}</div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400 mt-0.5">
+                              <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {p.email}</span>
+                              {p.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {p.phone}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="px-5 py-4 text-xs text-slate-400">Aucun inscrit au tirage pour le moment.</p>
+                  )
+                )}
               </div>
 
               {/* Lots */}

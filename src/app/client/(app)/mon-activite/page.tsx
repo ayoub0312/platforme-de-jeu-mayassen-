@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { trpc } from '@/utils/trpc'
-import { DemoBanner } from '@/components/client/DemoBanner'
 
-// Vue d'ensemble combinant l'activité de jeu réelle (Campaign/PlayToken/
-// UserPrize) et le résumé achats/points venant d'ObookingDataSource (factice
-// tant que l'intégration obooking.tn n'est pas décidée).
+// Vue d'ensemble combinant l'activité de jeu (Campaign/PlayToken/UserPrize) et
+// le résumé achats/points de fidélité (données réelles : LoyaltyPurchase /
+// Customer.points / PointTransaction).
 export default function MonActivitePage() {
   const { data: activity, isLoading: activityLoading } = trpc.getMyGameActivity.useQuery()
   const { data: purchases, isLoading: purchasesLoading } = trpc.getMyPurchases.useQuery()
@@ -18,8 +17,6 @@ export default function MonActivitePage() {
         <h1 className="text-lg font-semibold text-[#1a1a1a] mb-1">Mon activité</h1>
         <p className="text-sm text-[#1a1a1a]/50">Vue d'ensemble de vos jeux, achats et points.</p>
       </div>
-
-      <DemoBanner />
 
       <div className="grid grid-cols-3 gap-4">
         <div className="border border-black/[0.08] rounded-md p-4">

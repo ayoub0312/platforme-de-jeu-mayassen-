@@ -7,6 +7,15 @@ import { RouletteConfigEditor } from './RouletteConfigEditor'
 import { DrawConfigEditor } from './DrawConfigEditor'
 import type { GameConfigData } from './types'
 
+// Date (UTC en base) → valeur pour <input type="datetime-local"> = heure LOCALE
+// au format YYYY-MM-DDTHH:mm. Sans cet ajustement, l'heure du tirage dérivait
+// du décalage horaire à chaque enregistrement.
+function toLocalDatetimeInput(date: Date | string): string {
+  const d = new Date(date)
+  const off = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - off).toISOString().slice(0, 16)
+}
+
 interface CampaignGameConfigModalProps {
   open: boolean
   onClose: () => void
@@ -42,7 +51,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
         totalStock: p.totalStock,
         type: p.type,
         fallbackPrizeId: p.fallbackPrizeId,
-        drawDate: p.drawDate ? new Date(p.drawDate).toISOString() : null,
+        drawDate: p.drawDate ? toLocalDatetimeInput(p.drawDate) : null,
         validityDays: p.validityDays ?? 30,
         order: p.order,
       })),

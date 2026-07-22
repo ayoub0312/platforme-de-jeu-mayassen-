@@ -156,4 +156,10 @@ const ratelimit: RateLimiter = createFixedWindowRateLimiter(20, 10, 'ratelimit')
 // par l'action) et par heure.
 const authRatelimit: RateLimiter = createFixedWindowRateLimiter(3, 60 * 60, 'authratelimit')
 
-export { redis, ratelimit, authRatelimit, isRedisConfigured }
+// Limiteur dédié à la CONNEXION client. Contrairement à authRatelimit (clé par
+// IP), on limite par COMPTE (email) : les tentatives d'un client ne bloquent
+// pas les autres, et plusieurs clients derrière une même IP (box/4G/entreprise)
+// ne se partagent plus un quota commun. 8 tentatives / 15 min et par email.
+const customerLoginRatelimit: RateLimiter = createFixedWindowRateLimiter(8, 15 * 60, 'customerlogin')
+
+export { redis, ratelimit, authRatelimit, customerLoginRatelimit, isRedisConfigured }

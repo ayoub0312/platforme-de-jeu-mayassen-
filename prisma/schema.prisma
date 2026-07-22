@@ -23,6 +23,14 @@ model SiteSettings {
   referralBonusSpins         Int     @default(2) // Lancers offerts au parrain par filleul inscrit
   defaultSenderEmail         String? // Utilisé si une campagne n'a pas sa propre adresse d'envoi
   defaultSenderEmailPassword String? // Mot de passe d'application, chiffré (AES-256-GCM)
+
+  // Programme de fidélité « Points Merci » (Phase 1) — configurable par le
+  // super admin. Voir PLAN_FIDELITE.md.
+  loyaltyEnabled      Boolean @default(false) // Active/désactive le programme
+  pointsPerTnd        Float   @default(1)      // GAIN : points gagnés par 1 TND dépensé
+  redeemPointsPerTnd  Int     @default(100)    // CONVERSION : points requis pour 1 TND de bon
+  minRedeemPoints     Int     @default(500)    // Seuil minimum de points pour convertir
+  voucherValidityDays Int     @default(90)     // Durée de validité d'un bon (jours)
 }
 
 model PromoBanner {
@@ -105,6 +113,7 @@ model Partner {
   capturedLeads  LeadCapture[]
   users          User[]
   siteSettings   SiteSettings?
+  customers      Customer[] // Clients finaux rattachés à ce partenaire (fidélité)
 }
 
 enum PartnerStatus {
@@ -316,10 +325,24 @@ model Customer {
   phone        String?
   userId       String?  @unique
   user         User?    @relation(fields: [userId], references: [id])
+
+  // Fidélité « Points Merci » (Phase 1). Le solde `points` est un CACHE : la
+  // source de vérité est la somme des PointTransaction. `partnerId` = partenaire
+  // d'origine du client (obooking par défaut) pour diviser les joueurs par
+  // partenaire.
+  points     Int      @default(0)
+  partnerId  String?
+  partner    Partner? @relation(fields: [partnerId], references: [id])
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   passwordResetTokens CustomerPasswordReset[]
+  purchases           LoyaltyPurchase[]
+  pointTxns           PointTransaction[]
+  vouchers            LoyaltyVoucher[]
+
+  @@index([partnerId])
 }
 
 // Jetons de réinitialisation de mot de passe côté client — jamais stockés en
@@ -332,6 +355,64 @@ model CustomerPasswordReset {
   expiresAt  DateTime
   usedAt     DateTime?
   createdAt  DateTime  @default(now())
+
+  @@index([customerId])
+}
+
+// ============================================================================
+// Programme de fidélité « Points Merci » (Phase 1) — voir PLAN_FIDELITE.md
+// ============================================================================
+
+// Achat effectué par un client sur obooking.tn, transmis par webhook. Un achat
+// peut arriver AVANT que le client ne crée son compte (status PENDING) : il est
+// alors rattaché par email et crédité à la création du compte.
+model LoyaltyPurchase {
+  id           String    @id @default(cuid())
+  orderRef     String    @unique         // Réf. commande obooking.tn → idempotence
+  email        String                     // Email fourni par obooking.tn (rattachement)
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  amountTnd    Float                      // Montant payé (TND)
+  pointsEarned Int                        // Points calculés au moment de l'achat
+  status       String    @default("PENDING") // PENDING / CREDITED
+  description  String?
+  purchasedAt  DateTime
+  creditedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([email])
+  @@index([customerId])
+}
+
+// Grand livre des points — SOURCE DE VÉRITÉ du solde. `delta` positif = gagné,
+// négatif = utilisé. `balanceAfter` conserve le solde après opération (audit).
+model PointTransaction {
+  id           String   @id @default(cuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  delta        Int
+  type         String   // EARN_PURCHASE / REDEEM_VOUCHER / ADMIN_ADJUST
+  reason       String?
+  balanceAfter Int
+  purchaseId   String?
+  voucherId    String?
+  createdAt    DateTime @default(now())
+
+  @@index([customerId, createdAt])
+}
+
+// Bon de réduction TND généré quand un client convertit ses points. Usage unique.
+model LoyaltyVoucher {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  code        String    @unique          // Code à utiliser sur obooking.tn
+  pointsSpent Int
+  valueTnd    Float                        // Valeur du bon (TND)
+  status      String    @default("ACTIVE") // ACTIVE / REDEEMED / EXPIRED
+  redeemedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([customerId])
 }

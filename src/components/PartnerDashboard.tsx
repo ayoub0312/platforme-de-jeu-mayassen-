@@ -59,7 +59,10 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Clock
+  Clock,
+  Sparkles,
+  Coins,
+  Wallet
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
@@ -69,7 +72,7 @@ interface PartnerDashboardProps {
   allPartnersForSwitcher?: { id: string; name: string }[]
 }
 
-type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'receipts' | 'homepage' | 'settings'
+type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'clients' | 'receipts' | 'homepage' | 'loyalty' | 'settings'
 
 // Schémas de validation FR — messages affichés sous chaque champ (voir Input.error).
 const partnerFormSchema = z.object({
@@ -192,6 +195,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const [campaignPartnerFilter, setCampaignPartnerFilter] = useState<string>('all')
   const [prizePartnerFilter, setPrizePartnerFilter] = useState<string>('all')
   const [partnerStatusFilter, setPartnerStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  // Onglet Utilisateurs : filtres par rôle et par partenaire/agence, pour
+  // séparer proprement les comptes (staff agence, partenaires clients, joueurs).
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'SUPERADMIN' | 'PARTNER' | 'PLAYER'>('all')
+  const [userPartnerFilter, setUserPartnerFilter] = useState<string>('all')
 
   // 1. Fetch data from tRPC queries
   const { data: stats, refetch: refetchStats, isLoading: statsLoading } = trpc.getPartnerStats.useQuery(
@@ -230,8 +237,17 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     undefined,
     { enabled: isAuthenticated && isSuperAdmin }
   )
+  const { data: customers, refetch: refetchCustomers, isLoading: customersLoading } = trpc.getAllCustomers.useQuery(
+    undefined,
+    { enabled: isAuthenticated && isSuperAdmin }
+  )
 
   // 2. Mutations
+  const updateLoyaltyConfigMut = trpc.updateLoyaltyConfig.useMutation()
+  const adminCreateCustomerMut = trpc.adminCreateCustomer.useMutation()
+  const adminUpdateCustomerMut = trpc.adminUpdateCustomer.useMutation()
+  const adminAdjustCustomerPointsMut = trpc.adminAdjustCustomerPoints.useMutation()
+  const adminDeleteCustomerMut = trpc.adminDeleteCustomer.useMutation()
   const createPartnerMut = trpc.createPartner.useMutation()
   const updatePartnerMut = trpc.updatePartner.useMutation()
   const deletePartnerMut = trpc.deletePartner.useMutation()
@@ -372,9 +388,54 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     }
   }, [siteSettings])
 
+  // Programme de fidélité « Points Merci » — formulaire de config (Phase 1),
+  // synchronisé depuis la ligne SiteSettings globale.
+  const [loyaltyForm, setLoyaltyForm] = useState({
+    loyaltyEnabled: false,
+    pointsPerTnd: 1,
+    redeemPointsPerTnd: 100,
+    minRedeemPoints: 500,
+    voucherValidityDays: 90,
+  })
+  // Montant de test pour le simulateur de l'onglet Fidélité.
+  const [loyaltySimAmount, setLoyaltySimAmount] = useState(500)
+
+  // Onglet Clients (Customer fidélité) : recherche, filtre partenaire, modales.
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerPartnerFilter, setCustomerPartnerFilter] = useState<string>('all')
+  const [customerModal, setCustomerModal] = useState<{
+    open: boolean; mode: 'create' | 'edit'; id: string; email: string; name: string; phone: string; password: string; partnerId: string; initialPoints: number; showPassword: boolean
+  }>({ open: false, mode: 'create', id: '', email: '', name: '', phone: '', password: '', partnerId: '', initialPoints: 0, showPassword: false })
+  const [customerModalError, setCustomerModalError] = useState<string | null>(null)
+  const [pointsModal, setPointsModal] = useState<{
+    open: boolean; customerId: string; customerName: string; delta: number; reason: string
+  }>({ open: false, customerId: '', customerName: '', delta: 0, reason: '' })
+
+  useEffect(() => {
+    if (siteSettings) {
+      setLoyaltyForm({
+        loyaltyEnabled: (siteSettings as any).loyaltyEnabled ?? false,
+        pointsPerTnd: (siteSettings as any).pointsPerTnd ?? 1,
+        redeemPointsPerTnd: (siteSettings as any).redeemPointsPerTnd ?? 100,
+        minRedeemPoints: (siteSettings as any).minRedeemPoints ?? 500,
+        voucherValidityDays: (siteSettings as any).voucherValidityDays ?? 90,
+      })
+    }
+  }, [siteSettings])
+
   // Promo banners form (new banner to add)
   const [newBannerForm, setNewBannerForm] = useState({ imageData: '', imageMimeType: '' })
   const [bannerFormError, setBannerFormError] = useState<string | null>(null)
+
+  // Reject-partner modal state. Déclaré ICI, avec les autres hooks et AVANT
+  // tout return conditionnel (login / loading), sinon l'ordre des hooks change
+  // après connexion → "Rendered more hooks than during the previous render".
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string; reason: string }>({
+    open: false,
+    id: '',
+    name: '',
+    reason: '',
+  })
 
   // Combined Loading States
   const isLoading = isAuthenticated && (
@@ -725,13 +786,6 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     })
   }
 
-  const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string; name: string; reason: string }>({
-    open: false,
-    id: '',
-    name: '',
-    reason: '',
-  })
-
   const handleRejectPartnerRequest = async () => {
     try {
       await rejectPartnerMut.mutateAsync({ id: rejectModal.id, reason: rejectModal.reason.trim() || undefined })
@@ -941,6 +995,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         { id: 'campaigns', label: 'Campagnes', icon: Sliders },
         { id: 'prizes', label: 'Cadeaux / Lots', icon: Gift },
         { id: 'users', label: 'Utilisateurs', icon: UserCheck },
+        { id: 'clients', label: 'Clients', icon: Users },
+        { id: 'loyalty', label: 'Fidélité', icon: Sparkles },
         { id: 'homepage', label: "Page d'Accueil", icon: LayoutTemplate },
         { id: 'settings', label: 'Paramètres', icon: Settings },
       ]
@@ -955,6 +1011,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     campaigns: [campaignSearch, setCampaignSearch],
     prizes: [prizeSearch, setPrizeSearch],
     users: [userSearch, setUserSearch],
+    clients: [customerSearch, setCustomerSearch],
   }
   const [topbarSearchValue, setTopbarSearchValue] = activeSearchByTab[activeTab] ?? [undefined, undefined]
 
@@ -1883,9 +1940,35 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <h3 className="text-xl font-bold text-ink-900">Membres & Joueurs</h3>
               <p className="text-ink-500 text-xs mt-1">Créez des utilisateurs, ajustez leurs rôles (Superadmin, Partenaire, Joueur) et attribuez manuellement des lancers.</p>
             </div>
-            <Button size="sm" onClick={() => openUserModal('create')}>
-              <Plus className="h-4 w-4" /> Ajouter
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value as typeof userRoleFilter)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-40"
+              >
+                <option value="all">Tous les rôles</option>
+                <option value="SUPERADMIN">Agence (Superadmin)</option>
+                <option value="PARTNER">Partenaires</option>
+                <option value="PLAYER">Joueurs</option>
+              </select>
+
+              <select
+                value={userPartnerFilter}
+                onChange={(e) => setUserPartnerFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+              >
+                <option value="all">Toutes les entreprises</option>
+                <option value="agency">Agence obooking (staff)</option>
+                {partners?.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
+              <Button size="sm" onClick={() => openUserModal('create')}>
+                <Plus className="h-4 w-4" /> Ajouter
+              </Button>
+            </div>
           </div>
 
           <div className="p-6">
@@ -1914,6 +1997,22 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       }`}>
                       {u.role === 'SUPERADMIN' ? 'SUPERADMIN' : u.role === 'PARTNER' ? 'PARTENAIRE' : 'JOUEUR'}
                     </span>
+                  ),
+                },
+                {
+                  key: 'partner', header: 'Partenaire / Agence', sortValue: (u: any) => u.partnerName || (u.role === 'SUPERADMIN' ? 'Agence obooking' : ''),
+                  render: (u: any) => (
+                    u.partnerName ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-500/20">
+                        <Globe className="h-3 w-3" /> {u.partnerName}
+                      </span>
+                    ) : u.role === 'SUPERADMIN' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/20">
+                        Agence obooking
+                      </span>
+                    ) : (
+                      <span className="text-ink-500 italic text-xxs">—</span>
+                    )
                   ),
                 },
                 {
@@ -1974,11 +2073,20 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   ),
                 },
               ]}
-              data={users?.filter((u) =>
-                (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-                (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
-              )}
+              data={users?.filter((u) => {
+                const matchesSearch =
+                  (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                  u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+                  (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
+                const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter
+                const matchesPartner =
+                  userPartnerFilter === 'all' ||
+                  // "Agence obooking (staff)" = comptes sans partenaire rattaché
+                  // (typiquement les Superadmin de l'agence).
+                  (userPartnerFilter === 'agency' && !u.partnerId) ||
+                  u.partnerId === userPartnerFilter
+                return matchesSearch && matchesRole && matchesPartner
+              })}
               isLoading={usersLoading}
               getRowId={(u: any) => u.id}
               emptyIcon={UserCheck}
@@ -1989,6 +2097,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 { header: 'Email', value: (u: any) => u.email },
                 { header: 'Téléphone', value: (u: any) => u.phone || '' },
                 { header: 'Rôle', value: (u: any) => u.role },
+                { header: 'Partenaire / Agence', value: (u: any) => u.partnerName || (u.role === 'SUPERADMIN' ? 'Agence obooking' : '') },
                 { header: 'Code parrainage', value: (u: any) => u.referralCode },
               ]}
               exportFilename="utilisateurs"
@@ -2016,6 +2125,405 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           </div>
         </Card>
       )}
+
+      {/* TAB CONTENT: CLIENTS (Customer fidélité — voyageurs obooking) */}
+      {activeTab === 'clients' && (() => {
+        const openCreate = () => {
+          setCustomerModalError(null)
+          setCustomerModal({ open: true, mode: 'create', id: '', email: '', name: '', phone: '', password: '', partnerId: '', initialPoints: 0, showPassword: false })
+        }
+        const openEdit = (c: any) => {
+          setCustomerModalError(null)
+          setCustomerModal({ open: true, mode: 'edit', id: c.id, email: c.email, name: c.name || '', phone: c.phone || '', password: '', partnerId: c.partnerId || '', initialPoints: 0, showPassword: false })
+        }
+        const saveCustomer = async () => {
+          setCustomerModalError(null)
+          try {
+            if (customerModal.mode === 'edit') {
+              await adminUpdateCustomerMut.mutateAsync({
+                id: customerModal.id,
+                email: customerModal.email.trim(),
+                name: customerModal.name.trim() || null,
+                phone: customerModal.phone.trim() || null,
+                partnerId: customerModal.partnerId || null,
+                // Vide = mot de passe inchangé.
+                newPassword: customerModal.password ? customerModal.password : undefined,
+              })
+              showToast('Compte client mis à jour.')
+            } else {
+              await adminCreateCustomerMut.mutateAsync({
+                email: customerModal.email.trim(),
+                name: customerModal.name.trim() || undefined,
+                phone: customerModal.phone.trim() || undefined,
+                password: customerModal.password,
+                partnerId: customerModal.partnerId || null,
+                initialPoints: Number(customerModal.initialPoints) || 0,
+              })
+              showToast('Compte client créé.')
+            }
+            setCustomerModal(m => ({ ...m, open: false }))
+            refetchCustomers()
+          } catch (err: any) {
+            setCustomerModalError(err?.message || "Échec de l'enregistrement.")
+          }
+        }
+        const savingCustomer = adminCreateCustomerMut.isPending || adminUpdateCustomerMut.isPending
+        const savePoints = async () => {
+          try {
+            await adminAdjustCustomerPointsMut.mutateAsync({
+              customerId: pointsModal.customerId,
+              delta: Math.round(Number(pointsModal.delta)) || 0,
+              reason: pointsModal.reason.trim() || undefined,
+            })
+            showToast('Solde de points mis à jour.')
+            setPointsModal(m => ({ ...m, open: false }))
+            refetchCustomers()
+          } catch (err: any) {
+            showToast(err?.message || 'Échec de la mise à jour.', 'error')
+          }
+        }
+        return (
+          <>
+            <Card className="overflow-hidden">
+              <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-ink-900">Clients (fidélité)</h3>
+                  <p className="text-ink-500 text-xs mt-1">Les voyageurs qui achètent des services obooking et cumulent des points merci. Distinct des utilisateurs (staff / partenaires / joueurs).</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text" placeholder="Rechercher un client..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48"
+                    />
+                  </div>
+                  <select
+                    value={customerPartnerFilter}
+                    onChange={(e) => setCustomerPartnerFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                  >
+                    <option value="all">Tous les partenaires</option>
+                    <option value="none">Sans partenaire</option>
+                    {partners?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <Button size="sm" onClick={openCreate}>
+                    <Plus className="h-4 w-4" /> Ajouter
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <DataTable
+                  columns={[
+                    {
+                      key: 'client', header: 'Client', sortValue: (c: any) => c.name || c.email,
+                      render: (c: any) => (
+                        <>
+                          <div className="font-extrabold text-ink-900">{c.name || 'Anonyme'}</div>
+                          <div className="text-xs text-ink-500 mt-1 flex flex-col gap-1">
+                            <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {c.email}</span>
+                            {c.phone && <span className="flex items-center gap-1"><PhoneCall className="h-3 w-3" /> {c.phone}</span>}
+                          </div>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'partner', header: 'Partenaire', sortValue: (c: any) => c.partnerName || '',
+                      render: (c: any) => c.partnerName ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-500/20">
+                          <Globe className="h-3 w-3" /> {c.partnerName}
+                        </span>
+                      ) : <span className="text-ink-500 italic text-xxs">—</span>,
+                    },
+                    {
+                      key: 'points', header: 'Points', sortValue: (c: any) => c.points,
+                      render: (c: any) => (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20">
+                          <Coins className="h-3 w-3" /> {c.points.toLocaleString('fr-FR')}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'purchases', header: 'Achats', sortValue: (c: any) => c.purchaseCount,
+                      render: (c: any) => <span className="text-xs font-bold text-ink-700">{c.purchaseCount}</span>,
+                    },
+                    {
+                      key: 'actions', header: 'Actions', align: 'right',
+                      render: (c: any) => (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(c)}
+                            title="Modifier le compte"
+                            className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setPointsModal({ open: true, customerId: c.id, customerName: c.name || c.email, delta: 0, reason: '' })}
+                            title="Ajuster les points"
+                            className="p-2 text-ink-500 hover:text-ink-900 bg-surface-alt border border-black/[0.06] rounded-lg hover:bg-black/[0.04] transition-all cursor-pointer"
+                          >
+                            <Coins className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => askConfirm({
+                              title: 'Supprimer ce client ?',
+                              description: `Le compte de ${c.name || c.email} sera supprimé (points et bons inclus). Les achats sont conservés mais déliés.`,
+                              onConfirm: async () => {
+                                await adminDeleteCustomerMut.mutateAsync({ id: c.id })
+                                showToast('Client supprimé.')
+                                refetchCustomers()
+                              },
+                            })}
+                            className="p-2 text-[var(--danger)] hover:text-white hover:bg-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/20 rounded-lg transition-all cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ),
+                    },
+                  ]}
+                  data={customers?.filter((c) => {
+                    const q = customerSearch.toLowerCase()
+                    const matchesSearch = (c.name || '').toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || (c.phone || '').toLowerCase().includes(q)
+                    const matchesPartner = customerPartnerFilter === 'all' ||
+                      (customerPartnerFilter === 'none' && !c.partnerId) ||
+                      c.partnerId === customerPartnerFilter
+                    return matchesSearch && matchesPartner
+                  })}
+                  isLoading={customersLoading}
+                  getRowId={(c: any) => c.id}
+                  emptyIcon={Users}
+                  emptyTitle="Aucun client enregistré"
+                  emptyDescription="Les clients qui achètent sur obooking.tn apparaîtront ici."
+                  exportColumns={[
+                    { header: 'Nom', value: (c: any) => c.name || '' },
+                    { header: 'Email', value: (c: any) => c.email },
+                    { header: 'Téléphone', value: (c: any) => c.phone || '' },
+                    { header: 'Points', value: (c: any) => String(c.points) },
+                    { header: 'Partenaire', value: (c: any) => c.partnerName || '' },
+                    { header: 'Nb achats', value: (c: any) => String(c.purchaseCount) },
+                  ]}
+                  exportFilename="clients"
+                />
+              </div>
+            </Card>
+
+            {/* Modale : créer un client */}
+            {customerModal.open && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCustomerModal(m => ({ ...m, open: false }))}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-ink-900 mb-4">{customerModal.mode === 'edit' ? 'Modifier le client' : 'Nouveau client'}</h3>
+                  <div className="space-y-3">
+                    <input type="email" placeholder="Email *" value={customerModal.email} onChange={(e) => setCustomerModal(m => ({ ...m, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                    <input type="text" placeholder="Nom" value={customerModal.name} onChange={(e) => setCustomerModal(m => ({ ...m, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                    <input type="text" placeholder="Téléphone" value={customerModal.phone} onChange={(e) => setCustomerModal(m => ({ ...m, phone: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                    <div className="relative">
+                      <input
+                        type={customerModal.showPassword ? 'text' : 'password'}
+                        placeholder={customerModal.mode === 'edit' ? 'Nouveau mot de passe (vide = inchangé)' : 'Mot de passe * (min. 8 caractères)'}
+                        value={customerModal.password}
+                        onChange={(e) => setCustomerModal(m => ({ ...m, password: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                      />
+                      <button type="button" onClick={() => setCustomerModal(m => ({ ...m, showPassword: !m.showPassword }))} title={customerModal.showPassword ? 'Masquer' : 'Afficher'} className="absolute right-3 top-2.5 text-slate-400 hover:text-ink-700 cursor-pointer">
+                        {customerModal.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {customerModal.mode === 'edit' && (
+                      <p className="text-[11px] text-ink-500 -mt-1">Le mot de passe actuel ne peut pas être affiché (chiffré). Saisissez-en un nouveau pour le réinitialiser.</p>
+                    )}
+                    <div className={`grid ${customerModal.mode === 'edit' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                      <select value={customerModal.partnerId} onChange={(e) => setCustomerModal(m => ({ ...m, partnerId: e.target.value }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]">
+                        <option value="">Partenaire d'origine…</option>
+                        {partners?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      {customerModal.mode === 'create' && (
+                        <input type="number" min={0} placeholder="Points initiaux" value={customerModal.initialPoints} onChange={(e) => setCustomerModal(m => ({ ...m, initialPoints: parseInt(e.target.value) || 0 }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                      )}
+                    </div>
+                    {customerModalError && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-150 text-red-600 rounded-xl text-xs font-semibold"><AlertTriangle className="h-4 w-4 shrink-0" /><span>{customerModalError}</span></div>}
+                  </div>
+                  <div className="flex justify-end gap-2 mt-5">
+                    <button onClick={() => setCustomerModal(m => ({ ...m, open: false }))} className="px-4 py-2 text-sm font-bold text-ink-500 hover:text-ink-900 cursor-pointer">Annuler</button>
+                    <Button size="sm" onClick={saveCustomer} disabled={savingCustomer}>
+                      {savingCustomer ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {customerModal.mode === 'edit' ? 'Enregistrer' : 'Créer'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modale : ajuster les points */}
+            {pointsModal.open && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPointsModal(m => ({ ...m, open: false }))}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-bold text-ink-900 mb-1">Ajuster les points</h3>
+                  <p className="text-xs text-ink-500 mb-4">{pointsModal.customerName}</p>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Variation (+ pour créditer, − pour débiter)</label>
+                  <input type="number" value={pointsModal.delta} onChange={(e) => setPointsModal(m => ({ ...m, delta: parseInt(e.target.value) || 0 }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] mb-3" />
+                  <input type="text" placeholder="Motif (optionnel)" value={pointsModal.reason} onChange={(e) => setPointsModal(m => ({ ...m, reason: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                  <div className="flex justify-end gap-2 mt-5">
+                    <button onClick={() => setPointsModal(m => ({ ...m, open: false }))} className="px-4 py-2 text-sm font-bold text-ink-500 hover:text-ink-900 cursor-pointer">Annuler</button>
+                    <Button size="sm" onClick={savePoints} disabled={adminAdjustCustomerPointsMut.isPending}>
+                      {adminAdjustCustomerPointsMut.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Appliquer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )
+      })()}
+
+      {/* TAB CONTENT: LOYALTY (Programme de fidélité « Points Merci » — Phase 1) */}
+      {activeTab === 'loyalty' && (() => {
+        const pts = Math.floor(loyaltySimAmount * (loyaltyForm.pointsPerTnd || 0))
+        const voucherTnd = loyaltyForm.redeemPointsPerTnd > 0 ? pts / loyaltyForm.redeemPointsPerTnd : 0
+        const reachesMin = pts >= loyaltyForm.minRedeemPoints
+        const saveLoyalty = async () => {
+          try {
+            await updateLoyaltyConfigMut.mutateAsync({
+              loyaltyEnabled: loyaltyForm.loyaltyEnabled,
+              pointsPerTnd: Number(loyaltyForm.pointsPerTnd),
+              redeemPointsPerTnd: Math.round(Number(loyaltyForm.redeemPointsPerTnd)),
+              minRedeemPoints: Math.round(Number(loyaltyForm.minRedeemPoints)),
+              voucherValidityDays: Math.round(Number(loyaltyForm.voucherValidityDays)),
+            })
+            showToast('Configuration de fidélité enregistrée.')
+            refetchSiteSettings()
+          } catch (err: any) {
+            showToast(err?.message || "Échec de l'enregistrement.", 'error')
+          }
+        }
+        return (
+          <div className="space-y-6">
+            {/* En-tête + activation */}
+            <Card className="overflow-hidden">
+              <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-brand-50 rounded-xl border border-brand-500/20 shrink-0">
+                    <Sparkles className="h-5 w-5 text-brand-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-ink-900">Programme de Fidélité — Points Merci</h3>
+                    <p className="text-ink-500 text-xs mt-1 max-w-xl">
+                      Les clients gagnent des points à chaque achat sur obooking.tn, puis les convertissent en bons de réduction TND. Configurez ici les taux.
+                    </p>
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                  <span className="text-sm font-bold text-ink-700">{loyaltyForm.loyaltyEnabled ? 'Activé' : 'Désactivé'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setLoyaltyForm(f => ({ ...f, loyaltyEnabled: !f.loyaltyEnabled }))}
+                    className={`relative w-12 h-7 rounded-full transition-all ${loyaltyForm.loyaltyEnabled ? 'bg-[#FF6B47]' : 'bg-slate-300'}`}
+                  >
+                    <span className={`absolute top-1 left-1 h-5 w-5 bg-white rounded-full shadow transition-all ${loyaltyForm.loyaltyEnabled ? 'translate-x-5' : ''}`} />
+                  </button>
+                </label>
+              </div>
+
+              {/* Formulaire de config */}
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2 flex items-center gap-1.5">
+                    <Coins className="h-3.5 w-3.5" /> Gain : points par 1 TND dépensé
+                  </label>
+                  <input
+                    type="number" min={0} step="0.1"
+                    value={loyaltyForm.pointsPerTnd}
+                    onChange={(e) => setLoyaltyForm(f => ({ ...f, pointsPerTnd: parseFloat(e.target.value) || 0 }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  />
+                  <p className="text-[11px] text-ink-500 mt-1.5">Ex : 1 → un achat de 500 TND rapporte 500 points.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2 flex items-center gap-1.5">
+                    <Wallet className="h-3.5 w-3.5" /> Conversion : points pour 1 TND de bon
+                  </label>
+                  <input
+                    type="number" min={1} step="1"
+                    value={loyaltyForm.redeemPointsPerTnd}
+                    onChange={(e) => setLoyaltyForm(f => ({ ...f, redeemPointsPerTnd: parseInt(e.target.value) || 0 }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  />
+                  <p className="text-[11px] text-ink-500 mt-1.5">Ex : 100 → 100 points = 1 TND de réduction.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Seuil minimum de conversion (points)</label>
+                  <input
+                    type="number" min={0} step="1"
+                    value={loyaltyForm.minRedeemPoints}
+                    onChange={(e) => setLoyaltyForm(f => ({ ...f, minRedeemPoints: parseInt(e.target.value) || 0 }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  />
+                  <p className="text-[11px] text-ink-500 mt-1.5">En dessous, le client ne peut pas encore convertir.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Validité d'un bon (jours)</label>
+                  <input
+                    type="number" min={1} step="1"
+                    value={loyaltyForm.voucherValidityDays}
+                    onChange={(e) => setLoyaltyForm(f => ({ ...f, voucherValidityDays: parseInt(e.target.value) || 0 }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  />
+                  <p className="text-[11px] text-ink-500 mt-1.5">Durée avant expiration d'un bon généré.</p>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 flex justify-end">
+                <Button size="sm" onClick={saveLoyalty} disabled={updateLoyaltyConfigMut.isPending}>
+                  {updateLoyaltyConfigMut.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Enregistrer la configuration
+                </Button>
+              </div>
+            </Card>
+
+            {/* Simulateur en direct */}
+            <Card className="overflow-hidden">
+              <div className="p-6 border-b border-black/[0.06]">
+                <h3 className="text-lg font-bold text-ink-900">Simulateur</h3>
+                <p className="text-ink-500 text-xs mt-1">Testez l'effet des taux ci-dessus sur un achat.</p>
+              </div>
+              <div className="p-6 flex flex-col sm:flex-row items-stretch gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Montant d'un achat (TND)</label>
+                  <input
+                    type="number" min={0} step="10"
+                    value={loyaltySimAmount}
+                    onChange={(e) => setLoyaltySimAmount(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  />
+                </div>
+                <div className="flex-1 bg-brand-50 border border-brand-500/20 rounded-xl p-4 flex flex-col justify-center">
+                  <div className="text-xs text-ink-500 font-semibold">Points gagnés</div>
+                  <div className="text-2xl font-black text-brand-600">{pts.toLocaleString('fr-FR')} pts</div>
+                </div>
+                <div className="flex-1 bg-[var(--success)]/10 border border-[var(--success)]/20 rounded-xl p-4 flex flex-col justify-center">
+                  <div className="text-xs text-ink-500 font-semibold">Valeur en bon</div>
+                  <div className="text-2xl font-black text-[var(--success)]">{voucherTnd.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} TND</div>
+                  <div className={`text-[11px] font-bold mt-1 ${reachesMin ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                    {reachesMin ? '✓ Convertible' : `Seuil non atteint (min. ${loyaltyForm.minRedeemPoints} pts)`}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Note phases suivantes */}
+            <div className="text-[11px] text-ink-500 bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <b>Phase 1 (fondations)</b> — la configuration est en place. Les achats depuis obooking.tn (webhook),
+              l'espace client fidélité et la génération des bons arrivent aux phases suivantes (voir <span className="font-mono">PLAN_FIDELITE.md</span>).
+            </div>
+          </div>
+        )
+      })()}
 
       {/* TAB CONTENT: HOMEPAGE (Hero video/poster + Promo banners) */}
       {activeTab === 'homepage' && (

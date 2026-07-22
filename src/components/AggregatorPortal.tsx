@@ -15,8 +15,6 @@ import {
   ShieldCheck,
   Tag,
   Zap,
-  Users,
-  Building2,
   ExternalLink,
   Plane,
   Bed,
@@ -205,12 +203,6 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
           isScrolledPastHero ? 'bg-white/90 backdrop-blur-md shadow-sm' : 'bg-transparent'
         }`}
       >
-        {/* Fine gradient border, only visible once opaque */}
-        <div
-          className={`absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#FF6B47]/50 to-transparent transition-opacity duration-300 ${
-            isScrolledPastHero ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Image
@@ -251,32 +243,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
             </a>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/client/signup"
-              className={`cta-flash group relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer overflow-hidden ${
-                isScrolledPastHero
-                  ? 'border border-slate-200 hover:border-orange-200 hover:bg-orange-50/50 text-slate-700'
-                  : 'border border-white/40 hover:border-white text-white bg-white/10 backdrop-blur-sm hover:bg-white/20'
-              }`}
-            >
-              <span className="btn-shine absolute inset-0 pointer-events-none" aria-hidden="true" />
-              <Users className="h-4 w-4 relative transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" /> <span className="relative">Créer un compte client</span>
-            </Link>
-            {isAdminConnected && (
-              <Link
-                href="/partner"
-                className={`cta-flash group relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer overflow-hidden ${
-                  isScrolledPastHero
-                    ? 'border border-slate-200 hover:border-orange-200 hover:bg-orange-50/50 text-slate-700'
-                    : 'border border-white/40 hover:border-white text-white bg-white/10 backdrop-blur-sm hover:bg-white/20'
-                }`}
-              >
-                <span className="btn-shine absolute inset-0 pointer-events-none" aria-hidden="true" />
-                <Building2 className="h-4 w-4 relative transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" /> <span className="relative">Espace Partenaire</span>
-              </Link>
-            )}
-          </div>
+          <div className="flex items-center gap-3" />
         </div>
       </motion.header>
 
@@ -603,8 +570,6 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
               <ul className="space-y-2.5 text-xs">
                 <li><Link href="/" className="hover:text-white transition-colors">Explorer les campagnes</Link></li>
                 <li><a href="#how-it-works" className="hover:text-white transition-colors">Comment ça marche</a></li>
-                <li><Link href="/partner" className="hover:text-white transition-colors">Espace Partenaire</Link></li>
-                <li><Link href="/client/signup" className="hover:text-white transition-colors">Créer un compte client</Link></li>
               </ul>
             </div>
 

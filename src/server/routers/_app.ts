@@ -2,14 +2,13 @@ import { z } from 'zod'
 import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure, customerProcedure } from '../trpc'
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
-import { redis, authRatelimit } from '../../lib/redis'
+import { redis, authRatelimit, customerLoginRatelimit } from '../../lib/redis'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
 import { createSessionToken, createCustomerSessionToken } from '../../lib/auth'
 import bcrypt from 'bcryptjs'
 import { encryptSecret } from '../../lib/crypto'
 import { sendWinnerEmail, sendDrawRegistrationEmail, sendCustomerPasswordResetEmail } from '../../lib/mailer'
-import { obookingDataSource } from '../../lib/obookingDataSource'
 
 // Jetons de jeu valides pendant 90 jours après leur création
 const TOKEN_VALIDITY_DAYS = 90
@@ -68,6 +67,16 @@ function generateSecurePassword(length = 16): string {
   let out = ''
   for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length]
   return out
+}
+
+// Code de bon de réduction lisible (sans caractères ambigus I/O/0/1), format
+// OB-XXXX-XXXX. L'unicité est garantie par la contrainte @unique + retry.
+function generateVoucherCode(): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.randomBytes(8)
+  let out = ''
+  for (let i = 0; i < 8; i++) out += charset[bytes[i] % charset.length]
+  return `OB-${out.slice(0, 4)}-${out.slice(4, 8)}`
 }
 
 // Vérifie une force minimale pour les mots de passe choisis par l'utilisateur
@@ -426,6 +435,12 @@ export const appRouter = router({
       referralBonusSpins: 2,
       defaultSenderEmail: null,
       defaultSenderEmailPassword: null,
+      // Défauts fidélité (Phase 1) — si aucune ligne SiteSettings n'existe encore.
+      loyaltyEnabled: false,
+      pointsPerTnd: 1,
+      redeemPointsPerTnd: 100,
+      minRedeemPoints: 500,
+      voucherValidityDays: 90,
     }
     return { ...rest, hasDefaultSenderEmailPassword: !!defaultSenderEmailPassword }
   }),
@@ -1906,6 +1921,26 @@ export const appRouter = router({
       })
     }),
 
+  // Configuration du programme de fidélité « Points Merci » (Phase 1).
+  // Stockée dans la ligne SiteSettings globale (id 'main'). Voir PLAN_FIDELITE.md.
+  updateLoyaltyConfig: superAdminProcedure
+    .input(
+      z.object({
+        loyaltyEnabled: z.boolean(),
+        pointsPerTnd: z.number().min(0, 'Le taux ne peut pas être négatif.').max(1000),
+        redeemPointsPerTnd: z.number().int().min(1, 'Au moins 1 point pour 1 TND.').max(1_000_000),
+        minRedeemPoints: z.number().int().min(0).max(10_000_000),
+        voucherValidityDays: z.number().int().min(1).max(3650),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return prisma.siteSettings.upsert({
+        where: { id: 'main' },
+        create: { id: 'main', ...input },
+        update: { ...input },
+      })
+    }),
+
   // Réglages globaux (page "Paramètres") — séparé de updateSiteSettings (hero
   // vidéo) pour ne pas mélanger deux formulaires très différents.
   updateGlobalSettings: superAdminProcedure
@@ -2651,34 +2686,40 @@ export const appRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
       }
 
-      const prizesWithCounts = await Promise.all(
-        campaign.prizes.map(async (p) => {
-          const tokens = await prisma.playToken.findMany({
-            where: { campaignId: campaign.id, earnedVia: EarnMethod.JOIN_DRAW },
-            select: { userId: true },
-          })
-          const participantCount = new Set(tokens.map((t) => t.userId)).size
-          return {
-            id: p.id,
-            name: p.name,
-            totalStock: p.totalStock,
-            drawDate: p.drawDate,
-            participantCount,
-            winners: p.winners.map((w) => ({
-              id: w.id,
-              name: w.user.name,
-              email: w.user.email,
-              claimedAt: w.claimedAt,
-            })),
-          }
-        })
-      )
+      // Liste des inscrits au tirage (JOIN_DRAW), calculée UNE fois pour toute
+      // la campagne (dédupliquée par utilisateur) — avant, une requête par lot
+      // pour la même donnée.
+      const drawTokens = await prisma.playToken.findMany({
+        where: { campaignId: campaign.id, earnedVia: EarnMethod.JOIN_DRAW },
+        select: { user: { select: { id: true, name: true, email: true, phone: true } } },
+      })
+      const participantsMap = new Map<string, { id: string; name: string | null; email: string; phone: string | null }>()
+      for (const t of drawTokens) {
+        if (t.user) participantsMap.set(t.user.id, t.user)
+      }
+      const participants = Array.from(participantsMap.values())
+      const participantCount = participants.length
+
+      const prizesWithCounts = campaign.prizes.map((p) => ({
+        id: p.id,
+        name: p.name,
+        totalStock: p.totalStock,
+        drawDate: p.drawDate,
+        participantCount,
+        winners: p.winners.map((w) => ({
+          id: w.id,
+          name: w.user.name,
+          email: w.user.email,
+          claimedAt: w.claimedAt,
+        })),
+      }))
 
       return {
         id: campaign.id,
         title: campaign.title,
         allowMultipleWins: campaign.allowMultipleWins,
         drawDate: campaign.prizes[0]?.drawDate ?? null,
+        participants,
         prizes: prizesWithCounts,
       }
     }),
@@ -2735,6 +2776,7 @@ export const appRouter = router({
   getAllUsers: superAdminProcedure.query(async () => {
     const users = await prisma.user.findMany({
       include: {
+        partner: { select: { id: true, name: true } },
         playTokens: {
           select: { id: true, status: true, campaignId: true },
         },
@@ -2767,12 +2809,162 @@ export const appRouter = router({
         role: user.role,
         referralCode: user.referralCode,
         createdAt: user.createdAt,
+        // Rattachement partenaire/agence — permet de filtrer les comptes par
+        // entreprise dans l'onglet Utilisateurs (partenaire vs agence).
+        partnerId: user.partnerId,
+        partnerName: user.partner?.name ?? null,
         tokensByCampaign,
         wonPrizesCount: user.wonPrizes.length,
         wonPrizes: user.wonPrizes.map((wp) => wp.prize.name),
       }
     })
   }),
+
+  // ── Gestion des CLIENTS fidélité (Customer) par le super admin ──────────────
+  // Distinct des User (admin/partenaire/joueur) : ce sont les voyageurs qui
+  // achètent des services obooking et cumulent des « points merci ».
+
+  getAllCustomers: superAdminProcedure.query(async () => {
+    const customers = await prisma.customer.findMany({
+      include: {
+        partner: { select: { id: true, name: true } },
+        _count: { select: { purchases: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return customers.map((c) => ({
+      id: c.id,
+      email: c.email,
+      name: c.name,
+      phone: c.phone,
+      points: c.points,
+      partnerId: c.partnerId,
+      partnerName: c.partner?.name ?? null,
+      purchaseCount: c._count.purchases,
+      createdAt: c.createdAt,
+    }))
+  }),
+
+  adminCreateCustomer: superAdminProcedure
+    .input(
+      z.object({
+        email: z.string().trim().email('Adresse email invalide.'),
+        name: z.string().trim().optional(),
+        phone: z.string().trim().optional(),
+        password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères.'),
+        partnerId: z.string().nullable().optional(),
+        initialPoints: z.number().int().min(0).max(10_000_000).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const existing = await prisma.customer.findUnique({ where: { email: input.email } })
+      if (existing) {
+        throw new TRPCError({ code: 'CONFLICT', message: `L'adresse ${input.email} a déjà un compte client.` })
+      }
+      const passwordHash = await bcrypt.hash(input.password, 10)
+      const initial = input.initialPoints || 0
+      const customer = await prisma.customer.create({
+        data: {
+          email: input.email,
+          name: input.name || null,
+          phone: input.phone || null,
+          passwordHash,
+          partnerId: input.partnerId || null,
+          points: initial,
+        },
+      })
+      // Tracer les points initiaux dans le grand livre (source de vérité).
+      if (initial > 0) {
+        await prisma.pointTransaction.create({
+          data: {
+            customerId: customer.id,
+            delta: initial,
+            type: 'ADMIN_ADJUST',
+            reason: 'Points initiaux à la création du compte',
+            balanceAfter: initial,
+          },
+        })
+      }
+      return { id: customer.id, email: customer.email }
+    }),
+
+  adminUpdateCustomer: superAdminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        email: z.string().trim().email('Adresse email invalide.'),
+        name: z.string().trim().nullable().optional(),
+        phone: z.string().trim().nullable().optional(),
+        partnerId: z.string().nullable().optional(),
+        // Optionnel : si fourni, réinitialise le mot de passe (min. 8). Vide =
+        // mot de passe inchangé. On ne peut jamais LIRE l'ancien (hash bcrypt).
+        newPassword: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères.').optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const existing = await prisma.customer.findUnique({ where: { id: input.id } })
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client introuvable.' })
+      if (input.email !== existing.email) {
+        const taken = await prisma.customer.findUnique({ where: { email: input.email } })
+        if (taken) throw new TRPCError({ code: 'CONFLICT', message: `L'adresse ${input.email} est déjà utilisée.` })
+      }
+      const data: any = {
+        email: input.email,
+        name: input.name ?? null,
+        phone: input.phone ?? null,
+        partnerId: input.partnerId || null,
+      }
+      if (input.newPassword) {
+        data.passwordHash = await bcrypt.hash(input.newPassword, 10)
+      }
+      await prisma.customer.update({ where: { id: input.id }, data })
+      return { success: true }
+    }),
+
+  adminAdjustCustomerPoints: superAdminProcedure
+    .input(
+      z.object({
+        customerId: z.string(),
+        delta: z.number().int(),
+        reason: z.string().trim().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return prisma.$transaction(async (tx) => {
+        const customer = await tx.customer.findUnique({ where: { id: input.customerId } })
+        if (!customer) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client introuvable.' })
+        const newBalance = customer.points + input.delta
+        if (newBalance < 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Le solde ne peut pas devenir négatif.' })
+        }
+        await tx.customer.update({ where: { id: customer.id }, data: { points: newBalance } })
+        await tx.pointTransaction.create({
+          data: {
+            customerId: customer.id,
+            delta: input.delta,
+            type: 'ADMIN_ADJUST',
+            reason: input.reason || null,
+            balanceAfter: newBalance,
+          },
+        })
+        return { points: newBalance }
+      })
+    }),
+
+  adminDeleteCustomer: superAdminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      // Dépendances RESTRICT à purger d'abord ; les achats gardent une trace
+      // (customerId délié) pour ne pas perdre l'historique comptable.
+      await prisma.$transaction([
+        prisma.pointTransaction.deleteMany({ where: { customerId: input.id } }),
+        prisma.loyaltyVoucher.deleteMany({ where: { customerId: input.id } }),
+        prisma.customerPasswordReset.deleteMany({ where: { customerId: input.id } }),
+        prisma.loyaltyPurchase.updateMany({ where: { customerId: input.id }, data: { customerId: null } }),
+        prisma.customer.delete({ where: { id: input.id } }),
+      ])
+      return { success: true }
+    }),
 
   createUser: superAdminProcedure
     .input(
@@ -3176,17 +3368,20 @@ export const appRouter = router({
   loginCustomer: publicProcedure
     .input(z.object({ email: z.string().email(), password: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const identifier = `customer-login:${ctx.ip || 'unknown'}`
+      // Rate limit PAR COMPTE (email), pas par IP : évite qu'un client (ou tous
+      // les clients derrière une même IP/box/4G) se retrouvent bloqués par les
+      // tentatives d'un autre. 8 essais / 15 min et par email.
+      const identifier = `customer-login:${input.email.trim().toLowerCase()}`
       let allowed: boolean
       try {
-        const res = await authRatelimit.limit(identifier)
+        const res = await customerLoginRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] authRatelimit indisponible pour loginCustomer — requête refusée par précaution (fail-closed):', err)
+        console.error('[RateLimit ERROR] customerLoginRatelimit indisponible pour loginCustomer — requête refusée par précaution (fail-closed):', err)
         allowed = false
       }
       if (!allowed) {
-        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives de connexion pour ce compte. Réessayez dans quelques minutes.' })
       }
 
       // Message identique que le compte existe ou non (même logique que loginAdmin).
@@ -3368,12 +3563,156 @@ export const appRouter = router({
 
   // Consomme uniquement l'interface ObookingDataSource (src/lib/obookingDataSource.ts)
   // — jamais MockObookingDataSource directement. Voir ESPACE_CLIENT.md.
+  // Achats réels du client (transmis par obooking.tn, table LoyaltyPurchase).
   getMyPurchases: customerProcedure.query(async ({ ctx }) => {
-    return obookingDataSource.getPurchases(ctx.customerSession!.customerId)
+    const purchases = await prisma.loyaltyPurchase.findMany({
+      where: { customerId: ctx.customerSession!.customerId },
+      orderBy: { purchasedAt: 'desc' },
+    })
+    return purchases.map((p) => ({
+      id: p.id,
+      label: p.description || 'Achat obooking',
+      amount: p.amountTnd,
+      currency: 'TND',
+      purchasedAt: p.purchasedAt.toISOString(),
+      pointsEarned: p.pointsEarned,
+      status: p.status,
+    }))
   }),
 
+  // Solde de points réel (Customer.points). Forme conservée { balance, updatedAt }
+  // pour rester compatible avec les pages existantes.
   getMyLoyaltyPoints: customerProcedure.query(async ({ ctx }) => {
-    return obookingDataSource.getLoyaltyPoints(ctx.customerSession!.customerId)
+    const customer = await prisma.customer.findUnique({ where: { id: ctx.customerSession!.customerId } })
+    return { balance: customer?.points ?? 0, updatedAt: (customer?.updatedAt ?? new Date()).toISOString() }
+  }),
+
+  // Historique des mouvements de points (grand livre).
+  getMyPointsHistory: customerProcedure.query(async ({ ctx }) => {
+    const txns = await prisma.pointTransaction.findMany({
+      where: { customerId: ctx.customerSession!.customerId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
+    return txns.map((t) => ({
+      id: t.id,
+      delta: t.delta,
+      type: t.type,
+      reason: t.reason,
+      balanceAfter: t.balanceAfter,
+      createdAt: t.createdAt.toISOString(),
+    }))
+  }),
+
+  // Bons de réduction du client (générés par conversion de points).
+  getMyVouchers: customerProcedure.query(async ({ ctx }) => {
+    const vouchers = await prisma.loyaltyVoucher.findMany({
+      where: { customerId: ctx.customerSession!.customerId },
+      orderBy: { createdAt: 'desc' },
+    })
+    const now = Date.now()
+    return vouchers.map((v) => ({
+      id: v.id,
+      code: v.code,
+      pointsSpent: v.pointsSpent,
+      valueTnd: v.valueTnd,
+      status: v.expiresAt && v.expiresAt.getTime() < now && v.status === 'ACTIVE' ? 'EXPIRED' : v.status,
+      expiresAt: v.expiresAt ? v.expiresAt.toISOString() : null,
+      createdAt: v.createdAt.toISOString(),
+    }))
+  }),
+
+  // Config publique du programme (taux de conversion) — pour que l'espace
+  // client puisse calculer et afficher la valeur d'une conversion.
+  getLoyaltyPublicConfig: publicProcedure.query(async () => {
+    const s = await prisma.siteSettings.findUnique({ where: { id: 'main' } })
+    return {
+      loyaltyEnabled: s?.loyaltyEnabled ?? false,
+      redeemPointsPerTnd: s?.redeemPointsPerTnd ?? 100,
+      minRedeemPoints: s?.minRedeemPoints ?? 500,
+      voucherValidityDays: s?.voucherValidityDays ?? 90,
+    }
+  }),
+
+  // Conversion de points → bon de réduction TND. Transactionnel : débite les
+  // points, trace le mouvement, crée le bon avec un code unique.
+  redeemMyPoints: customerProcedure
+    .input(z.object({ points: z.number().int().positive('Le nombre de points doit être positif.') }))
+    .mutation(async ({ input, ctx }) => {
+      const customerId = ctx.customerSession!.customerId
+      return prisma.$transaction(async (tx) => {
+        const settings = await tx.siteSettings.findUnique({ where: { id: 'main' } })
+        if (!settings?.loyaltyEnabled) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Le programme de fidélité est actuellement désactivé.' })
+        }
+        const redeemRate = settings.redeemPointsPerTnd || 100
+        const minRedeem = settings.minRedeemPoints ?? 0
+        const validityDays = settings.voucherValidityDays ?? 90
+
+        const customer = await tx.customer.findUnique({ where: { id: customerId } })
+        if (!customer) throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
+        if (input.points < minRedeem) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Il faut au moins ${minRedeem} points pour convertir.` })
+        }
+        if (input.points > customer.points) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Solde de points insuffisant.' })
+        }
+        const valueTnd = Math.floor((input.points / redeemRate) * 100) / 100
+        if (valueTnd <= 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Le montant du bon serait nul. Convertissez davantage de points.' })
+        }
+
+        // Code unique (retry en cas de collision très rare).
+        let code = generateVoucherCode()
+        for (let i = 0; i < 5; i++) {
+          const clash = await tx.loyaltyVoucher.findUnique({ where: { code } })
+          if (!clash) break
+          code = generateVoucherCode()
+        }
+        const expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)
+        const newBalance = customer.points - input.points
+
+        const voucher = await tx.loyaltyVoucher.create({
+          data: { customerId, code, pointsSpent: input.points, valueTnd, status: 'ACTIVE', expiresAt },
+        })
+        await tx.customer.update({ where: { id: customerId }, data: { points: newBalance } })
+        await tx.pointTransaction.create({
+          data: {
+            customerId,
+            delta: -input.points,
+            type: 'REDEEM_VOUCHER',
+            reason: `Conversion en bon ${code}`,
+            balanceAfter: newBalance,
+            voucherId: voucher.id,
+          },
+        })
+        return { code: voucher.code, valueTnd, expiresAt: expiresAt.toISOString(), newBalance }
+      })
+    }),
+
+  // Nouveaux jeux / campagnes publiés sur Obooking Gift (feed espace client).
+  getNewGames: publicProcedure.query(async () => {
+    const campaigns = await prisma.campaign.findMany({
+      where: { isActive: true, isDraft: false },
+      orderBy: { startDate: 'desc' },
+      take: 12,
+      include: {
+        partner: { select: { name: true, logoUrl: true } },
+        prizes: { select: { name: true } },
+      },
+    })
+    return campaigns.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      imageData: c.imageData,
+      imageMimeType: c.imageMimeType,
+      startDate: c.startDate.toISOString(),
+      endDate: c.endDate.toISOString(),
+      partnerName: c.partner?.name ?? 'Obooking',
+      prizeNames: c.prizes.map((p) => p.name),
+    }))
   }),
 
   // Changement de mot de passe depuis la page "Paramètres" (compte déjà
