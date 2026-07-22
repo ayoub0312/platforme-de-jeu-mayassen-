@@ -46,10 +46,18 @@ const getPrismaClient = () => {
   // lieu de ~100-600ms d'aller-retour réseau. Les écritures partent vers le
   // primaire Turso et `readYourWrites` (défaut) les rend visibles localement
   // immédiatement ; les écritures d'autres sources apparaissent sous `syncInterval`.
-  // Sur l'Edge (Vercel) il n'y a pas de système de fichiers → on garde le mode
-  // distant direct. Échappatoire : TURSO_DISABLE_REPLICA=1.
+  // IMPORTANT : la réplique écrit un fichier local (.turso-replica.db) et
+  // resynchronise ~8 Mo au démarrage. Ça ne convient QU'AU dev local/serverful.
+  // Sur l'Edge ET sur le serverless (Vercel/Lambda/Netlify) le système de
+  // fichiers est en lecture seule (ou éphémère) → on force le mode distant
+  // direct, sinon les requêtes échouent/rament. Échappatoire : TURSO_DISABLE_REPLICA=1.
   const replicaDisabled = process.env.TURSO_DISABLE_REPLICA === '1'
-  if (useRemote && !isEdge && !replicaDisabled && typeof cwdFn === 'function') {
+  const isServerless = !!(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.NETLIFY
+  )
+  if (useRemote && !isEdge && !isServerless && !replicaDisabled && typeof cwdFn === 'function') {
     const replicaUrl = resolveAbsoluteFileUrl('file:./.turso-replica.db')
     const adapter = new PrismaLibSql({
       url: replicaUrl,
