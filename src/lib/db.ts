@@ -13,8 +13,11 @@ const getPrismaClient = () => {
 
   const useRemote = !!(tursoUrl && tursoUrl.trim() !== '' && tursoToken && tursoToken.trim() !== '')
 
-  let url = useRemote ? tursoUrl! : (process.env.DATABASE_URL || "file:./dev.db")
-  const authToken = useRemote ? tursoToken : undefined
+  // TRIM impératif : une valeur d'env avec un espace ou un saut de ligne parasite
+  // (fréquent après un copier-coller dans le dashboard Vercel) rend l'URL invalide
+  // → "Invalid URL" côté Prisma/libSQL et casse toute l'app. On nettoie donc ici.
+  let url = useRemote ? tursoUrl!.trim() : (process.env.DATABASE_URL || 'file:./dev.db').trim()
+  const authToken = useRemote ? tursoToken!.trim() : undefined
 
   // Dynamically resolve local SQLite path ONLY in Node.js context (local dev/seeding).
   // Uses environment-safe process['cwd']() string operations to work in ESM (no require needed)
