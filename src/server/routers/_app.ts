@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure, customerProcedure } from '../trpc'
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
-import { redis, authRatelimit, customerLoginRatelimit } from '../../lib/redis'
+import { redis, authRatelimit, customerLoginRatelimit, customerSignupRatelimit } from '../../lib/redis'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
 import { createSessionToken, createCustomerSessionToken } from '../../lib/auth'
@@ -3373,14 +3373,14 @@ export const appRouter = router({
       const identifier = `customer-signup:${ctx.ip || 'unknown'}`
       let allowed: boolean
       try {
-        const res = await authRatelimit.limit(identifier)
+        const res = await customerSignupRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] authRatelimit indisponible pour registerCustomer — requête refusée par précaution (fail-closed):', err)
+        console.error('[RateLimit ERROR] customerSignupRatelimit indisponible pour registerCustomer — requête refusée par précaution (fail-closed):', err)
         allowed = false
       }
       if (!allowed) {
-        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives d\'inscription. Réessayez dans quelques minutes.' })
       }
 
       const strengthError = checkPasswordStrength(input.password)

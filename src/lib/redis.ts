@@ -162,4 +162,8 @@ const authRatelimit: RateLimiter = createFixedWindowRateLimiter(3, 60 * 60, 'aut
 // ne se partagent plus un quota commun. 8 tentatives / 15 min et par email.
 const customerLoginRatelimit: RateLimiter = createFixedWindowRateLimiter(8, 15 * 60, 'customerlogin')
 
-export { redis, ratelimit, authRatelimit, customerLoginRatelimit, isRedisConfigured }
+// Inscription client : garde une clé par IP (anti-spam de comptes), mais plus
+// souple que l'ancien 3/h — 10 inscriptions par heure et par IP.
+const customerSignupRatelimit: RateLimiter = createFixedWindowRateLimiter(10, 60 * 60, 'customersignup')
+
+export { redis, ratelimit, authRatelimit, customerLoginRatelimit, customerSignupRatelimit, isRedisConfigured }
