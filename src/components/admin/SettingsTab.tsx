@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Gift, Mail, Save } from 'lucide-react'
+import { Gift, Mail, Save, KeyRound } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -16,6 +16,40 @@ export function SettingsTab() {
   const [referralBonusSpins, setReferralBonusSpins] = useState(2)
   const [defaultSenderEmail, setDefaultSenderEmail] = useState('')
   const [defaultSenderEmailPassword, setDefaultSenderEmailPassword] = useState('')
+
+  // Section "Mon compte" — modification de l'email / mot de passe du super admin.
+  const accountMut = trpc.updateMyAdminAccount.useMutation()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+
+  const handleSaveAccount = async () => {
+    if (!currentPassword) {
+      toast.error('Renseignez votre mot de passe actuel.')
+      return
+    }
+    if (!newEmail && !newPassword) {
+      toast.error('Renseignez un nouvel email ou un nouveau mot de passe.')
+      return
+    }
+    try {
+      const res = await accountMut.mutateAsync({
+        currentPassword,
+        newEmail: newEmail.trim() || undefined,
+        newPassword: newPassword || undefined,
+      })
+      setCurrentPassword('')
+      setNewEmail('')
+      setNewPassword('')
+      if (res.emailChanged) {
+        toast.success('Compte mis à jour. Reconnectez-vous avec votre nouvel email.')
+      } else {
+        toast.success('Mot de passe mis à jour.')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la mise à jour du compte.')
+    }
+  }
 
   useEffect(() => {
     if (!settings) return
@@ -94,6 +128,49 @@ export function SettingsTab() {
           <Save className="h-4 w-4" /> Enregistrer les réglages
         </Button>
       </div>
+
+      {/* Mon compte : email + mot de passe du super admin */}
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-ink-900 flex items-center gap-2 mb-1">
+          <KeyRound className="h-5 w-5 text-brand-500" /> Mon compte
+        </h3>
+        <p className="text-ink-500 text-xs font-semibold mb-5">
+          Modifiez votre adresse email et/ou votre mot de passe de connexion. Votre mot de passe actuel est requis pour valider.
+        </p>
+
+        <div className="space-y-4">
+          <Input
+            type="password"
+            label="Mot de passe actuel *"
+            placeholder="••••••••"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="max-w-sm"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              type="email"
+              label="Nouvel email (laisser vide pour ne pas changer)"
+              placeholder="admin@agency.com"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+            />
+            <Input
+              type="password"
+              label="Nouveau mot de passe (min. 8 car.)"
+              placeholder="Laisser vide pour ne pas changer"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <Button onClick={handleSaveAccount} loading={accountMut.isPending}>
+            <KeyRound className="h-4 w-4" /> Mettre à jour mon compte
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }

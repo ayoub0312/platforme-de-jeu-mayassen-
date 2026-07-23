@@ -1973,6 +1973,47 @@ export const appRouter = router({
       })
     }),
 
+  // Le super admin (ou tout admin connecté) modifie SON PROPRE compte :
+  // email et/ou mot de passe. Exige le mot de passe actuel par sécurité.
+  updateMyAdminAccount: adminProcedure
+    .input(
+      z.object({
+        currentPassword: z.string().min(1, 'Mot de passe actuel requis.'),
+        newEmail: z.string().trim().email('Adresse email invalide.').optional(),
+        newPassword: z.string().min(8, 'Le nouveau mot de passe doit contenir au moins 8 caractères.').optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const sessionEmail = ctx.userSession!.email
+      const user = await prisma.user.findUnique({ where: { email: sessionEmail } })
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Compte introuvable.' })
+      }
+      const ok = await bcrypt.compare(input.currentPassword, user.passwordHash)
+      if (!ok) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Mot de passe actuel incorrect.' })
+      }
+
+      const data: { email?: string; passwordHash?: string } = {}
+      if (input.newEmail && input.newEmail !== user.email) {
+        const taken = await prisma.user.findUnique({ where: { email: input.newEmail } })
+        if (taken) {
+          throw new TRPCError({ code: 'CONFLICT', message: `L'adresse ${input.newEmail} est déjà utilisée.` })
+        }
+        data.email = input.newEmail
+      }
+      if (input.newPassword) {
+        data.passwordHash = await bcrypt.hash(input.newPassword, 10)
+      }
+      if (Object.keys(data).length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Aucune modification : renseignez un nouvel email ou un nouveau mot de passe.' })
+      }
+      await prisma.user.update({ where: { id: user.id }, data })
+      // Si l'email change, la session actuelle (qui porte l'ancien email) devient
+      // caduque → l'admin devra se reconnecter.
+      return { success: true, emailChanged: !!data.email }
+    }),
+
   // Promo banners CRUD (admin)
   getAllPromoBanners: superAdminProcedure.query(async () => {
     return prisma.promoBanner.findMany({ orderBy: { order: 'asc' } })
