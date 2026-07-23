@@ -2469,12 +2469,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Validité d'un bon (jours)</label>
                   <input
-                    type="number" min={1} step="1"
+                    type="number" min={0} step="1"
                     value={loyaltyForm.voucherValidityDays}
                     onChange={(e) => setLoyaltyForm(f => ({ ...f, voucherValidityDays: parseInt(e.target.value) || 0 }))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
                   />
-                  <p className="text-[11px] text-ink-500 mt-1.5">Durée avant expiration d'un bon généré.</p>
+                  <p className="text-[11px] text-ink-500 mt-1.5">Durée avant expiration. <b>0 = illimité</b> (le bon n'expire jamais).</p>
                 </div>
               </div>
 
@@ -2492,25 +2492,42 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <h3 className="text-lg font-bold text-ink-900">Simulateur</h3>
                 <p className="text-ink-500 text-xs mt-1">Testez l'effet des taux ci-dessus sur un achat.</p>
               </div>
-              <div className="p-6 flex flex-col sm:flex-row items-stretch gap-4">
-                <div className="flex-1">
+              <div className="p-6 flex flex-col md:flex-row items-stretch gap-4">
+                {/* Saisie du montant */}
+                <div className="md:w-56 shrink-0">
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Montant d'un achat (TND)</label>
-                  <input
-                    type="number" min={0} step="10"
-                    value={loyaltySimAmount}
-                    onChange={(e) => setLoyaltySimAmount(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number" min={0} step="10"
+                      value={loyaltySimAmount}
+                      onChange={(e) => setLoyaltySimAmount(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-14 py-3 text-lg font-bold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">TND</span>
+                  </div>
+                  <p className="text-[11px] text-ink-500 mt-1.5">Change le montant pour voir le résultat en direct.</p>
                 </div>
-                <div className="flex-1 bg-brand-50 border border-brand-500/20 rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-xs text-ink-500 font-semibold">Points gagnés</div>
-                  <div className="text-2xl font-black text-brand-600">{pts.toLocaleString('fr-FR')} pts</div>
-                </div>
-                <div className="flex-1 bg-[var(--success)]/10 border border-[var(--success)]/20 rounded-xl p-4 flex flex-col justify-center">
-                  <div className="text-xs text-ink-500 font-semibold">Valeur en bon</div>
-                  <div className="text-2xl font-black text-[var(--success)]">{voucherTnd.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} TND</div>
-                  <div className={`text-[11px] font-bold mt-1 ${reachesMin ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                    {reachesMin ? '✓ Convertible' : `Seuil non atteint (min. ${loyaltyForm.minRedeemPoints} pts)`}
+
+                {/* Cartes résultat */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Carte points gagnés */}
+                  <div className="rounded-2xl p-5 bg-gradient-to-br from-[#FF6B47] to-[#E85530] text-white shadow-lg shadow-orange-500/20">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/85">
+                      <Coins className="h-4 w-4" /> Points gagnés
+                    </div>
+                    <div className="text-3xl font-black mt-2">{pts.toLocaleString('fr-FR')}<span className="text-base font-bold ml-1">pts</span></div>
+                    <div className="text-[11px] text-white/80 mt-1">pour un achat de {loyaltySimAmount.toLocaleString('fr-FR')} TND</div>
+                  </div>
+
+                  {/* Carte valeur en bon */}
+                  <div className="rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/85">
+                      <Wallet className="h-4 w-4" /> Valeur en bon
+                    </div>
+                    <div className="text-3xl font-black mt-2">{voucherTnd.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}<span className="text-base font-bold ml-1">TND</span></div>
+                    <div className="text-[11px] font-bold mt-1 text-white/90">
+                      {reachesMin ? '✓ Convertible en bon' : `⚠ Seuil min. ${loyaltyForm.minRedeemPoints} pts non atteint`}
+                    </div>
                   </div>
                 </div>
               </div>

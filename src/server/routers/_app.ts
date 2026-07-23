@@ -1926,11 +1926,15 @@ export const appRouter = router({
   updateLoyaltyConfig: superAdminProcedure
     .input(
       z.object({
+        // Config volontairement PERMISSIVE (« libre ») : l'admin met les valeurs
+        // qu'il veut. On garde juste des garde-fous physiques (pas de négatif,
+        // pas de division par zéro pour le taux de conversion).
         loyaltyEnabled: z.boolean(),
-        pointsPerTnd: z.number().min(0, 'Le taux ne peut pas être négatif.').max(1000),
-        redeemPointsPerTnd: z.number().int().min(1, 'Au moins 1 point pour 1 TND.').max(1_000_000),
-        minRedeemPoints: z.number().int().min(0).max(10_000_000),
-        voucherValidityDays: z.number().int().min(1).max(3650),
+        pointsPerTnd: z.number().min(0, 'Le taux ne peut pas être négatif.'),
+        redeemPointsPerTnd: z.number().int().min(1, 'Au moins 1 point pour 1 TND.'),
+        minRedeemPoints: z.number().int().min(0),
+        // 0 = bon sans expiration (illimité).
+        voucherValidityDays: z.number().int().min(0, 'La validité ne peut pas être négative.'),
       })
     )
     .mutation(async ({ input }) => {
@@ -3710,7 +3714,8 @@ export const appRouter = router({
           if (!clash) break
           code = generateVoucherCode()
         }
-        const expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)
+        // validityDays = 0 → bon sans expiration (expiresAt null).
+        const expiresAt = validityDays > 0 ? new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000) : null
         const newBalance = customer.points - input.points
 
         const voucher = await tx.loyaltyVoucher.create({
