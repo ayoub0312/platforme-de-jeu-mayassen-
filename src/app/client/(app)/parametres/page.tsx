@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { trpc } from '@/utils/trpc'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function ParametresPage() {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '' })
@@ -31,8 +32,7 @@ export default function ParametresPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-medium text-[#1a1a1a]/60 mb-1.5">Mot de passe actuel</label>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={form.currentPassword}
             onChange={(e) => setForm(f => ({ ...f, currentPassword: e.target.value }))}
@@ -41,8 +41,7 @@ export default function ParametresPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-[#1a1a1a]/60 mb-1.5">Nouveau mot de passe</label>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={form.newPassword}
             onChange={(e) => setForm(f => ({ ...f, newPassword: e.target.value }))}

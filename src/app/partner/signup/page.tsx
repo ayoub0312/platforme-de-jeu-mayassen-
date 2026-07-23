@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ShieldAlert, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function PartnerSignupPage() {
   const [form, setForm] = useState({ agencyName: '', email: '', password: '', phone: '', contactName: '' })
@@ -95,8 +96,7 @@ export default function PartnerSignupPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Mot de passe</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={form.password}
                   onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}

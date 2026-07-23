@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { trpc } from '@/utils/trpc'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function ClientSignupPage() {
   const [form, setForm] = useState({ email: '', password: '', name: '', phone: '' })
@@ -66,8 +67,7 @@ export default function ClientSignupPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-[#1a1a1a]/60 mb-1.5">Mot de passe</label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 value={form.password}
                 onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}

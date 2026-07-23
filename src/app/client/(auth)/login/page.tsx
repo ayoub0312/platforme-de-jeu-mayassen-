@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/utils/trpc'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function ClientLoginPage() {
   const router = useRouter()
@@ -44,8 +45,7 @@ export default function ClientLoginPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-[#1a1a1a]/60 mb-1.5">Mot de passe</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

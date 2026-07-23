@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { trpc } from '@/utils/trpc'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 export default function ClientResetPasswordPage() {
   const searchParams = useSearchParams()
@@ -99,8 +100,7 @@ function CompleteReset({ token }: { token: string }) {
       <div className="w-full max-w-sm">
         <h1 className="text-xl font-semibold text-[#1a1a1a] mb-1">Choisir un nouveau mot de passe</h1>
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-          <input
-            type="password"
+          <PasswordInput
             required
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}

@@ -18,6 +18,7 @@ import { SettingsTab } from './admin/SettingsTab'
 import { CampaignCard } from './admin/CampaignCard'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -488,8 +489,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
                   Mot de passe
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
@@ -3157,8 +3157,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">
                       Clé API Resend {campaignForm.hasSenderEmailPassword && <span className="text-emerald-500 normal-case font-semibold">(déjà configurée)</span>}
                     </label>
-                    <input
-                      type="password"
+                    <PasswordInput
                       placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 're_xxxxxxxxxxxxxxxx'}
                       value={campaignForm.senderEmailPassword}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmailPassword: e.target.value }))}
