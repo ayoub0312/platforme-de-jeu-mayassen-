@@ -95,6 +95,8 @@ function isTransientDbError(err: unknown): boolean {
     msg.includes('stream not found') ||
     msg.includes('stream expired') ||
     msg.includes('hrana') ||
+    msg.includes('walconflict') ||
+    msg.includes('wal conflict') ||
     msg.includes('websocket') ||
     msg.includes('connection reset') ||
     msg.includes('unexpected eof') ||

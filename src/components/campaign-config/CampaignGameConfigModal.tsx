@@ -111,7 +111,10 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
           imageData: p.imageData,
           imageMimeType: p.imageMimeType,
           fallbackPrizeId: p.fallbackPrizeId,
-          drawDate: p.drawDate ? new Date(p.drawDate) : null,
+          // Un lot de ROULETTE ne doit JAMAIS avoir de date de tirage, sinon il
+          // est exclu de la roue (roue vide). On force donc null en mode Roulette,
+          // même si le lot en portait une (ex: campagne convertie depuis un Tirage).
+          drawDate: data.gameMode === 'ROULETTE' ? null : (p.drawDate ? new Date(p.drawDate) : null),
           validityDays: p.validityDays,
           order: p.order,
         })),
