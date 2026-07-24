@@ -3715,55 +3715,63 @@ export const appRouter = router({
     .input(z.object({ points: z.number().int().positive('Le nombre de points doit être positif.') }))
     .mutation(async ({ input, ctx }) => {
       const customerId = ctx.customerSession!.customerId
-      return prisma.$transaction(async (tx) => {
-        const settings = await tx.siteSettings.findUnique({ where: { id: 'main' } })
-        if (!settings?.loyaltyEnabled) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Le programme de fidélité est actuellement désactivé.' })
-        }
-        const redeemRate = settings.redeemPointsPerTnd || 100
-        const minRedeem = settings.minRedeemPoints ?? 0
-        const validityDays = settings.voucherValidityDays ?? 90
 
-        const customer = await tx.customer.findUnique({ where: { id: customerId } })
-        if (!customer) throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
-        if (input.points < minRedeem) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: `Il faut au moins ${minRedeem} points pour convertir.` })
-        }
-        if (input.points > customer.points) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Solde de points insuffisant.' })
-        }
-        const valueTnd = Math.floor((input.points / redeemRate) * 100) / 100
-        if (valueTnd <= 0) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Le montant du bon serait nul. Convertissez davantage de points.' })
-        }
-
-        // Code unique (retry en cas de collision très rare).
-        let code = generateVoucherCode()
-        for (let i = 0; i < 5; i++) {
-          const clash = await tx.loyaltyVoucher.findUnique({ where: { code } })
-          if (!clash) break
-          code = generateVoucherCode()
-        }
-        // validityDays = 0 → bon sans expiration (expiresAt null).
-        const expiresAt = validityDays > 0 ? new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000) : null
-        const newBalance = customer.points - input.points
-
-        const voucher = await tx.loyaltyVoucher.create({
-          data: { customerId, code, pointsSpent: input.points, valueTnd, status: 'ACTIVE', expiresAt },
-        })
-        await tx.customer.update({ where: { id: customerId }, data: { points: newBalance } })
-        await tx.pointTransaction.create({
-          data: {
-            customerId,
-            delta: -input.points,
-            type: 'REDEEM_VOUCHER',
-            reason: `Conversion en bon ${code}`,
-            balanceAfter: newBalance,
-            voucherId: voucher.id,
-          },
-        })
-        return { code: voucher.code, valueTnd, expiresAt: expiresAt.toISOString(), newBalance }
+      // ── Lectures/calculs HORS transaction (rapides, pas besoin d'atomicité) ──
+      // Réduit fortement le travail dans la transaction interactive (dont le
+      // timeout par défaut est 5 s) : avec la latence réseau vers Turso, faire
+      // toutes les requêtes dans la transaction la faisait expirer.
+      const settings = await prisma.siteSettings.findUnique({
+        where: { id: 'main' },
+        select: { loyaltyEnabled: true, redeemPointsPerTnd: true, minRedeemPoints: true, voucherValidityDays: true },
       })
+      if (!settings?.loyaltyEnabled) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Le programme de fidélité est actuellement désactivé.' })
+      }
+      const redeemRate = settings.redeemPointsPerTnd || 100
+      const minRedeem = settings.minRedeemPoints ?? 0
+      const validityDays = settings.voucherValidityDays ?? 90
+
+      if (input.points < minRedeem) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: `Il faut au moins ${minRedeem} points pour convertir.` })
+      }
+      const valueTnd = Math.floor((input.points / redeemRate) * 100) / 100
+      if (valueTnd <= 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Le montant du bon serait nul. Convertissez davantage de points.' })
+      }
+      // validityDays = 0 → bon sans expiration (expiresAt null).
+      const expiresAt = validityDays > 0 ? new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000) : null
+      // Code unique : l'unicité est garantie par la contrainte @unique sur `code`
+      // (32^8 ≈ 1000 milliards de combinaisons → collision quasi impossible).
+      const code = generateVoucherCode()
+
+      // ── Transaction MINIMALE : débit atomique du solde + bon + ledger ──
+      return prisma.$transaction(
+        async (tx) => {
+          const customer = await tx.customer.findUnique({ where: { id: customerId }, select: { points: true } })
+          if (!customer) throw new TRPCError({ code: 'NOT_FOUND', message: 'Compte introuvable.' })
+          if (input.points > customer.points) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Solde de points insuffisant.' })
+          }
+          const newBalance = customer.points - input.points
+
+          const voucher = await tx.loyaltyVoucher.create({
+            data: { customerId, code, pointsSpent: input.points, valueTnd, status: 'ACTIVE', expiresAt },
+          })
+          await tx.customer.update({ where: { id: customerId }, data: { points: newBalance } })
+          await tx.pointTransaction.create({
+            data: {
+              customerId,
+              delta: -input.points,
+              type: 'REDEEM_VOUCHER',
+              reason: `Conversion en bon ${code}`,
+              balanceAfter: newBalance,
+              voucherId: voucher.id,
+            },
+          })
+          return { code: voucher.code, valueTnd, expiresAt: expiresAt ? expiresAt.toISOString() : null, newBalance }
+        },
+        { timeout: 20000, maxWait: 10000 }
+      )
     }),
 
   // Nouveaux jeux / campagnes publiés sur Obooking Gift (feed espace client).
