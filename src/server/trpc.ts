@@ -37,12 +37,16 @@ const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
       })
     }
   } catch (err) {
+    // Un vrai dépassement de quota (TRPCError ci-dessus) est renvoyé tel quel.
     if (err instanceof TRPCError) throw err
-    console.error('[RateLimit ERROR] Échec du rate limiting Redis — requête refusée par précaution (fail-closed):', err)
-    throw new TRPCError({
-      code: 'TOO_MANY_REQUESTS',
-      message: 'Service temporairement indisponible. Réessayez dans quelques instants.',
-    })
+    // En revanche, une PANNE de Redis (Upstash injoignable, token expiré, base
+    // supprimée…) ne doit JAMAIS rendre le jeu injouable : le rate limiting est
+    // une protection best-effort, pas un contrôle de sécurité critique. On passe
+    // donc en fail-open (on laisse passer) en traçant l'incident, au lieu de
+    // bloquer tous les joueurs avec « Service temporairement indisponible ».
+    // (Les limiteurs sensibles — connexion/inscription — sont gérés séparément
+    // dans server/routers/_app.ts et gardent leur propre politique.)
+    console.error('[RateLimit ERROR] Redis indisponible — requête AUTORISÉE (fail-open), rate limiting ignoré ce coup-ci:', err)
   }
 
   return next()

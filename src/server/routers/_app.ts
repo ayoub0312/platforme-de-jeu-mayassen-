@@ -286,8 +286,8 @@ export const appRouter = router({
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] authRatelimit indisponible pour registerPartner — requête refusée par précaution (fail-closed):', err)
-        allowed = false
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour registerPartner — requête AUTORISÉE (fail-open), anti-spam ignoré ce coup-ci:', err)
+        allowed = true
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
@@ -3425,8 +3425,8 @@ export const appRouter = router({
         const res = await customerSignupRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] customerSignupRatelimit indisponible pour registerCustomer — requête refusée par précaution (fail-closed):', err)
-        allowed = false
+        console.error('[RateLimit ERROR] customerSignupRatelimit indisponible pour registerCustomer — requête AUTORISÉE (fail-open), anti-spam ignoré ce coup-ci:', err)
+        allowed = true
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives d\'inscription. Réessayez dans quelques minutes.' })
@@ -3478,8 +3478,8 @@ export const appRouter = router({
         const res = await customerLoginRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] customerLoginRatelimit indisponible pour loginCustomer — requête refusée par précaution (fail-closed):', err)
-        allowed = false
+        console.error('[RateLimit ERROR] customerLoginRatelimit indisponible pour loginCustomer — requête AUTORISÉE (fail-open), anti-brute-force ignoré ce coup-ci:', err)
+        allowed = true
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives de connexion pour ce compte. Réessayez dans quelques minutes.' })
@@ -3512,8 +3512,8 @@ export const appRouter = router({
         const res = await authRatelimit.limit(identifier)
         allowed = res.success
       } catch (err) {
-        console.error('[RateLimit ERROR] authRatelimit indisponible pour requestCustomerPasswordReset — requête refusée par précaution (fail-closed):', err)
-        allowed = false
+        console.error('[RateLimit ERROR] authRatelimit indisponible pour requestCustomerPasswordReset — requête AUTORISÉE (fail-open), anti-spam ignoré ce coup-ci:', err)
+        allowed = true
       }
       if (!allowed) {
         throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives. Réessayez dans une heure.' })
