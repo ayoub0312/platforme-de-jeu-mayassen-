@@ -3,6 +3,7 @@ import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdm
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
 import { redis, authRatelimit, customerLoginRatelimit, customerSignupRatelimit } from '../../lib/redis'
+import { creditPendingPurchases } from '../../lib/loyalty-api'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
 import { createSessionToken, createCustomerSessionToken } from '../../lib/auth'
@@ -2960,6 +2961,12 @@ export const appRouter = router({
           },
         })
       }
+      // Crédite les achats obooking.tn en attente pour cet email.
+      try {
+        await creditPendingPurchases(customer.id, input.email)
+      } catch (err) {
+        console.error('[Loyalty] Échec du crédit des achats en attente (admin):', err)
+      }
       return { id: customer.id, email: customer.email }
     }),
 
@@ -3428,7 +3435,7 @@ export const appRouter = router({
       }
 
       const passwordHash = await bcrypt.hash(input.password, 10)
-      await prisma.customer.create({
+      const newCustomer = await prisma.customer.create({
         data: {
           email: input.email,
           passwordHash,
@@ -3436,6 +3443,13 @@ export const appRouter = router({
           phone: input.phone || null,
         },
       })
+
+      // Crédite les achats obooking.tn faits AVANT la création du compte (même email).
+      try {
+        await creditPendingPurchases(newCustomer.id, input.email)
+      } catch (err) {
+        console.error('[Loyalty] Échec du crédit des achats en attente à l’inscription:', err)
+      }
 
       return { success: true, message: GENERIC_MESSAGE }
     }),
