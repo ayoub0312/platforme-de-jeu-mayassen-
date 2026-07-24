@@ -45,7 +45,10 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const tier = getTravelerTier(points?.balance ?? 0)
 
   return (
-    <div className="relative z-10 min-h-screen bg-[var(--surface-alt)] text-[var(--ink-900)]">
+    <div
+      className="relative z-10 h-screen overflow-y-auto bg-[var(--surface-alt)] text-[var(--ink-900)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[var(--brand-500)]/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-[var(--brand-500)]/50"
+      style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,107,71,0.35) transparent' }}
+    >
       {/* Fin liseré de marque, statique et sobre */}
       <div className="h-[3px] bg-[var(--brand-500)]" aria-hidden="true" />
 
