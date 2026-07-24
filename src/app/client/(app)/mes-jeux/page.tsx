@@ -1,5 +1,6 @@
 'use client'
 
+import { Gift, Ticket, Sparkles, Trophy } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
 
 export default function MesJeuxPage() {
@@ -7,82 +8,97 @@ export default function MesJeuxPage() {
   const { data: activity, isLoading: activityLoading } = trpc.getMyGameActivity.useQuery()
 
   return (
-    <div className="max-w-2xl space-y-12">
-      <div>
-        <h1 className="text-lg font-semibold text-[#1a1a1a] mb-1">Mes jeux</h1>
-        <p className="text-sm text-[#1a1a1a]/50">Vos participations et campagnes accessibles.</p>
-      </div>
+    <div>
+      <header className="mb-8">
+        <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes jeux</h1>
+        <p className="text-sm text-[var(--ink-500)] mt-1.5 max-w-lg">Vos lots gagnés, vos participations et les campagnes accessibles.</p>
+      </header>
 
-      <section>
-        <h2 className="text-sm font-medium text-[#1a1a1a] mb-4">Lots gagnés</h2>
+      {/* Lots gagnés */}
+      <section className="mb-10">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Lots gagnés</h2>
         {activityLoading ? (
-          <p className="text-sm text-[#1a1a1a]/40">Chargement…</p>
+          <div className="h-24 rounded-2xl skeleton-shimmer" />
         ) : activity && activity.prizesWon.length > 0 ? (
-          <ul className="divide-y divide-black/[0.06] border-t border-b border-black/[0.06]">
+          <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
             {activity.prizesWon.map((p) => (
-              <li key={p.id} className="py-3 flex items-center justify-between text-sm">
-                <div>
-                  <div className="text-[#1a1a1a]">{p.prizeName}</div>
-                  <div className="text-[#1a1a1a]/40 text-xs">{p.campaignTitle}</div>
+              <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[var(--ink-900)] truncate">{p.prizeName}</div>
+                  <div className="text-[12px] text-[var(--ink-500)] mt-0.5 truncate">{p.campaignTitle}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-mono text-[#1a1a1a]/50">{p.status}</div>
-                  <div className="text-[11px] font-mono text-[#1a1a1a]/30">{new Date(p.claimedAt).toLocaleDateString('fr-FR')}</div>
+                <div className="text-right shrink-0">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-black/[0.04] text-[var(--ink-500)] border-black/10">{p.status}</span>
+                  <div className="text-[11px] text-[var(--ink-500)]/70 mt-1 tabular-nums">{new Date(p.claimedAt).toLocaleDateString('fr-FR')}</div>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
-          <p className="text-sm text-[#1a1a1a]/40">Aucun lot gagné pour l'instant.</p>
+          <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+              <Trophy className="h-5 w-5 text-[var(--ink-500)]" />
+            </div>
+            <p className="text-sm text-[var(--ink-500)]">Aucun lot gagné pour l'instant.</p>
+          </div>
         )}
       </section>
 
-      <section>
-        <h2 className="text-sm font-medium text-[#1a1a1a] mb-4">Mes participations</h2>
+      {/* Mes participations */}
+      <section className="mb-10">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Mes participations</h2>
         {activityLoading ? (
-          <p className="text-sm text-[#1a1a1a]/40">Chargement…</p>
+          <div className="h-24 rounded-2xl skeleton-shimmer" />
         ) : activity && activity.participations.length > 0 ? (
-          <ul className="divide-y divide-black/[0.06] border-t border-b border-black/[0.06]">
+          <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
             {activity.participations.map((p) => (
-              <li key={p.id} className="py-3 flex items-center justify-between text-sm">
-                <div>
-                  <div className="text-[#1a1a1a]">{p.campaignTitle}</div>
-                  <div className="text-[#1a1a1a]/40 text-xs">{p.gameMode === 'ROULETTE' ? 'Roulette' : 'Tirage au sort'}</div>
+              <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[var(--ink-900)] truncate">{p.campaignTitle}</div>
+                  <div className="text-[12px] text-[var(--ink-500)] mt-0.5">{p.gameMode === 'ROULETTE' ? 'Roulette' : 'Tirage au sort'}</div>
                 </div>
-                <div className="text-xs font-mono text-[#1a1a1a]/50">{p.status}</div>
-              </li>
+                <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-black/[0.04] text-[var(--ink-500)] border-black/10">{p.status}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
-          <p className="text-sm text-[#1a1a1a]/40">Aucune participation pour l'instant — inscrivez-vous à une campagne active depuis le site pour commencer à jouer.</p>
+          <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+              <Ticket className="h-5 w-5 text-[var(--ink-500)]" />
+            </div>
+            <p className="text-sm text-[var(--ink-500)] max-w-sm mx-auto">Aucune participation pour l'instant — inscrivez-vous à une campagne active depuis le site pour commencer à jouer.</p>
+          </div>
         )}
       </section>
 
+      {/* Nouveaux jeux */}
       <section>
-        <h2 className="text-sm font-medium text-[#1a1a1a] mb-4">Nouveaux jeux Obooking Gift</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Nouveaux jeux Obooking Gift</h2>
         {newGamesLoading ? (
-          <p className="text-sm text-[#1a1a1a]/40">Chargement…</p>
+          <div className="h-40 rounded-2xl skeleton-shimmer" />
         ) : newGames && newGames.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {newGames.map((c) => (
-              <div key={c.id} className="border border-black/[0.08] rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+              <div key={c.id} className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] shadow-[var(--shadow-premium-sm)] overflow-hidden transition-shadow hover:shadow-[var(--shadow-premium-md)]">
                 {c.imageData && c.imageMimeType ? (
                   <img src={`data:${c.imageMimeType};base64,${c.imageData}`} alt={c.title} className="w-full h-32 object-cover" />
                 ) : (
-                  <div className="w-full h-32 bg-gradient-to-br from-[#FF6B47] to-[#E85530]" />
+                  <div className="w-full h-32 bg-[var(--surface-alt)] flex items-center justify-center">
+                    <Gift className="h-7 w-7 text-[var(--ink-500)]/40" />
+                  </div>
                 )}
-                <div className="p-4">
-                  <div className="text-sm font-bold text-[#1a1a1a]">{c.title}</div>
-                  <div className="text-[11px] text-[#1a1a1a]/40 mt-0.5">{c.partnerName}</div>
-                  {c.description && <p className="text-xs text-[#1a1a1a]/60 mt-2 line-clamp-2">{c.description}</p>}
+                <div className="p-5">
+                  <div className="text-sm font-semibold text-[var(--ink-900)]">{c.title}</div>
+                  <div className="text-[12px] text-[var(--ink-500)] mt-0.5">{c.partnerName}</div>
+                  {c.description && <p className="text-[13px] text-[var(--ink-500)] mt-2 line-clamp-2">{c.description}</p>}
                   {c.prizeNames.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-3">
                       {c.prizeNames.slice(0, 3).map((name, i) => (
-                        <span key={i} className="text-[10px] font-bold bg-[#FF6B47]/10 text-[#FF6B47] border border-[#FF6B47]/20 rounded-full px-2 py-0.5">{name}</span>
+                        <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border bg-[var(--brand-50)] text-[var(--brand-700)] border-[var(--brand-500)]/20">{name}</span>
                       ))}
                     </div>
                   )}
-                  <div className="text-[10px] text-[#1a1a1a]/40 mt-2">
+                  <div className="text-[11px] text-[var(--ink-500)]/70 mt-3 tabular-nums">
                     Jusqu'au {new Date(c.endDate).toLocaleDateString('fr-FR')}
                   </div>
                 </div>
@@ -90,7 +106,12 @@ export default function MesJeuxPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#1a1a1a]/40">Aucun nouveau jeu pour le moment.</p>
+          <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="h-5 w-5 text-[var(--ink-500)]" />
+            </div>
+            <p className="text-sm text-[var(--ink-500)]">Aucun nouveau jeu pour le moment.</p>
+          </div>
         )}
       </section>
     </div>

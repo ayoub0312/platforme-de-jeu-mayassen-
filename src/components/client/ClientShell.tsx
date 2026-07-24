@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { LogOut } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
 
@@ -16,10 +15,8 @@ const NAV_ITEMS = [
   { href: '/client/parametres', label: 'Paramètres' },
 ]
 
-// Palier purement présentationnel, dérivé du solde de points déjà chargé —
-// aucune logique métier, juste un habillage "programme de fidélité" pour le
-// concept "Mon Passeport Obooking". À ajuster librement, ça ne touche à rien
-// côté serveur.
+// Palier de fidélité dérivé du solde — habillage "programme", aucune logique
+// métier côté serveur.
 function getTravelerTier(points: number): string {
   if (points >= 2000) return 'Globe-trotteur'
   if (points >= 500) return 'Aventurier'
@@ -48,45 +45,12 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const tier = getTravelerTier(points?.balance ?? 0)
 
   return (
-    <div
-      className="relative z-10 h-screen overflow-y-auto bg-[#F7F7F4] text-[#1a1a1a] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#FF6B47]/35 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-[#FF6B47]/55"
-      style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,107,71,0.4) transparent' }}
-    >
-      {/* Couche décorative de l'espace client : glows Corail/Lagon, lignes de
-          vol pointillées, grain premium. Purement visuel (pointer-events-none),
-          fixe par rapport au viewport — le contenu réel (header/main) est en
-          relative z-10 pour rester au-dessus, même leçon que le bug WaveBackground. */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div
-          className="absolute -top-40 -left-40 w-[560px] h-[560px] rounded-full opacity-[0.07]"
-          style={{ background: 'radial-gradient(circle, #FF6B47 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute -bottom-40 -right-40 w-[560px] h-[560px] rounded-full opacity-[0.07]"
-          style={{ background: 'radial-gradient(circle, #0EA5A0 0%, transparent 70%)' }}
-        />
-        {/* Lignes de vol — trajectoires pointillées façon carte de voyage */}
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 38px, #0EA5A0 38px, #0EA5A0 39px)',
-          }}
-        />
-        <div className="absolute inset-0 bg-grain-texture" />
-      </div>
+    <div className="min-h-screen bg-[var(--surface-alt)] text-[var(--ink-900)]">
+      {/* Fin liseré de marque, statique et sobre */}
+      <div className="h-[3px] bg-[var(--brand-500)]" aria-hidden="true" />
 
-      {/* Liseré "couverture de passeport" : Corail → Lagon, avec un fin sweep lumineux animé */}
-      <div className="relative h-1.5 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B47] via-[#ffb27a] to-[#0EA5A0]" />
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-          animate={{ x: ['-100%', '200%'] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
-        />
-      </div>
-
-      <header className="sticky top-0 z-20 bg-white/75 backdrop-blur-xl border-b border-black/[0.06]" style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 12px 24px -16px rgba(0,0,0,0.12)' }}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-20 bg-[var(--surface)]/85 backdrop-blur-md border-b border-black/[0.07]">
+        <div className="max-w-4xl mx-auto px-6 pt-5 pb-0 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {profileLoading ? (
               <>
@@ -97,39 +61,20 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
                 </div>
               </>
             ) : (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex items-center gap-3 min-w-0"
-              >
-                <div className="relative shrink-0">
-                  <motion.div
-                    className="absolute -inset-1 rounded-full bg-[#FF6B47]/25 blur-md"
-                    animate={{ opacity: [0.5, 0.9, 0.5] }}
-                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="relative h-11 w-11 rounded-full bg-[#FF6B47] ring-2 ring-[#FF6B47]/40 ring-offset-2 ring-offset-white flex items-center justify-center text-white font-display font-semibold text-lg shadow-[var(--shadow-premium-sm)]"
-                    aria-hidden="true"
-                  >
-                    {initial}
-                  </div>
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="shrink-0 h-11 w-11 rounded-full bg-[var(--brand-500)] flex items-center justify-center text-white font-display font-semibold text-lg"
+                  aria-hidden="true"
+                >
+                  {initial}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#1a1a1a] truncate">{displayName}</p>
-                  <span className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full overflow-hidden text-[10px] font-bold uppercase tracking-wide text-white bg-gradient-to-r from-[#FF6B47] to-[#0EA5A0]">
-                    <motion.span
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                      animate={{ x: ['-100%', '200%'] }}
-                      transition={{ duration: 2.4, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
-                      aria-hidden="true"
-                    />
-                    <span className="relative">{tier}</span>
+                  <p className="text-[15px] font-semibold leading-tight truncate">{displayName}</p>
+                  <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--brand-700)] bg-[var(--brand-50)] border border-[var(--brand-500)]/15">
+                    {tier}
                   </span>
                 </div>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -137,7 +82,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={handleLogout}
             aria-label="Se déconnecter"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-500)] hover:text-[var(--ink-900)] transition-colors cursor-pointer shrink-0"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">Se déconnecter</span>
@@ -145,7 +90,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav
-          className="max-w-4xl mx-auto px-6 flex gap-6 overflow-x-auto"
+          className="max-w-4xl mx-auto px-6 mt-4 flex gap-7 overflow-x-auto"
           style={{ scrollbarWidth: 'none' }}
           aria-label="Navigation de l'espace client"
         >
@@ -156,25 +101,20 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`relative text-sm py-3 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B47] focus-visible:ring-offset-2 rounded-sm ${
-                  isActive ? 'text-[#1a1a1a] font-semibold' : 'text-[#1a1a1a]/50 hover:text-[#1a1a1a]'
+                className={`relative text-sm py-3 whitespace-nowrap border-b-2 -mb-px transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)] focus-visible:ring-offset-2 rounded-t-sm ${
+                  isActive
+                    ? 'text-[var(--ink-900)] font-semibold border-[var(--brand-500)]'
+                    : 'text-[var(--ink-500)] font-medium border-transparent hover:text-[var(--ink-900)] hover:border-black/10'
                 }`}
               >
                 {item.label}
-                {isActive && (
-                  <motion.div
-                    layoutId="client-tab-underline"
-                    className="absolute left-0 right-0 -bottom-px h-[3px] rounded-full bg-gradient-to-r from-[#FF6B47] to-[#0EA5A0]"
-                    style={{ boxShadow: '0 1px 8px rgba(255,107,71,0.45)' }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  />
-                )}
               </Link>
             )
           })}
         </nav>
       </header>
-      <main className="relative z-10 max-w-4xl mx-auto px-6 py-10">{children}</main>
+
+      <main className="max-w-4xl mx-auto px-6 py-10">{children}</main>
     </div>
   )
 }

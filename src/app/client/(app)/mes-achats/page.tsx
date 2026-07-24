@@ -1,38 +1,46 @@
 'use client'
 
+import { ShoppingBag } from 'lucide-react'
 import { trpc } from '@/utils/trpc'
 
 export default function MesAchatsPage() {
   const { data: purchases, isLoading } = trpc.getMyPurchases.useQuery()
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-lg font-semibold text-[#1a1a1a] mb-1">Mes achats</h1>
-      <p className="text-sm text-[#1a1a1a]/50 mb-6">Historique de vos achats sur obooking.tn et points gagnés.</p>
+    <div>
+      <header className="mb-8">
+        <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes achats</h1>
+        <p className="text-sm text-[var(--ink-500)] mt-1.5 max-w-lg">
+          Historique de vos achats sur obooking.tn et des points merci qu'ils vous ont rapportés.
+        </p>
+      </header>
 
       {isLoading ? (
-        <p className="text-sm text-[#1a1a1a]/40">Chargement…</p>
+        <div className="h-40 rounded-2xl skeleton-shimmer" />
       ) : purchases && purchases.length > 0 ? (
-        <ul className="divide-y divide-black/[0.06] border border-black/[0.08] rounded-xl overflow-hidden">
+        <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
           {purchases.map((p) => (
-            <li key={p.id} className="px-4 py-3 flex items-center justify-between text-sm">
-              <div>
-                <div className="text-[#1a1a1a] font-semibold">{p.label}</div>
-                <div className="text-[#1a1a1a]/40 text-xs mt-0.5">{new Date(p.purchasedAt).toLocaleDateString('fr-FR')}</div>
+            <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--ink-900)] truncate">{p.label}</div>
+                <div className="text-[12px] text-[var(--ink-500)] mt-0.5">{new Date(p.purchasedAt).toLocaleDateString('fr-FR')}</div>
               </div>
-              <div className="text-right">
-                <div className="font-mono text-sm text-[#1a1a1a] font-bold">{p.amount.toLocaleString('fr-FR')} {p.currency}</div>
+              <div className="text-right shrink-0">
+                <div className="text-sm font-semibold text-[var(--ink-900)] tabular-nums">{p.amount.toLocaleString('fr-FR')} {p.currency}</div>
                 {p.pointsEarned > 0 && (
-                  <div className="text-[11px] font-bold text-green-600 mt-0.5">+{p.pointsEarned.toLocaleString('fr-FR')} points</div>
+                  <div className="text-[12px] font-bold text-[var(--success)] mt-0.5 tabular-nums">+{p.pointsEarned.toLocaleString('fr-FR')} points</div>
                 )}
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
-        <div className="border border-black/[0.08] rounded-xl p-8 text-center">
-          <p className="text-sm text-[#1a1a1a]/50">Aucun achat pour le moment.</p>
-          <p className="text-xs text-[#1a1a1a]/40 mt-1">Vos achats sur obooking.tn apparaîtront ici et vous rapporteront des points.</p>
+        <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
+          <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+            <ShoppingBag className="h-5 w-5 text-[var(--ink-500)]" />
+          </div>
+          <p className="text-sm text-[var(--ink-500)]">Aucun achat pour le moment.</p>
+          <p className="text-[12px] text-[var(--ink-500)]/80 mt-1">Vos achats sur obooking.tn apparaîtront ici et vous rapporteront des points.</p>
         </div>
       )}
     </div>
