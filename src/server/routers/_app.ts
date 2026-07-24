@@ -424,25 +424,48 @@ export const appRouter = router({
     }),
 
   // Homepage hero video/poster (site-wide singleton config)
+  // IMPORTANT perf : on ne SÉLECTIONNE PAS heroVideoData/heroPosterData (base64
+  // ~22 Mo) — ils alourdissaient énormément chaque appel (accueil ET dashboard
+  // admin). La vidéo se sert via /api/media/hero-video. On expose juste un flag
+  // hasHeroVideo + le type MIME.
   getSiteSettings: publicProcedure.query(async () => {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: 'main' } })
-    const { defaultSenderEmailPassword, ...rest } = settings || {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: 'main' },
+      select: {
+        id: true,
+        partnerId: true,
+        heroVideoMimeType: true,
+        heroPosterMimeType: true,
+        referralBonusSpins: true,
+        defaultSenderEmail: true,
+        defaultSenderEmailPassword: true,
+        loyaltyEnabled: true,
+        pointsPerTnd: true,
+        redeemPointsPerTnd: true,
+        minRedeemPoints: true,
+        voucherValidityDays: true,
+      },
+    })
+    const base = settings || {
       id: 'main',
-      heroVideoData: null,
+      partnerId: null,
       heroVideoMimeType: null,
-      heroPosterData: null,
       heroPosterMimeType: null,
       referralBonusSpins: 2,
       defaultSenderEmail: null,
       defaultSenderEmailPassword: null,
-      // Défauts fidélité (Phase 1) — si aucune ligne SiteSettings n'existe encore.
       loyaltyEnabled: false,
       pointsPerTnd: 1,
       redeemPointsPerTnd: 100,
       minRedeemPoints: 500,
       voucherValidityDays: 90,
     }
-    return { ...rest, hasDefaultSenderEmailPassword: !!defaultSenderEmailPassword }
+    const { defaultSenderEmailPassword, ...rest } = base
+    return {
+      ...rest,
+      hasHeroVideo: !!base.heroVideoMimeType,
+      hasDefaultSenderEmailPassword: !!defaultSenderEmailPassword,
+    }
   }),
 
   // Homepage promo banners (marquee strip)
@@ -1889,35 +1912,42 @@ export const appRouter = router({
   updateSiteSettings: superAdminProcedure
     .input(
       z.object({
-        heroVideoData: z.string().nullable().optional(),
-        heroVideoMimeType: z.string().nullable().optional(),
+        // Nouvel upload de vidéo (base64). Absent = ne PAS toucher à la vidéo
+        // existante (elle n'est plus renvoyée au client, donc jamais réécrite
+        // par accident).
+        heroVideoData: z.string().optional(),
+        heroVideoMimeType: z.string().optional(),
+        // Suppression explicite de la vidéo.
+        removeHeroVideo: z.boolean().optional(),
       })
     )
     .mutation(async ({ input }) => {
-      // ~20MB raw file cap, base64 inflates size by ~4/3
-      const MAX_BASE64_LENGTH = 20 * 1024 * 1024 * 1.4
-      if (input.heroVideoData && input.heroVideoData.length > MAX_BASE64_LENGTH) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'La vidéo dépasse la limite de 20 Mo.',
-        })
+      const data: {
+        heroVideoData?: string | null
+        heroVideoMimeType?: string | null
+        heroPosterData?: null
+        heroPosterMimeType?: null
+      } = {}
+
+      if (input.removeHeroVideo) {
+        data.heroVideoData = null
+        data.heroVideoMimeType = null
+        data.heroPosterData = null
+        data.heroPosterMimeType = null
+      } else if (input.heroVideoData) {
+        // ~20MB raw file cap, base64 inflates size by ~4/3
+        const MAX_BASE64_LENGTH = 20 * 1024 * 1024 * 1.4
+        if (input.heroVideoData.length > MAX_BASE64_LENGTH) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'La vidéo dépasse la limite de 20 Mo.' })
+        }
+        data.heroVideoData = input.heroVideoData
+        data.heroVideoMimeType = input.heroVideoMimeType || null
       }
+
       return prisma.siteSettings.upsert({
         where: { id: 'main' },
-        create: {
-          id: 'main',
-          heroVideoData: input.heroVideoData || null,
-          heroVideoMimeType: input.heroVideoMimeType || null,
-          // The poster feature was retired — clear any leftover value on save.
-          heroPosterData: null,
-          heroPosterMimeType: null,
-        },
-        update: {
-          heroVideoData: input.heroVideoData || null,
-          heroVideoMimeType: input.heroVideoMimeType || null,
-          heroPosterData: null,
-          heroPosterMimeType: null,
-        },
+        create: { id: 'main', ...data },
+        update: data,
       })
     }),
 

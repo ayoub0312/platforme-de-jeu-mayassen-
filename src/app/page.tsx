@@ -22,7 +22,13 @@ export default async function Home() {
   })
 
   // 2b. Homepage hero video/poster + promo banners (site-wide, admin-managed)
-  const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'main' } })
+  // On ne charge PAS heroVideoData (base64 ~22 Mo) ici : la vidéo est servie
+  // via /api/media/hero-video (cache navigateur). On lit juste le type MIME
+  // (petit) pour savoir s'il y a une vidéo.
+  const siteSettings = await prisma.siteSettings.findUnique({
+    where: { id: 'main' },
+    select: { heroVideoMimeType: true },
+  })
   const promoBanners = await prisma.promoBanner.findMany({
     where: { isActive: true },
     orderBy: { order: 'asc' },
@@ -59,7 +65,7 @@ export default async function Home() {
       initialCampaigns={serializedCampaigns}
       isAdminConnected={!!session}
       siteSettings={{
-        heroVideoData: siteSettings?.heroVideoData ?? null,
+        hasHeroVideo: !!siteSettings?.heroVideoMimeType,
         heroVideoMimeType: siteSettings?.heroVideoMimeType ?? null,
       }}
       promoBanners={promoBanners.map((b) => ({

@@ -54,7 +54,7 @@ interface Campaign {
 }
 
 interface SiteSettings {
-  heroVideoData: string | null
+  hasHeroVideo: boolean
   heroVideoMimeType: string | null
 }
 
@@ -259,7 +259,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
       >
         {/* Parallax layer — slightly oversized so translating it never reveals empty edges */}
         <motion.div className="absolute inset-x-0 -top-[10%] h-[120%]" style={{ y: heroParallaxY }}>
-          {siteSettings.heroVideoData ? (
+          {siteSettings.hasHeroVideo ? (
             <video
               ref={heroVideoRef}
               autoPlay
@@ -269,7 +269,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             >
               <source
-                src={`data:${siteSettings.heroVideoMimeType || 'video/mp4'};base64,${siteSettings.heroVideoData}`}
+                src="/api/media/hero-video"
                 type={siteSettings.heroVideoMimeType || 'video/mp4'}
               />
             </video>
@@ -282,7 +282,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/15 to-black/50 pointer-events-none" />
 
         {/* Sound toggle — video autoplays muted (browser requirement), visitor can turn it on */}
-        {siteSettings.heroVideoData && (
+        {siteSettings.hasHeroVideo && (
           <button
             type="button"
             onClick={toggleVideoSound}

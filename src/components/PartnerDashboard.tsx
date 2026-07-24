@@ -374,17 +374,21 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
 
-  // Homepage hero video form (site-wide singleton, synced from siteSettings query)
+  // Homepage hero video form. La vidéo existante n'est plus chargée en base64
+  // (perf) : on sait seulement s'il y en a une (hasExistingVideo) et on la
+  // prévisualise via /api/media/hero-video. `newVideoData` = un nouvel upload.
   const [heroForm, setHeroForm] = useState({
-    heroVideoData: '',
-    heroVideoMimeType: '',
+    newVideoData: '',
+    newVideoMimeType: '',
+    hasExistingVideo: false,
   })
 
   useEffect(() => {
     if (siteSettings) {
       setHeroForm({
-        heroVideoData: siteSettings.heroVideoData || '',
-        heroVideoMimeType: siteSettings.heroVideoMimeType || '',
+        newVideoData: '',
+        newVideoMimeType: '',
+        hasExistingVideo: !!(siteSettings as any).hasHeroVideo,
       })
     }
   }, [siteSettings])
@@ -603,14 +607,23 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     reader.onload = () => {
       const result = reader.result as string
       const base64 = result.split(',')[1] || ''
-      setHeroForm(p => ({ ...p, heroVideoData: base64, heroVideoMimeType: file.type }))
+      setHeroForm(p => ({ ...p, newVideoData: base64, newVideoMimeType: file.type }))
     }
     reader.readAsDataURL(file)
   }
 
   const handleSaveHero = async () => {
+    // On n'envoie la vidéo QUE si un nouvel upload a eu lieu ; sinon on ne
+    // touche pas à la vidéo existante (évite de l'effacer par accident).
+    if (!heroForm.newVideoData) {
+      showToast('Aucune nouvelle vidéo à enregistrer.')
+      return
+    }
     try {
-      await updateSiteSettingsMut.mutateAsync(heroForm)
+      await updateSiteSettingsMut.mutateAsync({
+        heroVideoData: heroForm.newVideoData,
+        heroVideoMimeType: heroForm.newVideoMimeType,
+      })
       showToast('Hero de la page d\'accueil mis à jour avec succès.')
       refetchSiteSettings()
     } catch (err: any) {
@@ -621,10 +634,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   // "Retirer" saves immediately — otherwise the video stays live on the public
   // site until the admin remembers to also click "Sauvegarder le Hero".
   const handleRemoveHeroVideo = async () => {
-    const cleared = { ...heroForm, heroVideoData: '', heroVideoMimeType: '' }
-    setHeroForm(cleared)
+    setHeroForm(p => ({ ...p, newVideoData: '', newVideoMimeType: '', hasExistingVideo: false }))
     try {
-      await updateSiteSettingsMut.mutateAsync(cleared)
+      await updateSiteSettingsMut.mutateAsync({ removeHeroVideo: true })
       showToast('Vidéo retirée du site.')
       refetchSiteSettings()
     } catch (err: any) {
@@ -2557,14 +2569,17 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Vidéo (MP4/WEBM, 20 Mo max)</label>
               <div className="h-32 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden mb-2">
-                {heroForm.heroVideoData ? (
+                {heroForm.newVideoData ? (
                   <video
-                    src={`data:${heroForm.heroVideoMimeType || 'video/mp4'};base64,${heroForm.heroVideoData}`}
+                    src={`data:${heroForm.newVideoMimeType || 'video/mp4'};base64,${heroForm.newVideoData}`}
                     className="h-full w-full object-cover"
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
+                    muted loop autoPlay playsInline
+                  />
+                ) : heroForm.hasExistingVideo ? (
+                  <video
+                    src="/api/media/hero-video"
+                    className="h-full w-full object-cover"
+                    muted loop autoPlay playsInline
                   />
                 ) : (
                   <Video className="h-6 w-6 text-slate-300" />
@@ -2576,7 +2591,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   Importer une vidéo
                   <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={handleHeroVideoChange} />
                 </label>
-                {heroForm.heroVideoData && (
+                {(heroForm.newVideoData || heroForm.hasExistingVideo) && (
                   <button
                     type="button"
                     onClick={handleRemoveHeroVideo}
