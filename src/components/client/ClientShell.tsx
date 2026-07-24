@@ -45,7 +45,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const tier = getTravelerTier(points?.balance ?? 0)
 
   return (
-    <div className="min-h-screen bg-[var(--surface-alt)] text-[var(--ink-900)]">
+    <div className="relative z-10 min-h-screen bg-[var(--surface-alt)] text-[var(--ink-900)]">
       {/* Fin liseré de marque, statique et sobre */}
       <div className="h-[3px] bg-[var(--brand-500)]" aria-hidden="true" />
 

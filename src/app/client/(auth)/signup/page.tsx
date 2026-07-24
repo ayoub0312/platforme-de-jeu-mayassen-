@@ -27,7 +27,7 @@ export default function ClientSignupPage() {
   const inputCls = 'w-full h-11 bg-[var(--surface-alt)] border border-black/[0.08] rounded-xl px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]/25 focus:border-[var(--brand-500)] transition-shadow'
 
   return (
-    <div className="min-h-screen bg-[var(--surface-alt)] flex items-center justify-center px-6 py-12">
+    <div className="relative z-10 min-h-screen bg-[var(--surface-alt)] flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-8">
           <div className="h-9 w-9 rounded-lg bg-[var(--brand-500)] flex items-center justify-center text-white font-display font-semibold" aria-hidden="true">O</div>
