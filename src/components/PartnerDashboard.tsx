@@ -15,6 +15,7 @@ import { CampaignWizard } from './admin/campaign-wizard/CampaignWizard'
 import { SortableBannerList } from './admin/SortableBannerList'
 import { WinnersTab } from './admin/WinnersTab'
 import { SettingsTab } from './admin/SettingsTab'
+import { ApiDocsTab } from './admin/ApiDocsTab'
 import { CampaignCard } from './admin/CampaignCard'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
@@ -63,7 +64,8 @@ import {
   Clock,
   Sparkles,
   Coins,
-  Wallet
+  Wallet,
+  Webhook
 } from 'lucide-react'
 
 interface PartnerDashboardProps {
@@ -73,7 +75,7 @@ interface PartnerDashboardProps {
   allPartnersForSwitcher?: { id: string; name: string }[]
 }
 
-type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'clients' | 'receipts' | 'homepage' | 'loyalty' | 'settings'
+type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'clients' | 'receipts' | 'homepage' | 'loyalty' | 'api' | 'settings'
 
 // Schémas de validation FR — messages affichés sous chaque champ (voir Input.error).
 const partnerFormSchema = z.object({
@@ -1009,6 +1011,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         { id: 'users', label: 'Utilisateurs', icon: UserCheck },
         { id: 'clients', label: 'Clients', icon: Users },
         { id: 'loyalty', label: 'Fidélité', icon: Sparkles },
+        { id: 'api', label: 'API', icon: Webhook },
         { id: 'homepage', label: "Page d'Accueil", icon: LayoutTemplate },
         { id: 'settings', label: 'Paramètres', icon: Settings },
       ]
@@ -2671,6 +2674,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
       )}
 
       {/* TAB CONTENT: SETTINGS */}
+      {activeTab === 'api' && <ApiDocsTab />}
       {activeTab === 'settings' && <SettingsTab />}
 
       </div> {/* closes max-w-[1600px] wrapper */}

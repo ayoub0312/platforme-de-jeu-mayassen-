@@ -1954,6 +1954,18 @@ export const appRouter = router({
 
   // Configuration du programme de fidélité « Points Merci » (Phase 1).
   // Stockée dans la ligne SiteSettings globale (id 'main'). Voir PLAN_FIDELITE.md.
+  // Config d'intégration API (obooking.tn) — réservé super admin. Renvoie l'URL
+  // de base et le secret partagé, que l'admin transmet à l'équipe obooking.tn.
+  getIntegrationConfig: superAdminProcedure.query(async () => {
+    const baseUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '')
+    const secret = process.env.SHARED_API_SECRET || ''
+    return {
+      baseUrl,
+      sharedSecret: secret,
+      secretConfigured: secret.trim() !== '',
+    }
+  }),
+
   updateLoyaltyConfig: superAdminProcedure
     .input(
       z.object({
