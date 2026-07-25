@@ -96,7 +96,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
   const handleFollowSocial = () => {
     if (!activeCampaign) return
     if (playerInfo?.completedTasks?.includes('FOLLOW_SOCIAL')) return
-    window.open('https://instagram.com/obooking', '_blank')
+    window.open('https://www.instagram.com/obookingtn', '_blank')
     claimTaskMutation.mutate(
       {
         email: playerEmail || '',

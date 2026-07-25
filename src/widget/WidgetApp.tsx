@@ -226,7 +226,7 @@ export function WidgetApp({ partnerId, partnerName, initialUserEmail, initialUse
   const handleFollowSocial = () => {
     if (!activeCampaign || !playerEmail) return
     if (playerInfo?.completedTasks?.includes('FOLLOW_SOCIAL')) return
-    window.open('https://instagram.com/obooking', '_blank')
+    window.open('https://www.instagram.com/obookingtn', '_blank')
     claimTaskMutation.mutate(
       {
         email: playerEmail,
