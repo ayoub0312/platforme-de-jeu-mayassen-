@@ -1632,6 +1632,108 @@ export const appRouter = router({
   // Gagnants (UserPrize) — suivi PENDING → CONTACTED → DELIVERED / RETRIEVED
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Liste consolidée des participants, une ligne par personne sur toutes les
+  // campagnes. PARTNER : toujours ses propres campagnes (input ignoré) ;
+  // SUPERADMIN : le partenaire affiché dans le tableau de bord, ou tous.
+  getParticipants: partnerProcedure
+    .input(z.object({ partnerId: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const session = ctx.userSession!
+      const partnerId = session.role === Role.SUPERADMIN ? input?.partnerId : session.partnerId
+      const campaignWhere = partnerId ? { partnerId } : {}
+      const tokenValidityThreshold = new Date()
+      tokenValidityThreshold.setDate(tokenValidityThreshold.getDate() - TOKEN_VALIDITY_DAYS)
+
+      const [leads, usedTokens, remainingTokens, wins] = await Promise.all([
+        prisma.leadCapture.findMany({
+          where: { campaign: campaignWhere },
+          select: {
+            source: true,
+            createdAt: true,
+            user: { select: { id: true, name: true, email: true, phone: true } },
+            campaign: { select: { id: true, title: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
+        prisma.playToken.groupBy({
+          by: ['userId'],
+          where: { campaign: campaignWhere, status: TokenStatus.USED },
+          _count: { _all: true },
+        }),
+        prisma.playToken.groupBy({
+          by: ['userId'],
+          where: { campaign: campaignWhere, status: TokenStatus.UNUSED, createdAt: { gte: tokenValidityThreshold } },
+          _count: { _all: true },
+        }),
+        prisma.userPrize.findMany({
+          where: { prize: { campaign: campaignWhere } },
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+            claimedAt: true,
+            prize: { select: { name: true, campaign: { select: { title: true } } } },
+          },
+          orderBy: { claimedAt: 'desc' },
+        }),
+      ])
+
+      const participants = new Map<string, {
+        id: string
+        name: string | null
+        email: string
+        phone: string | null
+        firstParticipationAt: Date
+        lastParticipationAt: Date
+        campaigns: { id: string; title: string }[]
+        sources: string[]
+        spinsUsed: number
+        spinsRemaining: number
+        prizes: { id: string; prizeName: string; campaignTitle: string; status: string; claimedAt: Date }[]
+      }>()
+
+      for (const lead of leads) {
+        let row = participants.get(lead.user.id)
+        if (!row) {
+          row = {
+            ...lead.user,
+            firstParticipationAt: lead.createdAt,
+            lastParticipationAt: lead.createdAt,
+            campaigns: [],
+            sources: [],
+            spinsUsed: 0,
+            spinsRemaining: 0,
+            prizes: [],
+          }
+          participants.set(lead.user.id, row)
+        }
+        row.campaigns.push(lead.campaign)
+        if (!row.sources.includes(lead.source)) row.sources.push(lead.source)
+        row.lastParticipationAt = lead.createdAt
+      }
+      for (const t of usedTokens) {
+        const row = participants.get(t.userId)
+        if (row) row.spinsUsed = t._count._all
+      }
+      for (const t of remainingTokens) {
+        const row = participants.get(t.userId)
+        if (row) row.spinsRemaining = t._count._all
+      }
+      for (const w of wins) {
+        participants.get(w.userId)?.prizes.push({
+          id: w.id,
+          prizeName: w.prize.name,
+          campaignTitle: w.prize.campaign.title,
+          status: w.status,
+          claimedAt: w.claimedAt,
+        })
+      }
+
+      return [...participants.values()].sort(
+        (a, b) => b.lastParticipationAt.getTime() - a.lastParticipationAt.getTime()
+      )
+    }),
+
   getAllWinners: adminProcedure.query(async ({ ctx }) => {
     const session = ctx.userSession!
     let partnerId: string | null = null

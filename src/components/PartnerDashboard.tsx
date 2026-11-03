@@ -14,6 +14,7 @@ import { DataTable } from './admin/DataTable'
 import { CampaignWizard } from './admin/campaign-wizard/CampaignWizard'
 import { SortableBannerList } from './admin/SortableBannerList'
 import { WinnersTab } from './admin/WinnersTab'
+import { ParticipantsTab } from './admin/ParticipantsTab'
 import { SettingsTab } from './admin/SettingsTab'
 import { ApiDocsTab } from './admin/ApiDocsTab'
 import { CampaignCard } from './admin/CampaignCard'
@@ -75,7 +76,7 @@ interface PartnerDashboardProps {
   allPartnersForSwitcher?: { id: string; name: string }[]
 }
 
-type TabType = 'dashboard' | 'leads' | 'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'clients' | 'receipts' | 'homepage' | 'loyalty' | 'api' | 'settings'
+type TabType = 'dashboard' | 'leads' | 'participants' |'partners' | 'campaigns' | 'prizes' | 'winners' | 'users' | 'clients' | 'receipts' | 'homepage' | 'loyalty' | 'api' | 'settings'
 
 // Schémas de validation FR — messages affichés sous chaque champ (voir Input.error).
 const partnerFormSchema = z.object({
@@ -1009,6 +1010,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const navItems: AdminNavItem[] = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'leads', label: 'Leads & Stats', icon: BarChart3 },
+    ...(canManageCampaigns ? [{ id: 'participants', label: 'Participants', icon: Users }] : []),
     { id: 'winners', label: 'Gagnants', icon: Trophy },
     { id: 'receipts', label: 'Tickets à vérifier', icon: CheckCircle },
     ...(canManageCampaigns && !isSuperAdmin
@@ -1345,6 +1347,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* TAB CONTENT: GAGNANTS */}
       {activeTab === 'winners' && <WinnersTab />}
+
+      {/* TAB CONTENT: PARTICIPANTS (toutes campagnes) */}
+      {activeTab === 'participants' && <ParticipantsTab partnerId={isSuperAdmin ? partnerId : undefined} />}
 
       {/* TAB CONTENT: TICKETS MODERATION */}
       {activeTab === 'receipts' && (
