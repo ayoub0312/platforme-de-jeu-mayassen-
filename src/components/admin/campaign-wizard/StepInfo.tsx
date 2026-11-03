@@ -10,9 +10,10 @@ interface StepInfoProps {
   info: WizardInfoState
   setInfo: (updater: (prev: WizardInfoState) => WizardInfoState) => void
   partners: { id: string; name: string }[]
+  hidePartnerSelect?: boolean
 }
 
-export function StepInfo({ info, setInfo, partners }: StepInfoProps) {
+export function StepInfo({ info, setInfo, partners, hidePartnerSelect }: StepInfoProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -60,14 +61,16 @@ export function StepInfo({ info, setInfo, partners }: StepInfoProps) {
           {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </Select>
 
-        <Select
-          label="Partenaire B2B"
-          value={info.partnerId}
-          onChange={(e) => setInfo((p) => ({ ...p, partnerId: e.target.value }))}
-        >
-          <option value="">Aucun — Campagne système générale</option>
-          {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Select>
+        {!hidePartnerSelect && (
+          <Select
+            label="Partenaire B2B"
+            value={info.partnerId}
+            onChange={(e) => setInfo((p) => ({ ...p, partnerId: e.target.value }))}
+          >
+            <option value="">Aucun — Campagne système générale</option>
+            {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

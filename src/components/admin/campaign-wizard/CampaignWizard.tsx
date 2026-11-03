@@ -31,9 +31,12 @@ export interface CampaignWizardProps {
   open: boolean
   onClose: () => void
   partners: { id: string; name: string }[]
+  // Compte partenaire : la campagne lui appartient d'office (imposé par le
+  // serveur), on masque donc le choix du partenaire.
+  fixedPartnerName?: string
 }
 
-export function CampaignWizard({ open, onClose, partners }: CampaignWizardProps) {
+export function CampaignWizard({ open, onClose, partners, fixedPartnerName }: CampaignWizardProps) {
   const toast = useToast()
   const utils = trpc.useUtils()
 
@@ -197,7 +200,7 @@ export function CampaignWizard({ open, onClose, partners }: CampaignWizardProps)
     }
   }
 
-  const partnerName = partners.find((p) => p.id === info.partnerId)?.name || 'Obooking (campagne système)'
+  const partnerName = fixedPartnerName ?? (partners.find((p) => p.id === info.partnerId)?.name || 'Obooking (campagne système)')
 
   return (
     <Modal open={open} onClose={handleClose} title="Nouvelle campagne" maxWidthClassName="max-w-3xl">
@@ -245,7 +248,7 @@ export function CampaignWizard({ open, onClose, partners }: CampaignWizardProps)
           exit={{ opacity: 0, x: -12 }}
           transition={{ duration: 0.2 }}
         >
-          {step === 0 && <StepInfo info={info} setInfo={setInfo} partners={partners} />}
+          {step === 0 && <StepInfo info={info} setInfo={setInfo} partners={partners} hidePartnerSelect={!!fixedPartnerName} />}
           {step === 1 && <StepGameType gameMode={gameData.gameMode} onChange={(mode) => setGameData((g) => ({ ...g, gameMode: mode }))} />}
           {step === 2 && (
             gameData.gameMode === 'ROULETTE'

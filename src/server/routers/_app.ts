@@ -7,7 +7,7 @@ import { ADMIN_SESSION_COOKIE, CUSTOMER_SESSION_COOKIE, sessionCookie, clearedSe
 import { creditPendingPurchases } from '../../lib/loyalty-api'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
-import { createSessionToken, createCustomerSessionToken } from '../../lib/auth'
+import { createSessionToken, createCustomerSessionToken, type UserSession } from '../../lib/auth'
 import bcrypt from 'bcryptjs'
 import { encryptSecret } from '../../lib/crypto'
 import { sendWinnerEmail, sendDrawRegistrationEmail, sendCustomerPasswordResetEmail } from '../../lib/mailer'
@@ -105,6 +105,34 @@ async function getDummyPasswordHash(): Promise<string> {
 }
 
 class TokenAlreadyUsedError extends Error {}
+
+// Charge une campagne et vérifie que la session peut la gérer : un SUPERADMIN
+// gère tout, un PARTNER uniquement les campagnes de son propre partenaire.
+async function loadManageableCampaign(session: UserSession, campaignId: string) {
+  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
+  if (!campaign) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Campagne introuvable.' })
+  }
+  if (session.role !== Role.SUPERADMIN && campaign.partnerId !== session.partnerId) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: "Cette campagne n'appartient pas à votre partenaire." })
+  }
+  return campaign
+}
+
+// Partenaire propriétaire d'une campagne créée/modifiée : imposé par la
+// session pour un PARTNER (jamais lu depuis l'input), choisi librement par
+// un SUPERADMIN.
+async function resolveCampaignPartnerId(session: UserSession, requested: string | null | undefined): Promise<string | null> {
+  if (session.role !== Role.SUPERADMIN) return session.partnerId ?? null
+  const sanitized = (requested && requested.trim() !== '' && requested !== 'null') ? requested : null
+  if (sanitized) {
+    const partnerExists = await prisma.partner.findUnique({ where: { id: sanitized } })
+    if (!partnerExists) {
+      throw new Error("Le partenaire sélectionné n'existe pas. Veuillez rafraîchir la page.")
+    }
+  }
+  return sanitized
+}
 
 // Champs d'une ligne User qui peuvent sortir vers un client non authentifié.
 function toPublicPlayer(user: { id: string; name: string | null; email: string; referralCode: string | null }) {
@@ -2174,8 +2202,10 @@ export const appRouter = router({
     }),
 
   // Campaigns CRUD
-  getAllCampaigns: superAdminProcedure.query(async () => {
+  getAllCampaigns: partnerProcedure.query(async ({ ctx }) => {
+    const session = ctx.userSession!
     const campaigns = await prisma.campaign.findMany({
+      where: session.role === Role.SUPERADMIN ? {} : { partnerId: session.partnerId },
       include: {
         partner: { select: { name: true, id: true } },
         _count: { select: { leads: true, prizes: true } },
@@ -2189,7 +2219,7 @@ export const appRouter = router({
     }))
   }),
 
-  createCampaign: superAdminProcedure
+  createCampaign: partnerProcedure
     .input(
       z.object({
         partnerId: z.string().nullable().optional(),
@@ -2220,17 +2250,9 @@ export const appRouter = router({
         promoUrl: z.string().nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const sanitizedPartnerId = (input.partnerId && input.partnerId.trim() !== '' && input.partnerId !== 'null') ? input.partnerId : null;
-      if (sanitizedPartnerId) {
-        const partnerExists = await prisma.partner.findUnique({
-          where: { id: sanitizedPartnerId }
-        })
-        if (!partnerExists) {
-          throw new Error("Le partenaire sélectionné n'existe pas. Veuillez rafraîchir la page.")
-        }
-      }
-      return prisma.campaign.create({
+    .mutation(async ({ input, ctx }) => {
+      const sanitizedPartnerId = await resolveCampaignPartnerId(ctx.userSession!, input.partnerId)
+      const created = await prisma.campaign.create({
         data: {
           partnerId: sanitizedPartnerId,
           title: input.title,
@@ -2259,10 +2281,19 @@ export const appRouter = router({
           promoDesc: input.promoDesc || null,
           promoUrl: input.promoUrl || null,
         },
+        omit: { senderEmailPassword: true },
       })
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: 'CREATE_CAMPAIGN',
+        targetType: 'Campaign',
+        targetId: created.id,
+        partnerId: sanitizedPartnerId ?? undefined,
+      })
+      return created
     }),
 
-  updateCampaign: superAdminProcedure
+  updateCampaign: partnerProcedure
     .input(
       z.object({
         id: z.string(),
@@ -2294,17 +2325,10 @@ export const appRouter = router({
         promoUrl: z.string().nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const sanitizedPartnerId = (input.partnerId && input.partnerId.trim() !== '' && input.partnerId !== 'null') ? input.partnerId : null;
-      if (sanitizedPartnerId) {
-        const partnerExists = await prisma.partner.findUnique({
-          where: { id: sanitizedPartnerId }
-        })
-        if (!partnerExists) {
-          throw new Error("Le partenaire sélectionné n'existe pas. Veuillez rafraîchir la page.")
-        }
-      }
-      return prisma.campaign.update({
+    .mutation(async ({ input, ctx }) => {
+      await loadManageableCampaign(ctx.userSession!, input.id)
+      const sanitizedPartnerId = await resolveCampaignPartnerId(ctx.userSession!, input.partnerId)
+      const updated = await prisma.campaign.update({
         where: { id: input.id },
         data: {
           partnerId: sanitizedPartnerId,
@@ -2335,21 +2359,53 @@ export const appRouter = router({
           promoDesc: input.promoDesc || null,
           promoUrl: input.promoUrl || null,
         },
+        omit: { senderEmailPassword: true },
       })
+      await logActivity({
+        userEmail: ctx.userSession!.email,
+        action: 'UPDATE_CAMPAIGN',
+        targetType: 'Campaign',
+        targetId: input.id,
+        partnerId: sanitizedPartnerId ?? undefined,
+      })
+      return updated
     }),
 
-  toggleCampaignActive: superAdminProcedure
+  toggleCampaignActive: partnerProcedure
     .input(z.object({ id: z.string(), isActive: z.boolean() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await loadManageableCampaign(ctx.userSession!, input.id)
       return prisma.campaign.update({
         where: { id: input.id },
         data: { isActive: input.isActive },
+        omit: { senderEmailPassword: true },
       })
     }),
 
-  deleteCampaign: superAdminProcedure
+  deleteCampaign: partnerProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const session = ctx.userSession!
+      await loadManageableCampaign(session, input.id)
+      // Supprimer une campagne efface aussi ses participants et les lots
+      // gagnés (bons d'achat). Un partenaire ne peut donc supprimer qu'une
+      // campagne sans participants ; sinon il la désactive.
+      if (session.role !== Role.SUPERADMIN) {
+        const leadsCount = await prisma.leadCapture.count({ where: { campaignId: input.id } })
+        if (leadsCount > 0) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Cette campagne a déjà ${leadsCount} participant(s) : désactivez-la plutôt que de la supprimer.`,
+          })
+        }
+      }
+      await logActivity({
+        userEmail: session.email,
+        action: 'DELETE_CAMPAIGN',
+        targetType: 'Campaign',
+        targetId: input.id,
+        partnerId: session.partnerId ?? undefined,
+      })
       return prisma.$transaction(async (tx) => {
         // Delete UserPrizes won in prizes of this campaign
         await tx.userPrize.deleteMany({
@@ -2378,9 +2434,10 @@ export const appRouter = router({
   // ensuite l'ajuster et la publier sans repartir de zéro. Les liens de
   // fallback entre lots ne sont pas copiés (ils pointeraient vers l'ancienne
   // campagne) ; l'admin peut les redéfinir dans le wizard.
-  duplicateCampaign: superAdminProcedure
+  duplicateCampaign: partnerProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await loadManageableCampaign(ctx.userSession!, input.id)
       const original = await prisma.campaign.findUnique({
         where: { id: input.id },
         include: { prizes: true },
@@ -2397,6 +2454,7 @@ export const appRouter = router({
           isActive: false,
           isDraft: true,
         },
+        omit: { senderEmailPassword: true },
       })
 
       if (prizes.length > 0) {

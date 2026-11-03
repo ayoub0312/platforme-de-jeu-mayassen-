@@ -112,6 +112,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const router = useRouter()
   const isAuthenticated = !!initialSession
   const isSuperAdmin = initialSession?.role === 'SUPERADMIN'
+  // Un partenaire gère ses propres campagnes (le serveur filtre par partnerId).
+  const canManageCampaigns = isSuperAdmin || initialSession?.role === 'PARTNER'
 
   // Login Form States
   const [loginEmail, setLoginEmail] = useState('')
@@ -223,7 +225,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   )
   const { data: campaigns, refetch: refetchCampaigns, isLoading: campaignsLoading } = trpc.getAllCampaigns.useQuery(
     undefined,
-    { enabled: isAuthenticated && isSuperAdmin }
+    { enabled: isAuthenticated && canManageCampaigns }
   )
   const { data: prizes, refetch: refetchPrizes, isLoading: prizesLoading } = trpc.getAllPrizes.useQuery(
     undefined,
@@ -453,6 +455,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const isLoading = isAuthenticated && (
     (!!partnerId && statsLoading) ||
     receiptsLoading ||
+    (canManageCampaigns && campaignsLoading) ||
     (isSuperAdmin && (partnersLoading || campaignsLoading || prizesLoading || usersLoading || siteSettingsLoading || promoBannersLoading))
   )
 
@@ -554,10 +557,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
   const refetchAll = () => {
     refetchStats()
     refetchReceipts()
+    if (canManageCampaigns) refetchCampaigns()
     if (isSuperAdmin) {
       refetchPartners()
       refetchPendingPartners()
-      refetchCampaigns()
       refetchPrizes()
       refetchUsers()
       refetchSiteSettings()
@@ -1008,6 +1011,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     { id: 'leads', label: 'Leads & Stats', icon: BarChart3 },
     { id: 'winners', label: 'Gagnants', icon: Trophy },
     { id: 'receipts', label: 'Tickets à vérifier', icon: CheckCircle },
+    ...(canManageCampaigns && !isSuperAdmin
+      ? [{ id: 'campaigns', label: 'Mes campagnes', icon: Sliders }]
+      : []),
     ...(isSuperAdmin
       ? [
         { id: 'partners', label: 'Partenaires', icon: Globe, badge: pendingPartners?.length || 0 },
@@ -1049,12 +1055,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="font-display text-2xl font-semibold text-ink-900">
-              {isSuperAdmin ? "Console d'Administration" : "Statistiques & Activité"}
+              {isSuperAdmin ? "Console d'Administration" : "Mon espace partenaire"}
             </h2>
             <p className="text-ink-500 text-sm mt-1">
               {isSuperAdmin
                 ? 'Gérez globalement vos Partenaires, Campagnes, Cadeaux (Lots) et Utilisateurs tout en visualisant le suivi analytique.'
-                : 'Visualisez les leads capturés et exportez vos statistiques de campagne.'}
+                : 'Créez et gérez vos campagnes, suivez vos leads et exportez vos statistiques.'}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -1619,8 +1625,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Gestion des Campagnes</h3>
-              <p className="text-slate-450 text-xs mt-1">Associez des campagnes à vos partenaires et déterminez les périodes de validité.</p>
+              <h3 className="text-xl font-bold text-slate-800">{isSuperAdmin ? 'Gestion des Campagnes' : 'Mes campagnes'}</h3>
+              <p className="text-slate-450 text-xs mt-1">
+                {isSuperAdmin
+                  ? 'Associez des campagnes à vos partenaires et déterminez les périodes de validité.'
+                  : 'Créez vos roulettes et tirages au sort, configurez les lots, activez ou mettez en pause vos campagnes.'}
+              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -1635,17 +1645,19 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 />
               </div>
 
-              <select
-                value={campaignPartnerFilter}
-                onChange={(e) => setCampaignPartnerFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
-              >
-                <option value="all">Toutes les entreprises</option>
-                <option value="system">Système Général</option>
-                {partners?.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              {isSuperAdmin && (
+                <select
+                  value={campaignPartnerFilter}
+                  onChange={(e) => setCampaignPartnerFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                >
+                  <option value="all">Toutes les entreprises</option>
+                  <option value="system">Système Général</option>
+                  {partners?.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              )}
 
               <button
                 onClick={() => setWizardOpen(true)}
@@ -3057,19 +3069,21 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Partenaire B2B Propriétaire</label>
-                <select
-                  value={campaignForm.partnerId}
-                  onChange={(e) => setCampaignForm(p => ({ ...p, partnerId: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
-                >
-                  <option value="">Aucun - Campagne Système Générale</option>
-                  {partners?.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
+              {isSuperAdmin && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Partenaire B2B Propriétaire</label>
+                  <select
+                    value={campaignForm.partnerId}
+                    onChange={(e) => setCampaignForm(p => ({ ...p, partnerId: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                  >
+                    <option value="">Aucun - Campagne Système Générale</option>
+                    {partners?.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -3864,6 +3878,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           refetchAll()
         }}
         partners={partners || []}
+        fixedPartnerName={isSuperAdmin ? undefined : (stats?.name || 'Mon entreprise')}
       />
 
       <ConfirmModal
