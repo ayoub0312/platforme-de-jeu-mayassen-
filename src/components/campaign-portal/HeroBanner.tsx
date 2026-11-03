@@ -61,11 +61,9 @@ export function HeroBanner({
   const slide = slides[Math.min(activeIndex, slides.length - 1)]
   const partnerName = activeCampaign.partner?.name || 'Obooking'
 
-  const isDraw = activeCampaign.gameMode === 'DRAW'
   const goPlay = () => {
     if (playerEmail) {
-      setActiveTab(isDraw ? 'draws' : 'challenges')
-      document.getElementById('play-zone')?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+      setActiveTab('challenges')
     } else {
       document.getElementById('play-zone')?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' })
     }
@@ -73,27 +71,25 @@ export function HeroBanner({
 
   return (
     <section
-      className="mb-10 rounded-[28px] bg-brand-500 overflow-hidden relative"
-      style={{ boxShadow: 'var(--shadow-premium-md)' }}
+      className="mb-10 rounded-2xl border border-rule bg-surface overflow-hidden"
+      style={{ boxShadow: 'var(--shadow-premium-sm)' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
       <div className="grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <div className="relative p-6 sm:p-10 flex flex-col min-w-0 text-ink-900">
-          <span aria-hidden="true" className="pointer-events-none absolute top-6 right-8 h-3 w-3 rounded-full bg-ambre-400" />
-          <span aria-hidden="true" className="pointer-events-none absolute bottom-8 right-16 h-3.5 w-3.5 rotate-45 rounded-[4px] bg-lagon-400" />
-          <p className="inline-flex w-fit items-center h-8 px-3.5 rounded-full bg-ink-900 text-white text-[13px] font-semibold">
+        <div className="p-6 sm:p-10 flex flex-col min-w-0">
+          <p className="text-[13px] text-ink-500">
             {partnerName} · jusqu’au {formatDate(activeCampaign.endDate)}
           </p>
 
           <div className="mt-3 min-h-[9.5rem]" aria-live="polite">
-            <h1 key={activeIndex} className="animate-fade-in text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] text-ink-900 [overflow-wrap:anywhere]">
+            <h1 key={activeIndex} className="animate-fade-in text-[clamp(1.75rem,3.6vw,2.75rem)] leading-[1.08] font-semibold tracking-[-0.03em] text-ink-900 [overflow-wrap:anywhere]">
               {slide.title}
             </h1>
             {slide.desc && (
-              <p className="mt-4 text-base sm:text-lg leading-relaxed text-ink-900 font-medium max-w-xl">{slide.desc}</p>
+              <p className="mt-4 text-[15px] sm:text-base leading-relaxed text-ink-700 max-w-xl">{slide.desc}</p>
             )}
           </div>
 
@@ -101,17 +97,17 @@ export function HeroBanner({
             <button
               type="button"
               onClick={goPlay}
-              className="btn-game-pop h-13 px-7 text-base"
+              className="inline-flex h-12 items-center gap-2 px-6 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-[15px] font-semibold transition-colors cursor-pointer whitespace-nowrap"
             >
-              {playerEmail ? (isDraw ? 'Voir le tirage' : 'Gagner des lancers') : 'Participer'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              {playerEmail ? 'Gagner des lancers' : 'Participer'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
             <a
               href="https://www.obooking.tn/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-13 items-center gap-1.5 px-5 rounded-full text-base font-bold text-ink-900 hover:bg-white/30 transition-colors whitespace-nowrap"
+              className="inline-flex h-12 items-center gap-1.5 px-5 rounded-full text-[15px] font-medium text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap"
             >
-              Visiter Obooking <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              Visiter Obooking <ArrowUpRight className="h-4 w-4 text-ink-500" aria-hidden="true" />
             </a>
           </div>
 
@@ -127,7 +123,7 @@ export function HeroBanner({
                   onClick={() => setActiveIndex(i)}
                   className="h-6 px-1 flex items-center cursor-pointer"
                 >
-                  <span className={`block h-1.5 rounded-full transition-[width,background-color] duration-200 ${i === activeIndex ? 'w-7 bg-ink-900' : 'w-3 bg-white/60'}`} />
+                  <span className={`block h-1 rounded-full transition-all duration-200 ${i === activeIndex ? 'w-6 bg-ink-900' : 'w-3 bg-rule-strong'}`} />
                 </button>
               ))}
             </div>
@@ -135,15 +131,15 @@ export function HeroBanner({
         </div>
 
         {realPrizes.length > 0 && (
-          <div className="bg-ambre-300 p-6 sm:p-8 min-w-0 lg:rounded-l-[28px]">
-            <h2 className="text-2xl text-ink-900">À gagner</h2>
+          <div className="border-t lg:border-t-0 lg:border-l border-rule bg-paper-2 p-6 sm:p-8 min-w-0">
+            <p className="text-[13px] font-medium text-ink-500">À gagner</p>
             <ul className="mt-4 space-y-3">
               {realPrizes.map((prize) => (
                 <li key={prize.id} className="flex items-center gap-3 min-w-0">
-                  <span className="h-10 w-10 rounded-2xl bg-ink-900 text-ambre-300 flex items-center justify-center shrink-0" aria-hidden="true">
+                  <span className="h-9 w-9 rounded-lg bg-surface border border-rule text-brand-700 flex items-center justify-center shrink-0" aria-hidden="true">
                     <Gift className="h-4 w-4" />
                   </span>
-                  <span className="text-base font-bold text-ink-900 truncate">{prize.name}</span>
+                  <span className="text-[15px] font-medium text-ink-900 truncate">{prize.name}</span>
                 </li>
               ))}
             </ul>
@@ -152,7 +148,7 @@ export function HeroBanner({
       </div>
 
       {(activeCampaign.promoTitle || activeCampaign.promoCode) && (
-        <div className="bg-surface px-6 sm:px-10 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="border-t border-rule px-6 sm:px-10 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[13px] text-ink-500">Offre du moment</p>
             {activeCampaign.promoTitle && (
@@ -181,7 +177,7 @@ export function HeroBanner({
                 href={activeCampaign.promoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-game h-10 px-4 text-sm"
+                className="inline-flex h-10 items-center gap-1.5 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors whitespace-nowrap"
               >
                 Réserver <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </a>

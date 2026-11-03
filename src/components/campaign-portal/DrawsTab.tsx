@@ -109,7 +109,7 @@ export function DrawsTab({
 
                       <button
                         onClick={handleJoinDraw}
-                        className="btn-game w-full h-12 text-[15px]"
+                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-[#FF6B47] hover:from-[#e85530] hover:to-[#FF6B47] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 cursor-pointer active:scale-95"
                       >
                         M'inscrire au tirage
                       </button>

@@ -5,71 +5,84 @@ partenaire, portail joueur, espace client, pages d'authentification). Chaque
 refonte de page lit ce fichier avant d'écrire du code. On ne le régénère pas
 page par page : on l'amende quand le système doit évoluer.
 
-Historique : une première version « modern-minimal » (sobre, encre et blanc)
-a été refusée — jugée pas assez « jeu », avec une typo et des boutons noirs
-qui ne plaisaient pas. Direction validée : **ludique et colorée**.
-
 ## Genre
-playful — thème « Hum » adapté à la marque : fond crème, corail de marque
-en couleur principale, jaune soleil et turquoise en accents, bleu nuit pour
-le texte. Vivant, festif, jamais enfantin.
+modern-minimal — thème « Coral » : papier gris chaud, un seul accent corail
+(la couleur de marque), une seule famille sans-serif, bordures fines plutôt
+qu'ombres lourdes, beaucoup d'espace.
 
 ## Familles de mise en page
-- **Public (accueil, page partenaire)** : bandeau hero corail (titre bleu
-  nuit, mot-clé surligné au marqueur jaune, bouton « cartoon », roue
-  illustrée ou vidéo hero), puis cartes colorées.
-- **App (back-office, espace client)** : barre latérale bleu nuit, élément
-  actif en pilule corail ; contenu sur fond crème, cartes blanches arrondies.
-- **Auth** : écran partagé — panneau corail avec la roue à gauche (grand
-  écran uniquement), formulaire à droite.
+- **App (back-office, espace client)** : Workbench — barre latérale claire,
+  barre supérieure fine, contenu sur grille régulière, surfaces cartes à
+  bordure fine. Aucun décor : la fonction porte la page.
+- **Public (accueil, page partenaire)** : hero deux colonnes (titre à gauche,
+  texte + action à droite) puis catalogue de campagnes en liste/grille
+  régulière. Pas d'étiquette « eyebrow » ni de soulignement décoratif sous
+  les titres de section.
+- **Auth (connexion, inscription, réinitialisation)** : formulaire seul,
+  centré, largeur 400 px, sans icône décorative au-dessus du titre.
 
-## Couleurs (tokens dans `src/app/globals.css`)
-- `--paper` oklch(97.6% 0.016 85) crème · `--paper-2` oklch(94.6% 0.028 85)
-- `--surface` oklch(99.6% 0.005 85) cartes et champs
-- `--rule` oklch(90.5% 0.022 80) · `--rule-strong` oklch(84% 0.03 78)
-- `--field` oklch(64% 0.03 265) contour des champs (≥ 3:1)
-- `--ink-900` oklch(26% 0.055 265) bleu nuit · `--ink-700` · `--ink-500`
-- `--brand-500` oklch(70% 0.19 38) corail de marque (#FF6B47) — fonds vifs
-- `--brand-600` oklch(57% 0.19 36) corail des boutons (texte blanc 4.9:1)
-- `--brand-700` oklch(49% 0.165 34) corail pour du texte sur fond clair
-- `--ambre-400` oklch(84% 0.16 85) jaune soleil (texte bleu nuit 9.5:1)
-- `--lagon-400` oklch(74% 0.12 190) turquoise (texte bleu nuit)
+## Thème (tokens dans `src/app/globals.css`)
+- `--paper`        oklch(98.4% 0.004 70)  fond de page
+- `--paper-2`      oklch(96.2% 0.006 70)  fond secondaire (barre latérale, zones)
+- `--surface`      oklch(99.7% 0.002 70)  cartes, champs
+- `--rule`         oklch(91.5% 0.007 70)  bordures
+- `--rule-strong`  oklch(85% 0.009 70)    séparateurs forts, boutons secondaires
+- `--field`        oklch(64% 0.01 60)     contour des champs de saisie (3.3:1)
+- `--ink-900`      oklch(21% 0.012 45)    texte principal, bouton primaire app
+- `--ink-700`      oklch(38% 0.012 45)    texte secondaire
+- `--ink-500`      oklch(52% 0.012 45)    texte tertiaire (≥ 4.5:1 sur paper)
+- `--brand-500`    oklch(70% 0.185 38)    corail de marque (#FF6B47) — décor, focus
+- `--brand-600`    oklch(57% 0.19 36)     corail des boutons (texte blanc, 4.9:1)
+- `--brand-700`    oklch(50% 0.165 35)    corail pour du texte sur fond clair
+- `--focus`        = brand-500, anneau 2 px + décalage 2 px
 
-Règles de contraste : sur `brand-500`, le texte est **bleu nuit** (5.4:1),
-jamais blanc (2.9:1). Le blanc n'est utilisé que sur `brand-600` et plus
-foncé. Le jaune et le turquoise portent toujours du texte bleu nuit.
-
-L'accent n'est pas limité à 5 % ici (exception assumée du genre) : le hero
-et les panneaux d'auth sont en corail plein. En revanche, pas de dégradé
-décoratif ni de texte en dégradé.
+L'accent occupe ≤ 5 % d'un écran : élément de navigation actif, anneau de
+focus, bouton d'action joueur, petites marques. Jamais en fond de section,
+jamais en dégradé décoratif, jamais en texte dégradé.
 
 ## Typographie
-- Titres (h1–h3) : Clash Display 600, interlettrage -0.01em, romain
-- Texte : Plus Jakarta Sans 400 / 600 / 700
-- Mono : Geist Mono (codes, références)
-- Poids maximal : 800.
+- Display : Geist 600, interlettrage -0.025em, toujours romain (pas d'italique)
+- Corps : Geist 400 / 500
+- Mono : Geist Mono 400 (codes, références, montants alignés)
+- Poids maximal 700 : `font-black` et `font-extrabold` sont remappés.
+- Échelle : 12 / 13 / 14 / 16 / 20 / 24 / 32 / clamp(2.25rem, 4vw, 3.5rem)
+
+## Espacement
+Échelle Tailwind de 4 px. Sections publiques : 96 px de respiration verticale
+(64 px sur mobile). Cartes : 20–24 px de padding.
 
 ## Rayons
-Cartes 18–28 px · champs 16 px · boutons et badges en pilule.
+- Cartes : 14 px · Champs : 10 px · Boutons : pilule (999 px) · Badges : 6 px
+- `rounded-3xl`, `rounded-2xl` remappés pour rester dans cette échelle.
 
-## Voix des boutons
-Boutons « à presser » : relief de 4 px sous le bouton, qui s'écrase au clic.
-- `.btn-game` : corail `brand-600`, texte blanc — action principale.
-- `.btn-game-pop` : jaune, contour et relief bleu nuit — action principale
-  posée sur un fond corail (hero).
-- `.btn-game-sun` : jaune sans contour · `.btn-game-light` : clair, secondaire.
-- Libellés : verbe + objet (« Voir les jeux », « Obtenir mes lancers »).
+## Ombres
+Une seule élévation pour les cartes (`--shadow-premium-sm`, quasi invisible) ;
+les menus et fenêtres modales prennent `--shadow-premium-lg`. Pas de halo
+coloré.
 
 ## Mouvement
-- Ressort (`--ease-spring`) réservé aux boutons à presser.
-- Roue décorative : rotation lente (28 s), coupée avec `prefers-reduced-motion`.
-- Cartes : léger soulèvement au survol. Pas de curseur personnalisé, pas de
-  barre de progression de scroll.
+- Easing unique `cubic-bezier(0.16, 1, 0.3, 1)` (`--ease-out`), 150–220 ms.
+- Pas de révélations au scroll dans l'app ; transitions de page en fondu court.
+- `prefers-reduced-motion: reduce` → opacité seule, ≤ 150 ms.
+- Retirés : curseur personnalisé, barre de progression de scroll, halos
+  animés en arrière-plan, ligne d'avion.
+
+## Micro-interactions
+- Succès silencieux (toast court, pas de confettis hors gain réel à la roue).
+- Survol : changement de fond/bordure 150 ms ; focus : anneau instantané.
+- La roue de la roulette et l'animation de gain restent l'unique moment
+  « spectacle » du produit.
+
+## Voix des boutons
+- Primaire app : fond `ink-900`, texte paper, pilule, hauteur 40 px.
+- Primaire joueur : fond `brand-600`, texte blanc 600, pilule, hauteur 48 px.
+- Secondaire : fond `surface`, bordure `rule-strong`, texte `ink-900`.
+- Libellés : verbe + objet (« Créer la campagne », « Tourner la roue »).
 
 ## Contenu honnête
-Aucun lot, chiffre ou promesse inventé : les titres et listes « à gagner »
-sont construits à partir des vrais lots de la base.
+Aucun lot, chiffre ou promesse inventé : les titres du portail joueur sont
+construits à partir des vrais lots de la campagne affichée.
 
 ## Ce que toutes les pages partagent
-Le logotype, Clash Display + Plus Jakarta Sans, la palette, la voix des
-boutons, les rayons.
+Le logotype, l'accent corail et sa discipline, Geist, la voix des boutons,
+les rayons, la couleur des bordures.

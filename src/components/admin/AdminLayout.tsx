@@ -63,16 +63,16 @@ export function AdminLayout({
   const sidebarContent = (
     <>
       <div className={`flex items-center gap-2.5 h-16 shrink-0 ${collapsed ? 'justify-center' : 'px-5'}`}>
-        <span className="h-8 w-8 rounded-xl bg-brand-500 flex items-center justify-center text-white font-display text-base font-semibold shrink-0" aria-hidden="true">
+        <span className="h-7 w-7 rounded-lg bg-brand-600 flex items-center justify-center text-white text-sm font-semibold shrink-0" aria-hidden="true">
           O
         </span>
         {!collapsed && (
-          <span className="font-display text-[17px] font-semibold text-white">Obooking Gift</span>
+          <span className="text-[15px] font-semibold text-ink-900 tracking-tight">Obooking Gift</span>
         )}
       </div>
 
       {!collapsed && (
-        <p className="px-5 pt-2 pb-2 text-xs font-semibold text-white/50">{WORKSPACE_LABELS[session.role] ?? 'Espace'}</p>
+        <p className="px-5 pt-2 pb-2 text-xs font-medium text-ink-500">{WORKSPACE_LABELS[session.role] ?? 'Espace'}</p>
       )}
 
       <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5" aria-label="Navigation principale">
@@ -86,20 +86,23 @@ export function AdminLayout({
               onClick={() => onNavigate(item.id)}
               title={collapsed ? item.label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative w-full flex items-center gap-2.5 h-10 rounded-xl text-sm font-semibold transition-colors duration-150 cursor-pointer ${
-                collapsed ? 'justify-center' : 'px-3'
+              className={`relative w-full flex items-center gap-2.5 h-9 rounded-lg text-sm transition-colors duration-150 cursor-pointer ${
+                collapsed ? 'justify-center' : 'px-2.5'
               } ${
                 isActive
-                  ? 'bg-brand-600 text-white shadow-[0_3px_0_var(--brand-700)]'
-                  : 'text-white/70 hover:text-white hover:bg-white/[0.07]'
+                  ? 'bg-surface text-ink-900 font-medium shadow-[0_0_0_1px_var(--rule)]'
+                  : 'text-ink-700 hover:text-ink-900 hover:bg-black/[0.035]'
               }`}
             >
-              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-white/55'}`} />
+              {isActive && !collapsed && (
+                <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-500" aria-hidden="true" />
+              )}
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-brand-600' : 'text-ink-500'}`} />
               {!collapsed && (
                 <>
                   <span className="truncate flex-1 text-left">{item.label}</span>
                   {!!item.badge && (
-                    <span className="shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center bg-ambre-400 text-ink-900 tabular-nums">
+                    <span className="shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-md text-[11px] font-semibold flex items-center justify-center bg-brand-50 text-brand-700 tabular-nums">
                       {item.badge}
                     </span>
                   )}
@@ -113,7 +116,7 @@ export function AdminLayout({
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
-        className={`hidden lg:flex items-center gap-2 h-11 shrink-0 text-white/50 hover:text-white text-xs font-semibold cursor-pointer border-t border-white/10 ${collapsed ? 'justify-center' : 'px-5'}`}
+        className={`hidden lg:flex items-center gap-2 h-11 shrink-0 text-ink-500 hover:text-ink-900 text-xs font-medium cursor-pointer border-t border-rule ${collapsed ? 'justify-center' : 'px-5'}`}
       >
         {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         {!collapsed && <span>Réduire le menu</span>}
@@ -125,8 +128,8 @@ export function AdminLayout({
     <div className="min-h-screen flex bg-paper">
       {/* Desktop sidebar */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 sticky top-0 h-screen bg-ink-900 transition-[width] duration-200 ${
-          collapsed ? 'w-[68px]' : 'w-64'
+        className={`hidden lg:flex flex-col shrink-0 sticky top-0 h-screen bg-paper-2 border-r border-rule transition-[width] duration-200 ${
+          collapsed ? 'w-[64px]' : 'w-60'
         }`}
       >
         {sidebarContent}
@@ -149,13 +152,13 @@ export function AdminLayout({
               animate={prefersReducedMotion ? { opacity: 1 } : { x: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { x: '-100%' }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-ink-900 lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-paper-2 border-r border-rule lg:hidden"
             >
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label="Fermer le menu"
-                className="absolute right-3 top-3.5 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 cursor-pointer"
+                className="absolute right-3 top-3.5 p-2 rounded-lg text-ink-500 hover:text-ink-900 hover:bg-black/[0.04] cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -180,7 +183,7 @@ export function AdminLayout({
           <div className="flex items-center gap-1.5 text-sm min-w-0">
             <span className="hidden sm:inline text-ink-500 whitespace-nowrap">{WORKSPACE_LABELS[session.role] ?? 'Espace'}</span>
             <span className="hidden sm:inline text-ink-500/50" aria-hidden="true">/</span>
-            <span className="text-ink-900 font-semibold truncate">{activeItem?.label ?? ''}</span>
+            <span className="text-ink-900 font-medium truncate">{activeItem?.label ?? ''}</span>
           </div>
 
           {onSearchChange && (
@@ -204,7 +207,7 @@ export function AdminLayout({
               aria-expanded={avatarMenuOpen}
               className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-full hover:bg-black/[0.04] cursor-pointer"
             >
-              <span className="h-8 w-8 rounded-full bg-lagon-400 text-ink-900 flex items-center justify-center text-[11px] font-bold shrink-0">
+              <span className="h-8 w-8 rounded-full bg-ink-900 text-paper flex items-center justify-center text-[11px] font-semibold shrink-0">
                 {initials}
               </span>
               <span className="hidden sm:flex flex-col items-start leading-tight min-w-0">

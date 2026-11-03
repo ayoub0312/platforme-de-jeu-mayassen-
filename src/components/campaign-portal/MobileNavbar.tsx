@@ -47,10 +47,10 @@ export function MobileNavbar({
               }
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-full transition-colors cursor-pointer ${
-              isActive ? 'bg-brand-600 text-white font-bold' : 'text-ink-700 hover:text-ink-900'
+              isActive ? 'bg-paper-2 text-ink-900 font-medium' : 'text-ink-500 hover:text-ink-900'
             }`}
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
+            <Icon className={`h-4 w-4 ${isActive ? 'text-brand-600' : ''}`} aria-hidden="true" />
             <span className="text-[11px]">{t.label}</span>
           </button>
         )

@@ -37,7 +37,7 @@ export default function ClientSignupPage() {
       {submitted ? (
         <AuthSuccess>
           <p>{submitted}</p>
-          <Link href="/client/login" className="mt-3 inline-flex h-9 items-center px-4 btn-game text-sm">
+          <Link href="/client/login" className="mt-3 inline-flex h-9 items-center px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors">
             Aller à la connexion
           </Link>
         </AuthSuccess>

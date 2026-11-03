@@ -1,56 +1,45 @@
-/* Hallmark · genre: playful · theme: Hum (adapté à la marque Obooking) · enrichment: Tier-A CSS art (roue)
- * design-system: design.md · designed-as-app
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench (app) + two-column hero (public)
+ * theme: Coral · design-system: design.md · designed-as-app
  */
 @import "tailwindcss";
 
 /* Tokens du design system — voir design.md. Les anciens noms (--brand-*,
    --ink-*, --surface*, --color-brand-*) sont conservés et pointent vers la
-   palette : tous les composants existants en héritent sans réécriture. */
+   nouvelle palette : tous les composants existants en héritent sans réécriture. */
 :root {
-  /* Fonds crème (teinte 85) */
-  --paper: oklch(97.6% 0.016 85);
-  --paper-2: oklch(94.6% 0.028 85);
-  --surface: oklch(99.6% 0.005 85);
+  --paper: oklch(98.4% 0.004 70);
+  --paper-2: oklch(96.2% 0.006 70);
+  --surface: oklch(99.7% 0.002 70);
   --surface-alt: var(--paper-2);
-  --rule: oklch(90.5% 0.022 80);
-  --rule-strong: oklch(84% 0.03 78);
-  /* Contour des champs : au moins 3:1 sur surface (WCAG 1.4.11). */
-  --field: oklch(64% 0.03 265);
+  --surface-dark: oklch(21% 0.012 45);
+  --rule: oklch(91.5% 0.007 70);
+  --rule-strong: oklch(85% 0.009 70);
+  /* Contour des champs : ≥ 3:1 sur surface (WCAG 1.4.11). */
+  --field: oklch(64% 0.01 60);
 
-  /* Encre bleu nuit (teinte 265) — reprise du « Nuit Voyage » de la marque */
-  --ink-900: oklch(26% 0.055 265);
-  --ink-700: oklch(39% 0.045 265);
-  --ink-500: oklch(50% 0.035 265);
-  --surface-dark: var(--ink-900);
+  --ink-900: oklch(21% 0.012 45);
+  --ink-700: oklch(38% 0.012 45);
+  --ink-500: oklch(52% 0.012 45);
 
-  /* Corail de marque */
-  --brand-50: oklch(95.5% 0.03 45);
-  --brand-100: oklch(91% 0.06 43);
+  --brand-50: oklch(97% 0.02 45);
   --brand-400: oklch(76% 0.15 39);
-  --brand-500: oklch(70% 0.19 38);
+  --brand-500: oklch(70% 0.185 38);
   --brand-600: oklch(57% 0.19 36);
-  --brand-700: oklch(49% 0.165 34);
-  --focus: oklch(55% 0.2 36);
+  --brand-700: oklch(50% 0.165 35);
+  --focus: var(--brand-500);
 
-  /* Jaune soleil (ambre) et turquoise (lagon) : accents ludiques */
-  --ambre-100: oklch(95% 0.06 92);
-  --ambre-300: oklch(88% 0.14 90);
-  --ambre-400: oklch(84% 0.16 85);
-  --ambre-500: oklch(79% 0.16 78);
-  --ambre-600: oklch(62% 0.14 70);
-  --ambre-700: oklch(52% 0.12 65);
+  --ambre-400: oklch(81% 0.13 75);
+  --ambre-500: oklch(75% 0.14 70);
+  --ambre-600: oklch(62% 0.13 65);
 
-  --lagon-100: oklch(94% 0.04 190);
-  --lagon-300: oklch(83% 0.1 190);
-  --lagon-400: oklch(74% 0.12 190);
-  --lagon-500: oklch(65% 0.12 192);
-  --lagon-600: oklch(52% 0.1 195);
-  --lagon-700: oklch(44% 0.085 198);
+  --lagon-400: oklch(73% 0.11 190);
+  --lagon-500: oklch(64% 0.11 190);
+  --lagon-600: oklch(55% 0.1 190);
 
-  --success: oklch(54% 0.14 152);
-  --danger: oklch(55% 0.21 27);
-  --warning: oklch(60% 0.15 62);
-  --info: oklch(52% 0.17 258);
+  --success: oklch(56% 0.14 150);
+  --danger: oklch(55% 0.2 27);
+  --warning: oklch(64% 0.15 65);
+  --info: oklch(54% 0.17 255);
 
   --background: var(--paper);
   --foreground: var(--ink-900);
@@ -65,82 +54,81 @@
   --color-brand-neutral-500: var(--ink-500);
   --color-brand-warm-white: var(--paper);
   --nuit-voyage: var(--ink-900);
-  --nuit-voyage-soft: oklch(33% 0.055 265);
+  --nuit-voyage-soft: oklch(28% 0.012 45);
 
+  /* Aplats, pas de dégradé décoratif : les classes qui l'utilisent restent valides. */
   --gradient-brand-signature: linear-gradient(var(--brand-600), var(--brand-600));
 
-  --radius-ds-sm: 12px;
-  --radius-ds-md: 18px;
-  --radius-ds-lg: 24px;
+  --radius-ds-sm: 10px;
+  --radius-ds-md: 14px;
+  --radius-ds-lg: 18px;
 
-  /* Ombres légèrement teintées de bleu nuit */
-  --shadow-premium-sm: 0 1px 2px oklch(26% 0.055 265 / 0.06), 0 2px 6px -2px oklch(26% 0.055 265 / 0.06);
-  --shadow-premium-md: 0 2px 4px oklch(26% 0.055 265 / 0.05), 0 12px 28px -14px oklch(26% 0.055 265 / 0.22);
-  --shadow-premium-lg: 0 4px 8px oklch(26% 0.055 265 / 0.06), 0 24px 48px -20px oklch(26% 0.055 265 / 0.3);
-  --shadow-premium-glow: 0 14px 32px -14px oklch(57% 0.19 36 / 0.55);
+  --shadow-premium-sm: 0 1px 2px oklch(21% 0.012 45 / 0.04);
+  --shadow-premium-md: 0 1px 2px oklch(21% 0.012 45 / 0.04), 0 8px 20px -10px oklch(21% 0.012 45 / 0.12);
+  --shadow-premium-lg: 0 2px 4px oklch(21% 0.012 45 / 0.04), 0 20px 40px -16px oklch(21% 0.012 45 / 0.22);
+  --shadow-premium-glow: var(--shadow-premium-md);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  /* Ressort réservé au bouton principal et à la roue (exception du thème Hum). */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur-short: 160ms;
 }
 
 /* Remappage des échelles Tailwind utilisées en dur dans le code (slate-*,
-   orange-*, rounded-*, font-black) vers le système : pas clairs = crème,
-   pas foncés = bleu nuit. Les pas non standard (slate-150/450/550/850)
-   existaient déjà dans le code sans être définis. */
+   orange-*, rounded-2xl/3xl, font-black) vers le système. Les pas non
+   standard (slate-150/450/550/850) existaient déjà dans le code sans être
+   définis : ils prennent désormais une vraie valeur. */
 @theme {
-  --color-slate-50: oklch(97.6% 0.016 85);
-  --color-slate-100: oklch(94.6% 0.028 85);
-  --color-slate-150: oklch(92.5% 0.025 82);
-  --color-slate-200: oklch(90.5% 0.022 80);
-  --color-slate-250: oklch(87% 0.026 79);
-  --color-slate-300: oklch(84% 0.03 78);
-  --color-slate-400: oklch(55% 0.035 265);
-  --color-slate-450: oklch(53% 0.035 265);
-  --color-slate-500: oklch(50% 0.035 265);
-  --color-slate-550: oklch(45% 0.04 265);
-  --color-slate-600: oklch(41% 0.045 265);
-  --color-slate-700: oklch(36% 0.05 265);
-  --color-slate-750: oklch(32% 0.052 265);
-  --color-slate-800: oklch(29% 0.055 265);
-  --color-slate-850: oklch(27% 0.055 265);
-  --color-slate-900: oklch(26% 0.055 265);
-  --color-slate-950: oklch(19% 0.045 265);
+  --color-slate-50: oklch(98.4% 0.004 70);
+  --color-slate-100: oklch(96.2% 0.006 70);
+  --color-slate-150: oklch(94% 0.007 70);
+  --color-slate-200: oklch(91.5% 0.007 70);
+  --color-slate-250: oklch(88% 0.008 70);
+  --color-slate-300: oklch(85% 0.009 70);
+  --color-slate-400: oklch(55% 0.011 60);
+  --color-slate-450: oklch(55% 0.012 55);
+  --color-slate-500: oklch(51% 0.012 50);
+  --color-slate-550: oklch(46% 0.012 48);
+  --color-slate-600: oklch(41% 0.012 45);
+  --color-slate-700: oklch(34% 0.012 45);
+  --color-slate-750: oklch(30% 0.012 45);
+  --color-slate-800: oklch(26% 0.012 45);
+  --color-slate-850: oklch(23% 0.012 45);
+  --color-slate-900: oklch(21% 0.012 45);
+  --color-slate-950: oklch(15% 0.01 45);
 
-  --color-orange-50: oklch(95.5% 0.03 45);
-  --color-orange-100: oklch(91% 0.06 43);
-  --color-orange-150: oklch(88.5% 0.075 42);
-  --color-orange-200: oklch(86% 0.09 41);
-  --color-orange-300: oklch(81% 0.12 40);
+  --color-orange-50: oklch(97% 0.02 45);
+  --color-orange-100: oklch(94% 0.04 45);
+  --color-orange-150: oklch(91.5% 0.055 44);
+  --color-orange-200: oklch(89% 0.07 42);
+  --color-orange-300: oklch(82% 0.11 40);
   --color-orange-400: oklch(76% 0.15 39);
-  --color-orange-500: oklch(70% 0.19 38);
+  --color-orange-500: oklch(70% 0.185 38);
   --color-orange-600: oklch(57% 0.19 36);
-  --color-orange-700: oklch(49% 0.165 34);
-  --color-orange-800: oklch(42% 0.13 34);
-  --color-orange-900: oklch(36% 0.1 34);
+  --color-orange-700: oklch(50% 0.165 35);
+  --color-orange-800: oklch(42% 0.13 35);
+  --color-orange-900: oklch(36% 0.1 35);
 
-  --radius-2xl: 1.125rem;
-  --radius-3xl: 1.5rem;
-  --radius-4xl: 2rem;
+  --radius-2xl: 0.875rem;
+  --radius-3xl: 1rem;
+  --radius-4xl: 1.25rem;
 
-  --font-weight-extrabold: 750;
-  --font-weight-black: 800;
+  --font-weight-extrabold: 650;
+  --font-weight-black: 700;
 
-  --shadow-md: 0 2px 4px oklch(26% 0.055 265 / 0.05), 0 6px 16px -8px oklch(26% 0.055 265 / 0.16);
-  --shadow-lg: 0 2px 4px oklch(26% 0.055 265 / 0.05), 0 12px 28px -14px oklch(26% 0.055 265 / 0.22);
-  --shadow-xl: 0 4px 8px oklch(26% 0.055 265 / 0.06), 0 20px 40px -18px oklch(26% 0.055 265 / 0.28);
-  --shadow-2xl: 0 4px 8px oklch(26% 0.055 265 / 0.06), 0 28px 56px -22px oklch(26% 0.055 265 / 0.34);
+  --shadow-md: 0 1px 2px oklch(21% 0.012 45 / 0.04), 0 4px 12px -6px oklch(21% 0.012 45 / 0.1);
+  --shadow-lg: 0 1px 2px oklch(21% 0.012 45 / 0.04), 0 8px 20px -10px oklch(21% 0.012 45 / 0.14);
+  --shadow-xl: 0 2px 4px oklch(21% 0.012 45 / 0.04), 0 16px 32px -14px oklch(21% 0.012 45 / 0.18);
+  --shadow-2xl: 0 2px 4px oklch(21% 0.012 45 / 0.05), 0 24px 48px -18px oklch(21% 0.012 45 / 0.24);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Titres : Clash Display ; texte : Plus Jakarta Sans (arrondie, chaleureuse). */
-  --font-sans: var(--font-jakarta);
+  /* Une seule famille (Geist) pour le corps et les titres ; `font-display`
+     reste un utilitaire valide et pointe sur la même famille. */
+  --font-sans: var(--font-geist);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-clash-display);
+  --font-display: var(--font-geist);
 
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
@@ -156,25 +144,18 @@
   --color-brand-warm-white: var(--color-brand-warm-white);
 
   --color-brand-50: var(--brand-50);
-  --color-brand-100: var(--brand-100);
   --color-brand-400: var(--brand-400);
   --color-brand-500: var(--brand-500);
   --color-brand-600: var(--brand-600);
   --color-brand-700: var(--brand-700);
 
-  --color-ambre-100: var(--ambre-100);
-  --color-ambre-300: var(--ambre-300);
   --color-ambre-400: var(--ambre-400);
   --color-ambre-500: var(--ambre-500);
   --color-ambre-600: var(--ambre-600);
-  --color-ambre-700: var(--ambre-700);
 
-  --color-lagon-100: var(--lagon-100);
-  --color-lagon-300: var(--lagon-300);
   --color-lagon-400: var(--lagon-400);
   --color-lagon-500: var(--lagon-500);
   --color-lagon-600: var(--lagon-600);
-  --color-lagon-700: var(--lagon-700);
 
   --color-nuit-voyage: var(--nuit-voyage);
   --color-nuit-voyage-soft: var(--nuit-voyage-soft);
@@ -210,143 +191,24 @@ body {
 body {
   background: var(--paper);
   color: var(--ink-900);
-  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
-  font-family: var(--font-clash-display), var(--font-jakarta), system-ui, sans-serif;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-style: normal;
-}
-
-h4, h5, h6 {
+h1, h2, h3, h4 {
+  letter-spacing: -0.02em;
   font-style: normal;
 }
 
 ::selection {
-  background: var(--ambre-300);
+  background: var(--brand-50);
   color: var(--ink-900);
 }
 
 :where(a, button, [role="button"], input, select, textarea, summary):focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
-}
-
-/* Boutons « à presser » (design.md, voix des boutons) : relief de 4 px qui
-   s'écrase au clic. Corail = action principale, soleil = action sur fond
-   corail, clair = secondaire. */
-.btn-game,
-.btn-game-sun,
-.btn-game-light {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: transform 160ms var(--ease-spring), box-shadow 160ms var(--ease-out), background-color 160ms var(--ease-out);
-}
-.btn-game {
-  background: var(--brand-600);
-  color: #fff;
-  box-shadow: 0 4px 0 var(--brand-700), var(--shadow-premium-glow);
-}
-.btn-game:hover {
-  background: oklch(54% 0.19 36);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--brand-700), var(--shadow-premium-glow);
-}
-.btn-game-sun {
-  background: var(--ambre-400);
-  color: var(--ink-900);
-  box-shadow: 0 4px 0 var(--ambre-700);
-}
-.btn-game-sun:hover {
-  background: var(--ambre-300);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--ambre-700);
-}
-.btn-game-light {
-  background: var(--surface);
-  color: var(--ink-900);
-  box-shadow: 0 0 0 2px var(--rule-strong), 0 4px 0 var(--rule-strong);
-}
-.btn-game-light:hover {
-  background: var(--paper);
-  transform: translateY(-1px);
-}
-/* Variante « cartoon » pour les fonds corail : jaune, contour et relief bleu nuit. */
-.btn-game-pop {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  background: var(--ambre-400);
-  color: var(--ink-900);
-  box-shadow: 0 0 0 2px var(--ink-900), 0 5px 0 2px var(--ink-900);
-  transition: transform 160ms var(--ease-spring), box-shadow 160ms var(--ease-out), background-color 160ms var(--ease-out);
-}
-.btn-game-pop:hover {
-  background: var(--ambre-300);
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 2px var(--ink-900), 0 6px 0 2px var(--ink-900);
-}
-.btn-game-pop:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 2px var(--ink-900), 0 1px 0 2px var(--ink-900);
-}
-@media (prefers-reduced-motion: reduce) {
-  .btn-game-pop { transition: background-color 120ms linear; }
-  .btn-game-pop:hover, .btn-game-pop:active { transform: none; }
-}
-.btn-game:active,
-.btn-game-sun:active,
-.btn-game-light:active {
-  transform: translateY(3px);
-}
-.btn-game:active { box-shadow: 0 1px 0 var(--brand-700); }
-.btn-game-sun:active { box-shadow: 0 1px 0 var(--ambre-700); }
-.btn-game-light:active { box-shadow: 0 0 0 2px var(--rule-strong), 0 1px 0 var(--rule-strong); }
-.btn-game:disabled,
-.btn-game-sun:disabled,
-.btn-game-light:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .btn-game, .btn-game-sun, .btn-game-light { transition: background-color 120ms linear; }
-  .btn-game:hover, .btn-game-sun:hover, .btn-game-light:hover,
-  .btn-game:active, .btn-game-sun:active, .btn-game-light:active { transform: none; }
-}
-
-/* Roue décorative (hero, panneaux d'auth) — art CSS, purement visuel. */
-.deco-wheel {
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: conic-gradient(
-    var(--brand-500) 0 45deg, var(--ambre-400) 45deg 90deg, var(--lagon-400) 90deg 135deg, var(--surface) 135deg 180deg,
-    var(--brand-500) 180deg 225deg, var(--ambre-400) 225deg 270deg, var(--lagon-400) 270deg 315deg, var(--surface) 315deg 360deg
-  );
-  box-shadow: 0 0 0 10px var(--ink-900), 0 0 0 14px var(--ambre-400), var(--shadow-premium-lg);
-  animation: deco-wheel-spin 28s linear infinite;
-}
-@keyframes deco-wheel-spin {
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .deco-wheel { animation: none; }
 }
 
 /* Aplats corail : ces classes restent utilisées par les composants existants. */

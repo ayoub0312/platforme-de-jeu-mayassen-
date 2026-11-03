@@ -54,14 +54,6 @@ interface AggregatorPortalProps {
   promoBanners: PromoBanner[]
 }
 
-// Teintes des cartes de lots (rotation corail / soleil / lagon).
-const PRIZE_TONES = [
-  { card: 'bg-brand-100', icon: 'bg-brand-600 text-white' },
-  { card: 'bg-ambre-300', icon: 'bg-ink-900 text-ambre-300' },
-  { card: 'bg-lagon-300', icon: 'bg-ink-900 text-lagon-300' },
-  { card: 'bg-surface shadow-[0_0_0_2px_var(--rule)]', icon: 'bg-brand-50 text-brand-700' },
-]
-
 export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSettings, promoBanners }: AggregatorPortalProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -130,71 +122,59 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
   return (
     <main className="min-h-screen flex flex-col bg-paper text-ink-900">
       <header
-        className={`sticky top-0 z-50 transition-colors duration-200 ${
-          isScrolled ? 'bg-paper/95 shadow-[0_1px_0_var(--rule)]' : 'bg-brand-500'
+        className={`sticky top-0 z-50 bg-paper transition-[border-color] duration-150 border-b ${
+          isScrolled ? 'border-rule' : 'border-transparent'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 min-w-0">
-            <span className={`h-9 px-2 rounded-xl flex items-center ${isScrolled ? '' : 'bg-white'}`}>
-              <Image src="/obooking-logo.png" alt="" width={140} height={64} className="h-6 w-auto object-contain" priority />
-            </span>
-            <span className="font-display text-lg font-semibold whitespace-nowrap text-ink-900">Obooking Gift</span>
+            <Image src="/obooking-logo.png" alt="" width={140} height={64} className="h-7 w-auto object-contain" priority />
+            <span className="text-[15px] font-semibold tracking-tight whitespace-nowrap">Obooking Gift</span>
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-2 text-sm font-semibold" aria-label="Navigation">
-            <a href="#jeux" className={`hidden sm:inline-flex h-9 items-center px-3 rounded-full transition-colors whitespace-nowrap ${isScrolled ? 'text-ink-700 hover:bg-black/[0.05]' : 'text-ink-900 hover:bg-white/30'}`}>
+          <nav className="flex items-center gap-1 sm:gap-2 text-sm" aria-label="Navigation">
+            <a href="#jeux" className="hidden sm:inline-flex h-9 items-center px-3 rounded-full text-ink-700 hover:text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
               Jeux en cours
             </a>
-            <a href="#comment-ca-marche" className={`hidden md:inline-flex h-9 items-center px-3 rounded-full transition-colors whitespace-nowrap ${isScrolled ? 'text-ink-700 hover:bg-black/[0.05]' : 'text-ink-900 hover:bg-white/30'}`}>
+            <a href="#comment-ca-marche" className="hidden md:inline-flex h-9 items-center px-3 rounded-full text-ink-700 hover:text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
               Comment ça marche
             </a>
-            <Link href={isAdminConnected ? '/partner' : '/client'} className={`${isScrolled ? 'btn-game' : 'btn-game-pop'} h-10 px-4 text-sm`}>
+            <Link
+              href={isAdminConnected ? '/partner' : '/client'}
+              className="inline-flex h-9 items-center px-4 rounded-full border border-rule-strong bg-surface text-ink-900 font-medium hover:bg-paper-2 transition-colors whitespace-nowrap"
+            >
               {isAdminConnected ? 'Mon tableau de bord' : 'Mon espace'}
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* HERO — bandeau corail, roue illustrée (ou vidéo hero si configurée) */}
-      <section className="relative bg-brand-500 text-ink-900 overflow-hidden">
-        {/* Confettis décoratifs */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <span className="absolute top-10 left-[8%] h-3 w-3 rounded-full bg-ambre-400" />
-          <span className="absolute top-24 left-[44%] h-2 w-2 rounded-full bg-lagon-300" />
-          <span className="absolute bottom-24 left-[4%] h-4 w-4 rotate-45 rounded-[4px] bg-lagon-400" />
-          <span className="absolute top-14 right-[6%] h-2.5 w-2.5 rounded-full bg-ink-900" />
-          <span className="absolute bottom-16 right-[38%] h-3 w-3 rotate-12 rounded-[3px] bg-ambre-300" />
-        </div>
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-24 sm:pt-14 sm:pb-28 lg:pt-16 lg:pb-32 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-12 items-center">
+      {/* HERO — titre à gauche, média ou lots réels à droite */}
+      <section className="border-b border-rule">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 lg:py-24 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-10 lg:gap-16 items-center">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 h-8 px-3.5 rounded-full bg-ink-900 text-white text-sm font-semibold">
-              <span className="h-2 w-2 rounded-full bg-ambre-400" aria-hidden="true" />
-              {initialCampaigns.length > 0
-                ? `${initialCampaigns.length} jeu${initialCampaigns.length > 1 ? 'x' : ''} en cours chez ${partnerCount} partenaire${partnerCount > 1 ? 's' : ''}`
-                : 'Nouveaux jeux bientôt'}
-            </p>
-            <h1 className="mt-5 text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] font-semibold [overflow-wrap:anywhere]">
-              Tournez la roue,
-              <br />
-              gagnez votre <span className="inline-block -rotate-1 rounded-2xl bg-ambre-400 px-3 pb-1 shadow-[0_4px_0_var(--ink-900)]">voyage</span>
+            <h1 className="text-[clamp(2.25rem,4.6vw,3.5rem)] leading-[1.04] font-semibold tracking-[-0.035em] [overflow-wrap:anywhere]">
+              Jouez, et gagnez votre prochain voyage.
             </h1>
-            <p className="mt-7 text-lg leading-relaxed text-ink-900 max-w-[32rem] font-medium">
-              Séjours, dîners, bons d&apos;achat : nos hôtels et agences partenaires vous offrent des lots à gagner en quelques clics.
+            <p className="mt-5 text-[17px] leading-relaxed text-ink-700 max-w-[34rem]">
+              Roulettes et tirages au sort offerts par nos hôtels et agences partenaires.
+              {initialCampaigns.length > 0 && (
+                <> En ce moment, <strong className="font-semibold text-ink-900">{initialCampaigns.length} jeu{initialCampaigns.length > 1 ? 'x' : ''}</strong> chez{' '}
+                  <strong className="font-semibold text-ink-900">{partnerCount} partenaire{partnerCount > 1 ? 's' : ''}</strong>.</>
+              )}
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <a href="#jeux" className="btn-game-pop h-14 px-8 text-lg">
-                Voir les jeux <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#jeux" className="inline-flex h-12 items-center gap-2 px-6 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-[15px] font-semibold transition-colors whitespace-nowrap">
+                Voir les jeux en cours <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
-              <a href="#comment-ca-marche" className="inline-flex h-14 items-center px-5 rounded-full text-base font-bold text-ink-900 hover:bg-white/30 transition-colors whitespace-nowrap">
+              <a href="#comment-ca-marche" className="inline-flex h-12 items-center px-5 rounded-full text-[15px] font-medium text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
                 Comment ça marche
               </a>
             </div>
           </div>
 
-          <div className="min-w-0 flex justify-center">
+          <div className="min-w-0">
             {siteSettings.hasHeroVideo ? (
-              <figure className="relative w-full aspect-[4/3] rounded-[28px] overflow-hidden bg-ink-900 shadow-[0_0_0_6px_var(--ambre-400),var(--shadow-premium-lg)]">
+              <figure className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-rule bg-ink-900">
                 <video
                   ref={heroVideoRef}
                   autoPlay
@@ -209,65 +189,51 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                   type="button"
                   onClick={toggleVideoSound}
                   aria-label={isVideoMuted ? 'Activer le son de la vidéo' : 'Couper le son de la vidéo'}
-                  className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-ink-900/75 hover:bg-ink-900 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-ink-900/70 hover:bg-ink-900 text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   {isVideoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </button>
               </figure>
-            ) : (
-              <div className="relative w-[min(72%,260px)] sm:w-[min(100%,360px)]" aria-hidden="true">
-                <span className="absolute left-1/2 -top-5 z-10 -translate-x-1/2 h-0 w-0 border-x-[16px] border-x-transparent border-t-[26px] border-t-ambre-400 drop-shadow-[0_3px_0_var(--ambre-700)]" />
-                <div className="deco-wheel w-full" />
-                <span className="absolute inset-0 m-auto h-[22%] w-[22%] rounded-full bg-ink-900 shadow-[0_0_0_6px_var(--ambre-400)] flex items-center justify-center font-display text-lg font-semibold text-white">
-                  GO
-                </span>
+            ) : featuredPrizes.length > 0 ? (
+              <div className="rounded-2xl border border-rule bg-surface" style={{ boxShadow: 'var(--shadow-premium-md)' }}>
+                <p className="px-5 pt-5 pb-3 text-[13px] font-medium text-ink-500">À gagner en ce moment</p>
+                <ul className="divide-y divide-rule">
+                  {featuredPrizes.map(({ prize, campaign }) => {
+                    const href = campaignHref(campaign)
+                    const row = (
+                      <>
+                        <span className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center shrink-0" aria-hidden="true">
+                          <Gift className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[15px] font-medium text-ink-900 truncate">{prize.name}</span>
+                          <span className="block text-[13px] text-ink-500 truncate">{campaign.partner?.name || 'Obooking'} · {campaign.title}</span>
+                        </span>
+                        {href && <ArrowRight className="h-4 w-4 text-ink-500 shrink-0 group-hover:text-ink-900 transition-colors" aria-hidden="true" />}
+                      </>
+                    )
+                    return (
+                      <li key={prize.id}>
+                        {href ? (
+                          <Link href={href} className="group flex items-center gap-3 px-5 py-3.5 hover:bg-paper transition-colors">{row}</Link>
+                        ) : (
+                          <div className="flex items-center gap-3 px-5 py-3.5">{row}</div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
-
-        {/* Bord ondulé vers le fond crème */}
-        <svg aria-hidden="true" className="absolute bottom-0 left-0 w-full h-10 sm:h-14 text-paper" viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path fill="currentColor" d="M0 48 C 240 8 480 8 720 40 C 960 72 1200 72 1440 32 L1440 80 L0 80 Z" />
-        </svg>
       </section>
-
-      {/* LOTS À GAGNER — vrais lots, cartes colorées */}
-      {featuredPrizes.length > 0 && (
-        <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 -mt-2 pt-8">
-          <h2 className="text-2xl sm:text-3xl">À gagner en ce moment</h2>
-          <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {featuredPrizes.map(({ prize, campaign }, i) => {
-              const href = campaignHref(campaign)
-              const tone = PRIZE_TONES[i % PRIZE_TONES.length]
-              const body = (
-                <>
-                  <span className={`h-11 w-11 rounded-2xl flex items-center justify-center ${tone.icon}`} aria-hidden="true">
-                    <Gift className="h-5 w-5" />
-                  </span>
-                  <span className="mt-4 block font-display text-xl font-semibold leading-tight text-ink-900 line-clamp-2">{prize.name}</span>
-                  <span className="mt-1.5 block text-sm text-ink-700 truncate">{campaign.partner?.name || 'Obooking'}</span>
-                </>
-              )
-              return (
-                <li key={prize.id} className="min-w-0">
-                  {href ? (
-                    <Link href={href} className={`block h-full rounded-[22px] p-5 transition-transform duration-200 hover:-translate-y-1 ${tone.card}`}>{body}</Link>
-                  ) : (
-                    <div className={`h-full rounded-[22px] p-5 ${tone.card}`}>{body}</div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
 
       {/* CATALOGUE */}
       <section id="jeux" className="scroll-mt-20 max-w-6xl w-full mx-auto px-4 sm:px-6 py-14 sm:py-20">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-3xl sm:text-4xl">Jeux en cours</h2>
+            <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight">Jeux en cours</h2>
             <p className="text-sm text-ink-500 mt-1">
               {filteredCampaigns.length} résultat{filteredCampaigns.length > 1 ? 's' : ''}
               {searchQuery.trim() ? ` pour « ${searchQuery.trim()} »` : ''}
@@ -281,7 +247,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Rechercher un jeu-concours"
-              className="w-full h-12 pl-10 pr-4 bg-surface border-2 border-field hover:border-ink-700 rounded-full text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors"
+              className="w-full h-11 pl-10 pr-4 bg-surface border border-field hover:border-ink-700 rounded-full text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -299,8 +265,8 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
 
               return (
                 <li key={campaign.id} className="min-w-0">
-                  <article className="group h-full flex flex-col rounded-[22px] bg-surface overflow-hidden shadow-[0_0_0_1px_var(--rule),var(--shadow-premium-md)] transition-transform duration-200 hover:-translate-y-1">
-                    <div className={`relative overflow-hidden ${campaign.imageData ? 'aspect-[16/9]' : 'h-28'} ${isDraw ? 'bg-lagon-300' : 'bg-brand-100'}`}>
+                  <article className="group h-full flex flex-col rounded-2xl border border-rule bg-surface overflow-hidden transition-colors duration-150 hover:border-rule-strong">
+                    <div className={`relative bg-paper-2 border-b border-rule overflow-hidden ${campaign.imageData ? 'aspect-[16/9]' : 'h-24'}`}>
                       {campaign.imageData ? (
                         <img
                           src={`data:${campaign.imageMimeType || 'image/jpeg'};base64,${campaign.imageData}`}
@@ -308,25 +274,25 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                           className="absolute inset-0 h-full w-full object-cover"
                         />
                       ) : (
-                        <div className={`absolute -right-4 -bottom-6 ${isDraw ? 'text-lagon-600' : 'text-brand-400'}`} aria-hidden="true">
-                          <ModeIcon className="h-32 w-32" strokeWidth={1.25} />
+                        <div className="absolute inset-y-0 right-4 flex items-center text-ink-500/30" aria-hidden="true">
+                          <ModeIcon className="h-12 w-12" strokeWidth={1} />
                         </div>
                       )}
-                      <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-ink-900 text-xs font-semibold text-white">
+                      <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-surface text-xs font-medium text-ink-900 shadow-[0_0_0_1px_var(--rule)]">
                         <ModeIcon className="h-3 w-3" aria-hidden="true" />
                         {isDraw ? 'Tirage au sort' : 'Roulette'}
                       </span>
                     </div>
 
                     <div className="p-5 flex-1 flex flex-col">
-                      <p className="text-[13px] font-semibold text-brand-700 truncate">{campaign.partner?.name || 'Obooking'}</p>
-                      <h3 className="mt-1 text-xl leading-tight line-clamp-2">{campaign.title}</h3>
+                      <p className="text-[13px] text-ink-500 truncate">{campaign.partner?.name || 'Obooking'}</p>
+                      <h3 className="mt-1 text-[17px] font-semibold leading-snug tracking-tight line-clamp-2">{campaign.title}</h3>
 
                       {shownPrizes.length > 0 && (
                         <ul className="mt-4 space-y-1.5 text-sm text-ink-700">
                           {shownPrizes.map((prize) => (
                             <li key={prize.id} className="flex items-center gap-2 min-w-0">
-                              <Gift className="h-3.5 w-3.5 text-brand-600 shrink-0" aria-hidden="true" />
+                              <Gift className="h-3.5 w-3.5 text-ink-500 shrink-0" aria-hidden="true" />
                               <span className="truncate">{prize.name}</span>
                             </li>
                           ))}
@@ -335,13 +301,13 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
                       )}
 
                       <div className="mt-auto pt-5 flex items-center justify-between gap-3">
-                        <span className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-semibold whitespace-nowrap ${countdown.urgent ? 'bg-brand-50 text-brand-700' : 'bg-paper-2 text-ink-700'}`}>
+                        <span className={`text-[13px] whitespace-nowrap ${countdown.urgent ? 'text-brand-700 font-medium' : 'text-ink-500'}`}>
                           {countdown.label}
                         </span>
                         {href ? (
                           <Link
                             href={href}
-                            className="btn-game h-10 px-5 text-sm"
+                            className="inline-flex h-9 items-center gap-1.5 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors whitespace-nowrap"
                             aria-label={`Participer à ${campaign.title}`}
                           >
                             Participer <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -373,10 +339,10 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
 
       {promoBanners.length > 0 && <PromoCarousel banners={promoBanners} />}
 
-      <section id="comment-ca-marche" className="scroll-mt-20 bg-paper-2">
+      <section id="comment-ca-marche" className="scroll-mt-20 border-t border-rule bg-paper-2">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-10 lg:gap-16">
           <div>
-            <h2 className="text-3xl sm:text-4xl">Comment ça marche</h2>
+            <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight">Comment ça marche</h2>
             <p className="mt-3 text-[15px] leading-relaxed text-ink-700 max-w-sm">
               Trois étapes, sans compte obligatoire. Le tirage est calculé côté serveur pour être équitable.
             </p>

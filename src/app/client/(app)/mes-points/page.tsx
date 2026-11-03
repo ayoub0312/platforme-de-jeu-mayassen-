@@ -125,7 +125,7 @@ export default function MesPointsPage() {
             type="button"
             onClick={handleRedeem}
             disabled={!canRedeem || redeemMut.isPending}
-            className="mt-5 w-full h-11 inline-flex items-center justify-center gap-2 btn-game text-[15px] transition-colors"
+            className="mt-5 w-full h-11 inline-flex items-center justify-center gap-2 bg-ink-900 hover:bg-slate-800 disabled:opacity-45 disabled:cursor-not-allowed text-paper rounded-full text-sm font-medium transition-colors"
           >
             {redeemMut.isPending ? 'Conversion…' : <>Générer mon bon <ArrowRight className="h-4 w-4" /></>}
           </button>

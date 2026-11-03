@@ -14,7 +14,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="inline-flex items-center gap-2 mt-7 h-10 px-4 btn-game text-sm"
+        className="inline-flex items-center gap-2 mt-7 h-10 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors"
       >
         <Home className="h-4 w-4" /> Retour à l'accueil
       </Link>

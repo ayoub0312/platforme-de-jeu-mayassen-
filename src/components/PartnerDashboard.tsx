@@ -18,7 +18,6 @@ import { ParticipantsTab } from './admin/ParticipantsTab'
 import { SettingsTab } from './admin/SettingsTab'
 import { ApiDocsTab } from './admin/ApiDocsTab'
 import { CampaignCard } from './admin/CampaignCard'
-import { AuthShell, AuthError, authFieldCls, authLabelCls, authPrimaryBtnCls, authLinkCls } from './AuthShell'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { PasswordInput } from '@/components/ui/PasswordInput'
@@ -463,50 +462,80 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
   // Render Login overlay if not authenticated
   if (!isAuthenticated) {
+    const fieldCls = 'w-full h-10 bg-surface border border-field hover:border-ink-700 rounded-[10px] px-3.5 text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors'
     return (
-      <AuthShell
-        title="Connexion à votre espace"
-        subtitle="Gérez vos campagnes, vos participants et vos gagnants."
-        footer={
-          <>
-            Vous êtes une agence ou un hôtel ?{' '}
-            <Link href="/partner/signup" className={authLinkCls}>Créer un espace partenaire</Link>
-          </>
-        }
-      >
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="admin-login-email" className={authLabelCls}>Adresse email</label>
-            <input
-              id="admin-login-email"
-              type="email"
-              required
-              autoComplete="email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              placeholder="vous@entreprise.com"
-              className={authFieldCls}
-            />
-          </div>
-          <div>
-            <label htmlFor="admin-login-password" className={authLabelCls}>Mot de passe</label>
-            <PasswordInput
-              id="admin-login-password"
-              required
-              autoComplete="current-password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              className={authFieldCls}
-            />
-          </div>
+      <div className="min-h-screen flex flex-col bg-paper">
+        <header className="h-16 px-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold text-ink-900">
+            <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-sm flex items-center justify-center" aria-hidden="true">O</span>
+            Obooking Gift
+          </Link>
+          <Link href="/" className="text-[13px] text-ink-500 hover:text-ink-900 transition-colors">
+            Retour au site
+          </Link>
+        </header>
 
-          {loginError && <AuthError>{loginError}</AuthError>}
+        <main className="flex-1 flex items-center justify-center px-4 pb-16">
+          <div className="w-full max-w-[400px]">
+            <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Connexion à votre espace</h1>
+            <p className="text-sm text-ink-500 mt-1.5">Gérez vos campagnes, vos participants et vos gagnants.</p>
 
-          <button type="submit" disabled={loginPending} className={authPrimaryBtnCls}>
-            {loginPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Se connecter'}
-          </button>
-        </form>
-      </AuthShell>
+            <form onSubmit={handleLoginSubmit} className="mt-8 space-y-4">
+              <div>
+                <label htmlFor="admin-login-email" className="block text-[13px] font-medium text-ink-700 mb-1.5">
+                  Adresse email
+                </label>
+                <input
+                  id="admin-login-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="vous@entreprise.com"
+                  className={fieldCls}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="admin-login-password" className="block text-[13px] font-medium text-ink-700 mb-1.5">
+                  Mot de passe
+                </label>
+                <PasswordInput
+                  id="admin-login-password"
+                  required
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className={fieldCls}
+                />
+              </div>
+
+              {loginError && (
+                <div role="alert" className="flex items-start gap-2 px-3 py-2.5 bg-[var(--danger)]/[0.06] border border-[var(--danger)]/20 text-[var(--danger)] rounded-[10px] text-[13px]">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-px" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loginPending}
+                className="w-full h-10 flex items-center justify-center gap-2 bg-ink-900 hover:bg-slate-800 disabled:opacity-60 text-paper rounded-full text-sm font-medium transition-colors cursor-pointer"
+              >
+                {loginPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Se connecter'}
+              </button>
+            </form>
+
+            <p className="text-[13px] text-ink-500 mt-8 pt-6 border-t border-rule">
+              Vous êtes une agence ou un hôtel ?{' '}
+              <Link href="/partner/signup" className="text-ink-900 font-medium underline underline-offset-4 decoration-rule-strong hover:decoration-brand-500">
+                Créer un espace partenaire
+              </Link>
+            </p>
+          </div>
+        </main>
+      </div>
     )
   }
 
