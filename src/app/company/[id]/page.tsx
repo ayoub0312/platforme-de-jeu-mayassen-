@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { CampaignPortal } from '@/components/CampaignPortal'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, AlertTriangle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,19 +14,16 @@ interface CompanyPageProps {
 
 // cache() dedupes this lookup between generateMetadata and the page render —
 // both run for every request but React collapses them into a single query.
-const getPartnerBySlug = cache((rawId: string) => {
-  const id = decodeURIComponent(rawId)
-  return prisma.partner.findFirst({
+const getPartnerBySlug = cache((id: string) =>
+  prisma.partner.findFirst({
     where: {
       OR: [
         { id },
-        { slug: id.toLowerCase() },
-        // Anciens liens construits depuis le nom (avant l'ajout de Partner.slug).
         { name: { equals: id.toLowerCase().replace(/-/g, ' ') } },
       ],
     },
   })
-})
+)
 
 export async function generateMetadata({ params }: CompanyPageProps): Promise<Metadata> {
   const { id } = await params
@@ -53,18 +50,18 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
 
   if (!partner) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4 bg-paper">
-        <div className="w-full max-w-md">
-          <p className="text-[13px] font-medium text-ink-500">Lien introuvable</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">Ce jeu n&apos;existe pas ou plus</h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-700">
-            Le lien est peut-être incomplet, ou le partenaire n&apos;a plus de jeu en ligne.
+      <main className="relative z-10 min-h-screen text-slate-800 flex items-center justify-center p-4 overflow-hidden">
+        <div className="relative z-10 bg-white border border-slate-200/80 rounded-[32px] p-8 max-w-md w-full shadow-xl text-center">
+          <AlertTriangle className="h-12 w-12 text-[#FF6B47] mx-auto mb-4 animate-pulse" />
+          <h2 className="text-xl font-black text-slate-800">Partenaire Introuvable</h2>
+          <p className="text-slate-550 text-xs mt-2 leading-relaxed">
+            Le lien de jeu auquel vous tentez d'accéder n'est pas valide ou l'entreprise n'est pas encore enregistrée.
           </p>
           <Link
             href="/"
-            className="mt-6 inline-flex h-10 items-center gap-2 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors"
+            className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
           >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voir les jeux en cours
+            <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
           </Link>
         </div>
       </main>
@@ -75,8 +72,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
   const campaigns = await prisma.campaign.findMany({
     where: {
       partnerId: partner.id,
-      isActive: true,
-      isDraft: false,
+      isActive: true
     },
     include: {
       partner: { select: { name: true } },
@@ -112,28 +108,12 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     })
   )
 
-  return (
-    <main className="min-h-screen flex flex-col bg-paper text-ink-900">
-      <header className="border-b border-rule">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            {partner.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={partner.logoUrl} alt="" className="h-8 w-8 rounded-lg object-contain border border-rule bg-surface" />
-            ) : (
-              <span className="h-8 w-8 rounded-lg bg-paper-2 border border-rule flex items-center justify-center text-[13px] font-semibold text-ink-700 shrink-0" aria-hidden="true">
-                {partner.name.slice(0, 1).toUpperCase()}
-              </span>
-            )}
-            <span className="text-[15px] font-semibold tracking-tight truncate">{partner.name}</span>
-          </div>
-          <Link href="/" className="text-[13px] text-ink-500 hover:text-ink-900 transition-colors whitespace-nowrap">
-            Tous les jeux Obooking
-          </Link>
-        </div>
-      </header>
+  const isToutEstLa = partner.name.toLowerCase().includes('tout est la') || partner.name.toLowerCase().includes('tout')
 
-      <div className="flex-1">
+  return (
+    <main className="b2b-white-portal relative z-10 min-h-screen text-slate-900 overflow-hidden flex flex-col justify-between">
+      <div className="z-10">
+        {/* Client side dashboard with filtered campaigns */}
         <CampaignPortal
           initialCampaigns={serializedCampaigns}
           partnerId={partner.id}
@@ -141,9 +121,10 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
         />
       </div>
 
-      <footer className="border-t border-rule pb-24 md:pb-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-[13px] text-ink-500">
-          Jeu-concours propulsé par Obooking Gift · © {new Date().getFullYear()}
+      {/* Footer */}
+      <footer className="border-t border-slate-200/60 py-6 bg-white/60 backdrop-blur-md text-slate-500 text-xs text-center z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 font-semibold">
+          Jeu concours sécurisé propulsé par Obooking &copy; {new Date().getFullYear()}
         </div>
       </footer>
     </main>

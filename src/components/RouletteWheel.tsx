@@ -559,7 +559,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
         {muteSound ? (
           <VolumeX className="h-4 w-4 text-slate-400" />
         ) : (
-          <Volume2 className="h-4 w-4 text-brand-600" />
+          <Volume2 className="h-4 w-4 text-[#FF6B47]" />
         )}
       </button>
 
@@ -583,7 +583,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
         initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className={`relative ${size === 'premium' ? 'w-[90%] max-w-[560px] aspect-square sm:w-[500px] sm:h-[500px] lg:w-[600px] lg:h-[600px]' : 'w-72 h-72 sm:w-80 sm:h-80'} flex items-center justify-center select-none transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/40 rounded-full ${
+        className={`relative ${size === 'premium' ? 'w-[90%] max-w-[560px] aspect-square sm:w-[500px] sm:h-[500px] lg:w-[600px] lg:h-[600px]' : 'w-72 h-72 sm:w-80 sm:h-80'} flex items-center justify-center select-none transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#FF6B47]/40 rounded-full ${
           disabled || isSpinning || spinMutation.isPending || countdownValue !== null
             ? 'cursor-default pointer-events-none opacity-60'
             : 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
@@ -592,7 +592,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
         {/* 3-2-1-GO countdown overlay */}
         {countdownValue !== null && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-full">
-            <span className="text-6xl font-black text-brand-600 animate-fade-in" key={countdownValue}>
+            <span className="text-6xl font-black text-[#FF6B47] animate-fade-in" key={countdownValue}>
               {countdownValue}
             </span>
           </div>
@@ -830,10 +830,10 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
             transition={{ duration: 1.1, ease: 'easeOut' }}
           />
 
-          <div className="inline-flex p-3.5 rounded-full bg-orange-50 border border-orange-100 text-brand-600 mb-4 animate-bounce relative">
+          <div className="inline-flex p-3.5 rounded-full bg-orange-50 border border-orange-100 text-[#FF6B47] mb-4 animate-bounce relative">
             <Trophy className="h-7 w-7" />
           </div>
-          <h4 className="text-lg font-extrabold text-brand-600 relative">Félicitations !</h4>
+          <h4 className="text-lg font-extrabold text-[#FF6B47] relative">Félicitations !</h4>
           <p className="text-slate-550 text-xs mt-1 relative">Vous avez remporté :</p>
 
           {/* Prize card — 3D flip reveal */}
@@ -843,7 +843,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
               animate={{ rotateY: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
               style={{ transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
-              className="text-xs font-black text-ink-900 tracking-wide px-5 py-3 rounded-xl bg-orange-50 border border-orange-100 inline-block shadow-sm leading-normal max-w-[250px]"
+              className="text-xs font-black text-[#241F1C] tracking-wide px-5 py-3 rounded-xl bg-orange-50 border border-orange-100 inline-block shadow-sm leading-normal max-w-[250px]"
             >
               {winningPrize.name}
             </motion.div>
@@ -872,7 +872,7 @@ export function RouletteWheel({ campaignId, prizes, email, onSpinSuccess, size =
                 setShowResult(false)
                 wheelRef.current?.focus()
               }}
-              className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/10 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/10 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               Fermer
             </button>

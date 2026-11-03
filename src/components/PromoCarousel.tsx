@@ -40,16 +40,28 @@ export function PromoCarousel({ banners, intervalMs = 5000 }: PromoCarouselProps
   }, [isPaused, banners.length, intervalMs, reducedMotion])
 
   return (
-    <section className="border-t border-rule py-14 sm:py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight mb-6">Offres de nos partenaires</h2>
+    <section className="relative bg-gradient-to-b from-white via-orange-50/20 to-slate-50 border-t border-slate-200 py-14 overflow-hidden">
+      {/* Soft ambient glow — creates visual breathing room from the grid above */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[260px] bg-[radial-gradient(ellipse_at_center,var(--color-brand-gold)_0%,transparent_70%)] opacity-[0.06] pointer-events-none" />
+
+      <div className="relative max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
+        {/* Section eyebrow + heading with an animated gradient underline */}
+        <div className="text-center mb-8">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-100 text-[#FF6B47] text-[10px] font-black uppercase tracking-widest mb-3">
+            <Sparkles className="h-3 w-3" /> Offres partenaires
+          </span>
+          <h2 className="font-display text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">
+            Nos partenaires vous gâtent
+          </h2>
+          <span className="promo-underline mt-2 inline-block h-1 w-16 rounded-full bg-gradient-brand" />
+        </div>
 
         {banners.length === 0 ? (
           <div
-            className="rounded-2xl border border-dashed border-rule-strong py-16 px-6 text-center"
+            className="rounded-[28px] border border-dashed border-slate-200 bg-white/60 py-16 px-6 text-center"
             style={{ boxShadow: 'var(--shadow-premium-sm)' }}
           >
-            <div className="h-14 w-14 rounded-2xl bg-orange-50 border border-orange-100 text-brand-600 flex items-center justify-center mx-auto mb-4">
+            <div className="h-14 w-14 rounded-2xl bg-orange-50 border border-orange-100 text-[#FF6B47] flex items-center justify-center mx-auto mb-4">
               <ImageOff className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-extrabold text-slate-700">Aucune offre partenaire pour le moment</h3>
@@ -59,11 +71,10 @@ export function PromoCarousel({ banners, intervalMs = 5000 }: PromoCarouselProps
           </div>
         ) : (
         <div
-          className="relative rounded-2xl overflow-hidden border border-rule bg-paper-2 group"
+          className="relative rounded-[28px] overflow-hidden ring-1 ring-slate-900/5 bg-slate-900 group"
+          style={{ boxShadow: 'var(--shadow-premium-lg)' }}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
-          onFocus={() => setIsPaused(true)}
-          onBlur={() => setIsPaused(false)}
         >
           {/* Auto-advance progress bars — one per slide, fills over intervalMs, pauses on hover.
               Shown on hover only (same reveal pattern as the prev/next arrows below) — visible

@@ -22,14 +22,14 @@ export function GameTab({
   return (
     <div className="w-full flex flex-col items-center justify-center">
       {/* Real-time credits indicator */}
-      <p className="mb-2 inline-flex items-center gap-2 h-8 px-3.5 rounded-full bg-paper-2 border border-rule text-[13px] text-ink-700" aria-live="polite">
-        <Play className="h-3.5 w-3.5 text-brand-600 fill-current" aria-hidden="true" />
-        <span><strong className="font-semibold text-ink-900 tabular-nums">{spinsLeft}</strong> lancer{spinsLeft > 1 ? 's' : ''} restant{spinsLeft > 1 ? 's' : ''}</span>
-      </p>
+      <div className="mb-2 px-4 py-2 bg-orange-50 border border-orange-100 rounded-full text-[#FF6B47] font-black text-xs flex items-center gap-2 tracking-wide shadow-sm">
+        <Play className="h-3.5 w-3.5 fill-[#FF6B47]" />
+        {spinsLeft} lancers restants
+      </div>
 
       {spinsLeft === 0 && (
-        <p className="text-[13px] text-ink-500 flex items-center gap-1.5 mb-2">
-          <CheckCircle className="h-3.5 w-3.5" /> Vous avez utilisé tous vos lancers. Relevez un défi pour en gagner.
+        <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1.5 mb-2">
+          <CheckCircle className="h-3.5 w-3.5" /> Vous avez utilisé tous vos lancers pour cette campagne.
         </p>
       )}
 

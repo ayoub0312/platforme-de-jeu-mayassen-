@@ -40,8 +40,8 @@ export function DrawsTab({
         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 text-orange-100/30 pointer-events-none">
           <Trophy className="h-24 w-24 stroke-[1.5]" />
         </div>
-        <h3 className="text-xs font-black text-brand-600 uppercase tracking-wider flex items-center gap-2">
-          <span className="p-1 rounded-lg bg-orange-100/80 text-brand-600">
+        <h3 className="text-xs font-black text-[#FF6B47] uppercase tracking-wider flex items-center gap-2">
+          <span className="p-1 rounded-lg bg-orange-100/80 text-[#FF6B47]">
             <Trophy className="h-3.5 w-3.5" />
           </span>
           Tirages au Sort Actifs
@@ -67,7 +67,7 @@ export function DrawsTab({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                   <div className="space-y-2 text-left">
                     <div className="flex items-center gap-2.5">
-                      
+                      <span className="text-xl shrink-0" role="img" aria-label="gift">🎁</span>
                       <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-snug">
                         {prize.name}
                       </h4>
@@ -101,7 +101,7 @@ export function DrawsTab({
                   ) : (
                     <div className="flex flex-col p-5 rounded-2xl bg-slate-50/50 gap-4 transition-all duration-200">
                       <div>
-                        <span className="text-xs font-extrabold text-slate-800 block">Participer au tirage</span>
+                        <span className="text-xs font-extrabold text-slate-800 block">🎟️ Participer au tirage</span>
                         <p className="text-[10px] text-slate-500 mt-1.5 font-medium leading-relaxed">
                           Validez votre participation pour avoir une chance d'être tiré au sort.
                         </p>
@@ -111,7 +111,7 @@ export function DrawsTab({
                         onClick={handleJoinDraw}
                         className="w-full py-3 bg-gradient-to-r from-orange-500 to-[#FF6B47] hover:from-[#e85530] hover:to-[#FF6B47] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 cursor-pointer active:scale-95"
                       >
-                        M'inscrire au tirage
+                        🎟️ M'inscrire au tirage
                       </button>
                     </div>
                   )}

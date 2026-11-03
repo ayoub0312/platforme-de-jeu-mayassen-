@@ -46,13 +46,13 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="relative z-10 h-screen overflow-y-auto bg-[var(--surface-alt)] text-[var(--ink-900)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-black/25"
-      style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.15) transparent' }}
+      className="relative z-10 h-screen overflow-y-auto bg-[var(--surface-alt)] text-[var(--ink-900)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[var(--brand-500)]/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-[var(--brand-500)]/50"
+      style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,107,71,0.35) transparent' }}
     >
       {/* Fin liseré de marque, statique et sobre */}
-      <div className="hidden" aria-hidden="true" />
+      <div className="h-[3px] bg-[var(--brand-500)]" aria-hidden="true" />
 
-      <header className="sticky top-0 z-20 bg-[var(--surface)]/85 backdrop-blur-md border-b border-rule">
+      <header className="sticky top-0 z-20 bg-[var(--surface)]/85 backdrop-blur-md border-b border-black/[0.07]">
         <div className="max-w-4xl mx-auto px-6 pt-5 pb-0 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {profileLoading ? (
@@ -66,14 +66,14 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
             ) : (
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className="shrink-0 h-11 w-11 rounded-full bg-ink-900 flex items-center justify-center text-paper font-semibold text-base"
+                  className="shrink-0 h-11 w-11 rounded-full bg-[var(--brand-500)] flex items-center justify-center text-white font-display font-semibold text-lg"
                   aria-hidden="true"
                 >
                   {initial}
                 </div>
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold leading-tight truncate">{displayName}</p>
-                  <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-md text-xs font-medium text-[var(--brand-700)] bg-[var(--brand-50)]">
+                  <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--brand-700)] bg-[var(--brand-50)] border border-[var(--brand-500)]/15">
                     {tier}
                   </span>
                 </div>

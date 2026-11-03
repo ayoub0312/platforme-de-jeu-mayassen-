@@ -49,7 +49,7 @@ export function WinnersTab() {
   return (
     <Card className="overflow-hidden">
       <div className="p-6 border-b border-black/[0.06]">
-        <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Gagnants</h3>
+        <h3 className="text-xl font-bold text-ink-900">Gagnants</h3>
         <p className="text-ink-500 text-xs mt-1">Suivez la remise des lots : en attente → contacté → remis.</p>
       </div>
 

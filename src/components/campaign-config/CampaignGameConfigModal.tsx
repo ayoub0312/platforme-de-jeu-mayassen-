@@ -129,8 +129,8 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
   const isSaving = upsertPrizesMut.isPending || updateGameConfigMut.isPending
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
-      <div className="bg-white rounded-2xl w-full max-w-6xl border border-rule shadow-2xl relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl w-full max-w-6xl border border-slate-100 shadow-2xl relative max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 z-10 cursor-pointer"
@@ -148,7 +148,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
 
           {!data ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 text-brand-600 animate-spin" />
+              <Loader2 className="h-6 w-6 text-[#FF6B47] animate-spin" />
             </div>
           ) : (
             <>
@@ -164,7 +164,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
                 <DrawConfigEditor data={data} setData={setData as any} />
               )}
 
-              <div className="flex items-center justify-end gap-3 mt-8 pt-5 border-t border-rule">
+              <div className="flex items-center justify-end gap-3 mt-8 pt-5 border-t border-slate-100">
                 <button
                   onClick={onClose}
                   disabled={isSaving}
@@ -175,7 +175,7 @@ export function CampaignGameConfigModal({ open, onClose, campaignId }: CampaignG
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all disabled:opacity-60"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-bold cursor-pointer transition-all disabled:opacity-60"
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Enregistrer

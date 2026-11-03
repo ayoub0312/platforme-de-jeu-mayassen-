@@ -2,19 +2,17 @@
 
 import React, { useState } from 'react'
 import { trpc } from '@/utils/trpc'
-import { Gift, RefreshCw, AlertCircle } from 'lucide-react'
+import { Mail, User, Phone, Gift, Send, RefreshCw, AlertCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
 interface LeadCaptureModalProps {
   campaignId: string
   partnerId: string
   referredByCode?: string
-  gameMode?: 'ROULETTE' | 'DRAW'
   onSuccess: (email: string, userName: string, initialTokens: number) => void
 }
 
-export function LeadCaptureModal({ campaignId, partnerId, referredByCode, gameMode = 'ROULETTE', onSuccess }: LeadCaptureModalProps) {
-  const isDraw = gameMode === 'DRAW'
+export function LeadCaptureModal({ campaignId, partnerId, referredByCode, onSuccess }: LeadCaptureModalProps) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -51,92 +49,91 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, gameMo
     )
   }
 
-  const fieldCls = 'w-full h-11 bg-surface border border-field hover:border-ink-700 text-ink-900 placeholder:text-ink-500 px-3.5 rounded-[10px] text-[15px] focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors disabled:opacity-50'
-  const labelCls = 'block text-[13px] font-medium text-ink-700 mb-1.5'
-
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-ink-900 tracking-tight">{isDraw ? 'Participez au tirage' : 'Recevez vos lancers'}</h3>
-        <p className="text-ink-700 text-[15px] mt-1.5 leading-relaxed">
-          {isDraw
-            ? 'Inscrivez-vous pour accéder au tirage au sort et tenter de remporter un lot.'
-            : 'Inscrivez-vous pour obtenir vos lancers gratuits et tenter de remporter un lot.'}
+    <div className="w-full bg-white p-6 relative overflow-hidden">
+      <div className="relative text-center mb-6">
+        <div className="inline-flex p-3 rounded-2xl bg-orange-50 border border-orange-100 text-[#FF6B47] mb-3">
+          <Gift className="h-6 w-6" />
+        </div>
+        <h3 className="text-xl font-extrabold text-[#241F1C] tracking-tight">Tentez votre chance !</h3>
+        <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+          Enregistrez vos coordonnées pour obtenir vos <span className="text-[#FF6B47] font-bold">lancers gratuits</span> et tenter de remporter un lot exceptionnel !
         </p>
 
         {referredByCode && (
-          <p className="mt-3 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-brand-50 text-[13px] text-brand-700">
-            <Gift className="h-3.5 w-3.5" aria-hidden="true" />
-            Invitation active : {referralBonusSpins} lancer{referralBonusSpins > 1 ? 's' : ''} bonus pour votre parrain
-          </p>
+          <div className="mt-3 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-xxs font-semibold text-[#FF6B47] inline-flex items-center gap-1.5">
+            🎁 Parrainage actif : {referralBonusSpins} lancer{referralBonusSpins > 1 ? 's' : ''} bonus offert{referralBonusSpins > 1 ? 's' : ''} au parrain !
+          </div>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="lead-name" className={labelCls}>Nom complet</label>
+
+        {/* Name input */}
+        <div className="relative">
+          <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
           <input
-            id="lead-name"
             type="text"
             required
-            autoComplete="name"
+            placeholder="Nom complet"
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={leadMutation.isPending}
-            className={fieldCls}
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
-        <div>
-          <label htmlFor="lead-email" className={labelCls}>Adresse email</label>
+        {/* Email input */}
+        <div className="relative">
+          <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
           <input
-            id="lead-email"
             type="email"
             required
-            autoComplete="email"
-            inputMode="email"
-            placeholder="vous@exemple.com"
+            placeholder="Adresse e-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={leadMutation.isPending}
-            className={fieldCls}
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
-        <div>
-          <label htmlFor="lead-phone" className={labelCls}>
-            Téléphone <span className="font-normal text-ink-500">(facultatif)</span>
-          </label>
+        {/* Phone input */}
+        <div className="relative">
+          <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
           <input
-            id="lead-phone"
             type="tel"
-            autoComplete="tel"
+            placeholder="Numéro de téléphone (optionnel)"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             disabled={leadMutation.isPending}
-            className={fieldCls}
+            className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 pl-11 pr-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] focus:border-[#FF6B47] transition-all disabled:opacity-50"
           />
         </div>
 
+        {/* Error message display */}
         {leadMutation.isError && (
-          <div role="alert" className="flex items-start gap-2 px-3 py-2.5 rounded-[10px] bg-[var(--danger)]/[0.06] border border-[var(--danger)]/20 text-[var(--danger)] text-[13px]">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-px" aria-hidden="true" />
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-650 text-xs">
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
             <span>{leadMutation.error.message || "Impossible de valider votre inscription pour le moment. Réessayez."}</span>
           </div>
         )}
 
+        {/* Submit button */}
         <button
           type="submit"
-          disabled={leadMutation.isPending}
-          className="w-full h-12 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white rounded-full font-semibold text-[15px] transition-colors cursor-pointer disabled:cursor-not-allowed"
+          disabled={leadMutation.isPending || !email || !name}
+          className="w-full h-12 flex items-center justify-center gap-2 bg-[#FF6B47] hover:bg-[#e85530] disabled:bg-slate-100 text-white disabled:text-slate-450 rounded-xl font-bold text-sm shadow-md shadow-orange-500/10 hover:shadow-orange-500/20 transition-all cursor-pointer disabled:cursor-not-allowed"
         >
           {leadMutation.isPending ? (
             <>
-              <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Inscription…
+              <RefreshCw className="h-4 w-4 animate-spin text-white" />
+              Inscription en cours...
             </>
           ) : (
-            isDraw ? 'Continuer' : 'Obtenir mes lancers'
+            <>
+              <Send className="h-4 w-4" />
+              Obtenir mes lancers
+            </>
           )}
         </button>
       </form>

@@ -26,7 +26,7 @@ export default function MesBonsPage() {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes bons de réduction</h1>
+        <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes bons de réduction</h1>
         <p className="text-sm text-[var(--ink-500)] mt-1.5 max-w-lg">
           Vos codes générés en convertissant vos points merci. Utilisez-les lors de votre prochain achat sur obooking.tn.
         </p>
@@ -35,7 +35,7 @@ export default function MesBonsPage() {
       {isLoading ? (
         <div className="h-40 rounded-2xl skeleton-shimmer" />
       ) : vouchers && vouchers.length > 0 ? (
-        <div className="rounded-2xl border border-rule bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
+        <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
           {vouchers.map((v) => {
             const st = STATUS_LABEL[v.status] || STATUS_LABEL.ACTIVE
             const usable = v.status === 'ACTIVE'
@@ -59,7 +59,7 @@ export default function MesBonsPage() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-lg font-semibold text-[var(--ink-900)] tabular-nums">{fmtTnd(v.valueTnd)} TND</div>
+                  <div className="font-display text-lg font-semibold text-[var(--ink-900)] tabular-nums">{fmtTnd(v.valueTnd)} TND</div>
                   <span className={`inline-flex items-center mt-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${st.cls}`}>{st.label}</span>
                 </div>
               </div>
@@ -68,7 +68,7 @@ export default function MesBonsPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
-          <div className="h-11 w-11 rounded-full border border-rule bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+          <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
             <Ticket className="h-5 w-5 text-[var(--ink-500)]" />
           </div>
           <p className="text-sm text-[var(--ink-500)]">Vous n'avez pas encore de bon de réduction.</p>

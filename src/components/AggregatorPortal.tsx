@@ -3,7 +3,26 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Gift, ArrowRight, Disc3, Ticket, Volume2, VolumeX } from 'lucide-react'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import {
+  Search,
+  Gift,
+  Trophy,
+  Calendar,
+  Sparkles,
+  Compass,
+  ArrowUpRight,
+  ShieldCheck,
+  Tag,
+  Zap,
+  ExternalLink,
+  Plane,
+  Bed,
+  Ticket,
+  ChevronDown,
+  Volume2,
+  VolumeX
+} from 'lucide-react'
 import { HowItWorksTimeline } from './HowItWorksTimeline'
 import { PromoCarousel } from './PromoCarousel'
 
@@ -19,7 +38,6 @@ interface Prize {
 interface Partner {
   id: string
   name: string
-  slug: string
 }
 
 interface Campaign {
@@ -57,6 +75,11 @@ interface AggregatorPortalProps {
 export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSettings, promoBanners }: AggregatorPortalProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Header floats transparent over the hero video, then turns opaque once
+  // the user has scrolled past it (so text stays readable over regular content).
+  const heroRef = useRef<HTMLElement>(null)
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false)
+
   // Hero video starts muted (required for autoplay in every browser) — visitor can unmute it themselves.
   const heroVideoRef = useRef<HTMLVideoElement>(null)
   const [isVideoMuted, setIsVideoMuted] = useState(true)
@@ -66,20 +89,73 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
     setIsVideoMuted(heroVideoRef.current.muted)
   }
 
-  const [isScrolled, setIsScrolled] = useState(false)
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 8)
+    const handleScroll = () => {
+      const heroHeight = heroRef.current?.offsetHeight ?? 0
+      setIsScrolledPastHero(window.scrollY > heroHeight - 80)
+    }
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Anciens liens construits depuis le nom ; le slug est préféré quand il existe.
+  // Light parallax on the hero media — moves slightly slower than the page scroll.
+  const prefersReducedMotion = useReducedMotion()
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const heroParallaxY = useTransform(heroScrollProgress, [0, 1], prefersReducedMotion ? ['0%', '0%'] : ['0%', '18%'])
+
+  // Helper to resolve partner slug
   const getPartnerSlug = (name: string) => {
     return name.toLowerCase().trim().replace(/\s+/g, '-')
   }
 
-  // Ticks once a minute so the "time left" labels below stay fresh — purely a
+  // Helper to categorize campaigns dynamically based on title/prizes
+  const getCampaignCategory = (campaign: Campaign): string => {
+    const textToSearch = (campaign.title + ' ' + campaign.prizes.map(p => p.name).join(' ')).toLowerCase()
+    if (
+      textToSearch.includes('omra') || 
+      textToSearch.includes('makkah') || 
+      textToSearch.includes('madinah')
+    ) {
+      return 'Omra'
+    }
+    if (
+      textToSearch.includes('voyage') || 
+      textToSearch.includes('circuit') || 
+      textToSearch.includes('organisé') ||
+      textToSearch.includes('vol') ||
+      textToSearch.includes('zanzibar') ||
+      textToSearch.includes('maldives')
+    ) {
+      return 'Voyages & Circuits'
+    }
+    if (
+      textToSearch.includes('séjour') || 
+      textToSearch.includes('hotel') || 
+      textToSearch.includes('hôtel') || 
+      textToSearch.includes('nuit') ||
+      textToSearch.includes('djerba')
+    ) {
+      return 'Hôtels & Séjours'
+    }
+    if (
+      textToSearch.includes('bon') || 
+      textToSearch.includes('carte cadeau') || 
+      textToSearch.includes('réduction') || 
+      textToSearch.includes('remise') || 
+      textToSearch.includes('tnd') || 
+      textToSearch.includes('€') || 
+      textToSearch.includes('euros')
+    ) {
+      return 'Bons de Réduction'
+    }
+    return 'Autres Cadeaux'
+  }
+
+  // Ticks once a minute so the "time left" badges below stay fresh — purely a
   // front-end display computed from the endDate the API already returns.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -89,282 +165,497 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
 
   const getCountdownInfo = (endDate: string) => {
     const diffMs = new Date(endDate).getTime() - now
-    if (diffMs <= 0) return { label: 'Terminé', urgent: false }
+    if (diffMs <= 0) {
+      return { label: 'Terminé', className: 'text-slate-400 bg-slate-100 border-slate-200' }
+    }
     const diffHours = diffMs / (1000 * 60 * 60)
-    if (diffHours < 48) return { label: `Plus que ${Math.max(1, Math.ceil(diffHours))} h`, urgent: true }
-    const diffDays = Math.ceil(diffHours / 24)
-    return { label: `${diffDays} jours restants`, urgent: diffDays < 7 }
+    const diffDays = diffHours / 24
+    if (diffHours < 48) {
+      return { label: `${Math.max(1, Math.ceil(diffHours))} h restantes`, className: 'text-red-600 bg-red-50 border-red-100' }
+    }
+    if (diffDays < 7) {
+      return { label: `${Math.ceil(diffDays)} j restants`, className: 'text-orange-600 bg-orange-50 border-orange-100' }
+    }
+    return { label: `${Math.ceil(diffDays)} j restants`, className: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
   }
 
+  // Filter campaigns (category filtering removed — kept the search-only match)
   const filteredCampaigns = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return initialCampaigns
-    return initialCampaigns.filter((campaign) =>
-      campaign.title.toLowerCase().includes(q) ||
-      campaign.partner?.name.toLowerCase().includes(q) ||
-      campaign.prizes.some((p) => p.name.toLowerCase().includes(q))
-    )
+    return initialCampaigns.filter(campaign => {
+      const matchesSearch =
+        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        campaign.partner?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        campaign.prizes.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      return matchesSearch
+    })
   }, [initialCampaigns, searchQuery])
 
-  // Chiffres et lots réels uniquement — rien d'inventé dans le hero.
-  const partnerCount = new Set(initialCampaigns.map((c) => c.partnerId).filter(Boolean)).size
-  const featuredPrizes = useMemo(
-    () =>
-      initialCampaigns
-        .flatMap((c) => c.prizes.filter((p) => p.totalStock !== -1).map((p) => ({ prize: p, campaign: c })))
-        .slice(0, 4),
-    [initialCampaigns]
-  )
-
-  const campaignHref = (campaign: Campaign) =>
-    campaign.partner ? `/company/${campaign.partner.slug || getPartnerSlug(campaign.partner.name)}` : null
-
   return (
-    <main className="min-h-screen flex flex-col bg-paper text-ink-900">
-      <header
-        className={`sticky top-0 z-50 bg-paper transition-[border-color] duration-150 border-b ${
-          isScrolled ? 'border-rule' : 'border-transparent'
+    <main className="min-h-screen text-slate-800 flex flex-col font-sans">
+      {/* HEADER NAVBAR — floats transparent over the hero video, turns opaque past it.
+          Sequenced arrival on load: header → hero → search → first card row. */}
+      <motion.header
+        initial={prefersReducedMotion ? undefined : { opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ease-in-out ${
+          isScrolledPastHero ? 'bg-white/90 backdrop-blur-md shadow-sm' : 'bg-transparent'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 min-w-0">
-            <Image src="/obooking-logo.png" alt="" width={140} height={64} className="h-7 w-auto object-contain" priority />
-            <span className="text-[15px] font-semibold tracking-tight whitespace-nowrap">Obooking Gift</span>
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-2 text-sm" aria-label="Navigation">
-            <a href="#jeux" className="hidden sm:inline-flex h-9 items-center px-3 rounded-full text-ink-700 hover:text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
-              Jeux en cours
-            </a>
-            <a href="#comment-ca-marche" className="hidden md:inline-flex h-9 items-center px-3 rounded-full text-ink-700 hover:text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/obooking-logo.png"
+              alt="Obooking Gift"
+              width={140}
+              height={64}
+              className={`h-8 md:h-9 w-auto object-contain transition-all duration-300 ${
+                isScrolledPastHero ? '' : 'drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'
+              }`}
+              priority
+            />
+            <span
+              className={`font-black tracking-tight text-lg transition-colors duration-300 ${
+                isScrolledPastHero ? 'text-slate-900' : 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'
+              }`}
+            >
+              Obooking Gift
+            </span>
+          </div>
+
+          <div
+            className={`hidden md:flex items-center gap-6 text-sm font-semibold transition-colors duration-300 ${
+              isScrolledPastHero ? 'text-slate-550' : 'text-white/90'
+            }`}
+          >
+            <Link
+              href="/"
+              className={`nav-link-underline relative py-1 ${isScrolledPastHero ? 'text-[#FF6B47] hover:text-[#e85530]' : 'hover:text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'}`}
+            >
+              Explorer
+            </Link>
+            <a
+              href="#how-it-works"
+              className={`nav-link-underline relative py-1 transition-colors ${isScrolledPastHero ? 'hover:text-slate-800' : 'hover:text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]'}`}
+            >
               Comment ça marche
             </a>
-            <Link
-              href={isAdminConnected ? '/partner' : '/client'}
-              className="inline-flex h-9 items-center px-4 rounded-full border border-rule-strong bg-surface text-ink-900 font-medium hover:bg-paper-2 transition-colors whitespace-nowrap"
+          </div>
+
+          <div className="flex items-center gap-3" />
+        </div>
+      </motion.header>
+
+      {/* HERO VIDEO SECTION — full-screen on desktop; shorter on mobile so a landscape
+          video/poster isn't crushed into a very tall/narrow phone viewport and cropped
+          into an unreadable sliver by object-cover. */}
+      <motion.section
+        ref={heroRef}
+        initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.7, delay: 0.15 }}
+        className="relative w-full overflow-hidden bg-brand-navy h-[46vh] min-h-[320px] md:h-screen"
+      >
+        {/* Parallax layer — slightly oversized so translating it never reveals empty edges */}
+        <motion.div className="absolute inset-x-0 -top-[10%] h-[120%]" style={{ y: heroParallaxY }}>
+          {siteSettings.hasHeroVideo ? (
+            <video
+              ref={heroVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="absolute inset-0"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             >
-              {isAdminConnected ? 'Mon tableau de bord' : 'Mon espace'}
-            </Link>
-          </nav>
-        </div>
-      </header>
+              <source
+                src="/api/media/hero-video"
+                type={siteSettings.heroVideoMimeType || 'video/mp4'}
+              />
+            </video>
+          ) : (
+            <div className="absolute inset-0 bg-gradient-brand" />
+          )}
+        </motion.div>
 
-      {/* HERO — titre à gauche, média ou lots réels à droite */}
-      <section className="border-b border-rule">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 lg:py-24 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-10 lg:gap-16 items-center">
-          <div className="min-w-0">
-            <h1 className="text-[clamp(2.25rem,4.6vw,3.5rem)] leading-[1.04] font-semibold tracking-[-0.035em] [overflow-wrap:anywhere]">
-              Jouez, et gagnez votre prochain voyage.
-            </h1>
-            <p className="mt-5 text-[17px] leading-relaxed text-ink-700 max-w-[34rem]">
-              Roulettes et tirages au sort offerts par nos hôtels et agences partenaires.
-              {initialCampaigns.length > 0 && (
-                <> En ce moment, <strong className="font-semibold text-ink-900">{initialCampaigns.length} jeu{initialCampaigns.length > 1 ? 'x' : ''}</strong> chez{' '}
-                  <strong className="font-semibold text-ink-900">{partnerCount} partenaire{partnerCount > 1 ? 's' : ''}</strong>.</>
-              )}
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href="#jeux" className="inline-flex h-12 items-center gap-2 px-6 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-[15px] font-semibold transition-colors whitespace-nowrap">
-                Voir les jeux en cours <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </a>
-              <a href="#comment-ca-marche" className="inline-flex h-12 items-center px-5 rounded-full text-[15px] font-medium text-ink-900 hover:bg-black/[0.04] transition-colors whitespace-nowrap">
-                Comment ça marche
-              </a>
+        {/* Gradient overlay: transparent at top (lets the header float over crisp footage) → deep at the bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/15 to-black/50 pointer-events-none" />
+
+        {/* Sound toggle — video autoplays muted (browser requirement), visitor can turn it on */}
+        {siteSettings.hasHeroVideo && (
+          <button
+            type="button"
+            onClick={toggleVideoSound}
+            aria-label={isVideoMuted ? 'Activer le son de la vidéo' : 'Couper le son de la vidéo'}
+            className="absolute bottom-6 right-4 sm:right-6 z-10 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/25 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          >
+            {isVideoMuted ? <VolumeX className="h-4.5 w-4.5" /> : <Volume2 className="h-4.5 w-4.5" />}
+          </button>
+        )}
+
+        {/* Animated scroll indicator */}
+        <motion.div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 text-white/70"
+          animate={prefersReducedMotion ? {} : { y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+          aria-hidden="true"
+        >
+          <ChevronDown className="h-7 w-7" />
+        </motion.div>
+      </motion.section>
+
+      {/* SEARCH BAR — sits below the hero video */}
+      <motion.section
+        initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 border-b border-slate-200/60 py-6 md:py-8">
+        <div className="max-w-xl mx-auto px-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-slate-400" />
             </div>
-          </div>
-
-          <div className="min-w-0">
-            {siteSettings.hasHeroVideo ? (
-              <figure className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-rule bg-ink-900">
-                <video
-                  ref={heroVideoRef}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="absolute inset-0 h-full w-full object-cover"
-                >
-                  <source src="/api/media/hero-video" type={siteSettings.heroVideoMimeType || 'video/mp4'} />
-                </video>
-                <button
-                  type="button"
-                  onClick={toggleVideoSound}
-                  aria-label={isVideoMuted ? 'Activer le son de la vidéo' : 'Couper le son de la vidéo'}
-                  className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-ink-900/70 hover:bg-ink-900 text-white flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  {isVideoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </button>
-              </figure>
-            ) : featuredPrizes.length > 0 ? (
-              <div className="rounded-2xl border border-rule bg-surface" style={{ boxShadow: 'var(--shadow-premium-md)' }}>
-                <p className="px-5 pt-5 pb-3 text-[13px] font-medium text-ink-500">À gagner en ce moment</p>
-                <ul className="divide-y divide-rule">
-                  {featuredPrizes.map(({ prize, campaign }) => {
-                    const href = campaignHref(campaign)
-                    const row = (
-                      <>
-                        <span className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center shrink-0" aria-hidden="true">
-                          <Gift className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[15px] font-medium text-ink-900 truncate">{prize.name}</span>
-                          <span className="block text-[13px] text-ink-500 truncate">{campaign.partner?.name || 'Obooking'} · {campaign.title}</span>
-                        </span>
-                        {href && <ArrowRight className="h-4 w-4 text-ink-500 shrink-0 group-hover:text-ink-900 transition-colors" aria-hidden="true" />}
-                      </>
-                    )
-                    return (
-                      <li key={prize.id}>
-                        {href ? (
-                          <Link href={href} className="group flex items-center gap-3 px-5 py-3.5 hover:bg-paper transition-colors">{row}</Link>
-                        ) : (
-                          <div className="flex items-center gap-3 px-5 py-3.5">{row}</div>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {/* CATALOGUE */}
-      <section id="jeux" className="scroll-mt-20 max-w-6xl w-full mx-auto px-4 sm:px-6 py-14 sm:py-20">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight">Jeux en cours</h2>
-            <p className="text-sm text-ink-500 mt-1">
-              {filteredCampaigns.length} résultat{filteredCampaigns.length > 1 ? 's' : ''}
-              {searchQuery.trim() ? ` pour « ${searchQuery.trim()} »` : ''}
-            </p>
-          </div>
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-500 pointer-events-none" aria-hidden="true" />
             <input
-              type="search"
-              placeholder="Hôtel, destination, lot…"
+              type="text"
+              placeholder="Rechercher un voyage, un hôtel, une destination..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Rechercher un jeu-concours"
-              className="w-full h-11 pl-10 pr-4 bg-surface border border-field hover:border-ink-700 rounded-full text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors"
+              className="w-full pl-13 pr-4 py-4 bg-white border border-slate-200/80 rounded-2xl text-slate-800 placeholder-slate-450 focus:outline-hidden focus:border-[#FF6B47] focus:ring-4 focus:ring-orange-500/10 transition-all font-medium text-sm"
+              style={{ boxShadow: 'var(--shadow-premium-md)' }}
             />
           </div>
         </div>
+      </motion.section>
 
+      {/* FILTER & CONTENT DIVISION */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Category & Type Filters Nav */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
+          <div className="flex items-center gap-2">
+            <button className="px-4 py-2 rounded-xl text-xs font-black shrink-0 bg-[#FF6B47] text-white shadow-md shadow-orange-500/15 cursor-default">
+              Tous
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] bg-white/20 text-white">
+                {initialCampaigns.length}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* RESULTS TEXT */}
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-xs text-slate-500 font-bold">
+            Nous avons trouvé <span className="text-slate-800 font-extrabold">{filteredCampaigns.length}</span> jeux-concours actifs
+          </p>
+        </div>
+
+        {/* CONTESTS GRID */}
         {filteredCampaigns.length > 0 ? (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {filteredCampaigns.map((campaign) => {
-              const isDraw = campaign.gameMode === 'DRAW'
-              const ModeIcon = isDraw ? Ticket : Disc3
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCampaigns.map((campaign, cardIndex) => {
+              const hasDraw = campaign.gameMode === 'DRAW'
+              const firstPrize = campaign.prizes[0]
+              const cat = getCampaignCategory(campaign)
+
               const countdown = getCountdownInfo(campaign.endDate)
-              const href = campaignHref(campaign)
-              const prizes = campaign.prizes.filter((p) => p.totalStock !== -1)
-              const shownPrizes = (prizes.length > 0 ? prizes : campaign.prizes).slice(0, 2)
-              const extra = (prizes.length > 0 ? prizes : campaign.prizes).length - shownPrizes.length
 
               return (
-                <li key={campaign.id} className="min-w-0">
-                  <article className="group h-full flex flex-col rounded-2xl border border-rule bg-surface overflow-hidden transition-colors duration-150 hover:border-rule-strong">
-                    <div className={`relative bg-paper-2 border-b border-rule overflow-hidden ${campaign.imageData ? 'aspect-[16/9]' : 'h-24'}`}>
-                      {campaign.imageData ? (
-                        <img
-                          src={`data:${campaign.imageMimeType || 'image/jpeg'};base64,${campaign.imageData}`}
-                          alt=""
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="absolute inset-y-0 right-4 flex items-center text-ink-500/30" aria-hidden="true">
-                          <ModeIcon className="h-12 w-12" strokeWidth={1} />
-                        </div>
-                      )}
-                      <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-surface text-xs font-medium text-ink-900 shadow-[0_0_0_1px_var(--rule)]">
-                        <ModeIcon className="h-3 w-3" aria-hidden="true" />
-                        {isDraw ? 'Tirage au sort' : 'Roulette'}
+                <motion.div
+                  key={campaign.id}
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
+                  whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  whileHover={prefersReducedMotion ? undefined : { y: -6, scale: 1.02 }}
+                  transition={{ duration: 0.35, delay: 0.65 + Math.min(cardIndex, 7) * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  onMouseMove={(e) => {
+                    const card = e.currentTarget
+                    const rect = card.getBoundingClientRect()
+                    card.style.setProperty('--spot-x', `${e.clientX - rect.left}px`)
+                    card.style.setProperty('--spot-y', `${e.clientY - rect.top}px`)
+                  }}
+                  className="relative bg-white border border-slate-200/80 rounded-3xl flex flex-col justify-between overflow-hidden group"
+                  style={{ boxShadow: 'var(--shadow-premium-md)' }}
+                >
+                  {/* Spotlight — follows the cursor, desktop only (see .spotlight-layer) */}
+                  <div className="spotlight-layer absolute inset-0 z-10 pointer-events-none" aria-hidden="true" />
+
+                  {/* Card Header Image / Icon Overlay */}
+                  <div className={`relative flex items-center justify-center min-h-[120px] border-b border-slate-100 overflow-hidden ${
+                    campaign.imageData ? '' : 'p-5 bg-gradient-to-br from-slate-50 to-slate-100/40'
+                  }`}>
+                    {campaign.imageData && (
+                      <img
+                        src={`data:${campaign.imageMimeType || 'image/jpeg'};base64,${campaign.imageData}`}
+                        alt={campaign.title}
+                        className="absolute inset-0 w-full h-full object-cover scale-100 group-hover:scale-105 transition-transform duration-500 ease-out"
+                      />
+                    )}
+
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                        hasDraw
+                          ? 'bg-brand-navy/90 text-white border border-white/10'
+                          : 'bg-gradient-gold-shine animate-shine text-white shadow-sm'
+                      }`}>
+                        {hasDraw ? 'Tirage au sort' : 'Instant Gagnant'}
                       </span>
                     </div>
 
-                    <div className="p-5 flex-1 flex flex-col">
-                      <p className="text-[13px] text-ink-500 truncate">{campaign.partner?.name || 'Obooking'}</p>
-                      <h3 className="mt-1 text-[17px] font-semibold leading-snug tracking-tight line-clamp-2">{campaign.title}</h3>
+                    <div className="absolute top-3 right-3">
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-200/50 text-[9px] text-slate-500 font-bold flex items-center gap-1">
+                        <Tag className="h-2.5 w-2.5" /> {cat}
+                      </span>
+                    </div>
 
-                      {shownPrizes.length > 0 && (
-                        <ul className="mt-4 space-y-1.5 text-sm text-ink-700">
-                          {shownPrizes.map((prize) => (
-                            <li key={prize.id} className="flex items-center gap-2 min-w-0">
-                              <Gift className="h-3.5 w-3.5 text-ink-500 shrink-0" aria-hidden="true" />
-                              <span className="truncate">{prize.name}</span>
-                            </li>
-                          ))}
-                          {extra > 0 && <li className="text-[13px] text-ink-500 pl-5.5">et {extra} autre{extra > 1 ? 's' : ''} lot{extra > 1 ? 's' : ''}</li>}
-                        </ul>
-                      )}
+                    {/* Central Icon representation (fallback when no campaign image) */}
+                    {!campaign.imageData && (
+                      <div className="h-14 w-14 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-650 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                        {cat === 'Voyages & Circuits' && <Plane className="h-7 w-7 text-sky-500" />}
+                        {cat === 'Hôtels & Séjours' && <Bed className="h-7 w-7 text-emerald-500" />}
+                        {cat === 'Omra' && <Compass className="h-7 w-7 text-indigo-500" />}
+                        {cat === 'Bons de Réduction' && <Ticket className="h-7 w-7 text-amber-500" />}
+                        {cat === 'Autres Cadeaux' && <Gift className="h-7 w-7 text-[#FF6B47]" />}
+                      </div>
+                    )}
+                  </div>
 
-                      <div className="mt-auto pt-5 flex items-center justify-between gap-3">
-                        <span className={`text-[13px] whitespace-nowrap ${countdown.urgent ? 'text-brand-700 font-medium' : 'text-ink-500'}`}>
-                          {countdown.label}
+                  {/* Card Content details */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      {/* Organizer Name */}
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <div className="h-5 w-5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-black text-[9px] uppercase">
+                          {campaign.partner?.name.slice(0, 2) || 'OB'}
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
+                          {campaign.partner?.name || 'Obooking'}
                         </span>
-                        {href ? (
-                          <Link
-                            href={href}
-                            className="inline-flex h-9 items-center gap-1.5 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors whitespace-nowrap"
-                            aria-label={`Participer à ${campaign.title}`}
-                          >
-                            Participer <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                          </Link>
-                        ) : (
-                          <span className="text-[13px] text-ink-500 whitespace-nowrap">Bientôt disponible</span>
+                      </div>
+
+                      {/* Campaign Title */}
+                      <h4 className="text-sm font-extrabold text-slate-800 group-hover:text-[#FF6B47] transition-colors leading-tight line-clamp-2">
+                        {campaign.title}
+                      </h4>
+
+                      {/* Prizes preview list */}
+                      <div className="mt-3.5 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-450 block">Dotations à gagner :</span>
+                        {campaign.prizes.slice(0, 2).map((prize) => (
+                          <div key={prize.id} className="flex items-center gap-1 text-slate-600 text-xs">
+                            <Gift className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate font-semibold text-xxs">{prize.name}</span>
+                          </div>
+                        ))}
+                        {campaign.prizes.length > 2 && (
+                          <span className="text-[10px] text-[#FF6B47] font-bold block mt-1">
+                            + {campaign.prizes.length - 2} autre(s) lot(s)
+                          </span>
                         )}
                       </div>
                     </div>
-                  </article>
-                </li>
+
+                    {/* Perforation — signature "billet d'embarquement" cutout, separating
+                        the campaign details from the CTA stub like a boarding pass */}
+                    <div className="relative mt-5 h-0 border-t border-dashed border-ink-900/15" aria-hidden="true">
+                      <span className="absolute left-0 -top-2.5 -translate-x-1/2 h-5 w-5 rounded-full bg-[#F7F7F4]" />
+                      <span className="absolute right-0 -top-2.5 translate-x-1/2 h-5 w-5 rounded-full bg-[#F7F7F4]" />
+                    </div>
+
+                    {/* Bottom CTA Button */}
+                    <div className="pt-4 flex items-center justify-between gap-2">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-semibold text-slate-450 flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Expire le {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
+                        </span>
+                        <span className={`inline-flex w-fit px-1.5 py-0.5 rounded-md text-[9px] font-black border ${countdown.className}`}>
+                          {countdown.label}
+                        </span>
+                      </div>
+
+                      {campaign.partner ? (
+                        <Link
+                          href={`/company/${getPartnerSlug(campaign.partner.name)}`}
+                          className="cta-flash bg-gradient-brand relative inline-flex items-center gap-1 px-3 py-2 text-white rounded-lg text-xxs font-black tracking-tight transition-all hover:brightness-110 hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                          style={{ boxShadow: 'var(--shadow-premium-glow)' }}
+                        >
+                          <span className="absolute inset-0 rounded-lg animate-ping-slow bg-[#FF6B47]/60 motion-reduce:hidden" aria-hidden="true" />
+                          <span className="relative flex items-center gap-1">
+                            Jouer <ArrowUpRight className="h-3.5 w-3.5" />
+                          </span>
+                        </Link>
+                      ) : (
+                        <span className="text-xxs text-slate-400 font-semibold shrink-0">Bientôt disponible</span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
               )
             })}
-          </ul>
+          </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-rule-strong py-16 px-6 text-center">
-            <p className="text-[15px] font-medium">Aucun jeu ne correspond à « {searchQuery.trim()} »</p>
-            <p className="text-sm text-ink-500 mt-1">Essayez un nom d&apos;hôtel, une destination ou un type de lot.</p>
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="mt-5 inline-flex h-9 items-center px-4 rounded-full border border-rule-strong bg-surface text-sm font-medium hover:bg-paper-2 transition-colors cursor-pointer"
-            >
-              Effacer la recherche
-            </button>
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-12 text-center max-w-md mx-auto" style={{ boxShadow: 'var(--shadow-premium-sm)' }}>
+            <Gift className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-base font-black text-slate-800">Aucun jeu-concours trouvé</h3>
+            <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+              Il n'y a pas de concours correspondant à vos critères de recherche en ce moment. Essayez d'autres filtres.
+            </p>
           </div>
         )}
       </section>
 
-      {promoBanners.length > 0 && <PromoCarousel banners={promoBanners} />}
+      {/* PROMO BANNERS MARQUEE — admin-managed, dynamic */}
+      <PromoCarousel banners={promoBanners} />
 
-      <section id="comment-ca-marche" className="scroll-mt-20 border-t border-rule bg-paper-2">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-10 lg:gap-16">
-          <div>
-            <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight">Comment ça marche</h2>
-            <p className="mt-3 text-[15px] leading-relaxed text-ink-700 max-w-sm">
-              Trois étapes, sans compte obligatoire. Le tirage est calculé côté serveur pour être équitable.
+      {/* HOW IT WORKS INFO SECTION — the one deliberately dark beat in the page's
+          scroll rhythm (everything else on this page is light) */}
+      <section id="how-it-works" className="relative z-10 bg-brand-navy py-16 sm:py-24 mt-20 scroll-mt-20 overflow-hidden">
+        {/* Same dot-grid + ambient glow language as the footer, for visual consistency between the two dark sections */}
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[560px] h-[420px] bg-[radial-gradient(ellipse_at_center,var(--color-brand-orange)_0%,transparent_70%)] opacity-10 pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white tracking-tight">
+              Comment ça <span className="text-gradient-brand">marche</span> ?
+            </h2>
+            <p className="text-slate-400 text-xs mt-3 font-semibold">
+              Participez en quelques clics et tentez de gagner vos prochaines vacances de rêve avec Obooking.
             </p>
           </div>
+
           <HowItWorksTimeline />
         </div>
       </section>
 
-      <footer className="border-t border-rule mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[13px] text-ink-500">
-          <span className="flex items-center gap-2">
-            <span className="font-medium text-ink-900">Obooking Gift</span>
-            <span aria-hidden="true">·</span>
-            Jeux-concours des partenaires Obooking
-          </span>
-          <span className="flex items-center gap-4">
-            <Link href="/client" className="hover:text-ink-900 transition-colors whitespace-nowrap">Espace client</Link>
-            <Link href="/partner" className="hover:text-ink-900 transition-colors whitespace-nowrap">Espace partenaire</Link>
-            <span className="whitespace-nowrap">© {new Date().getFullYear()}</span>
-          </span>
+      {/* FOOTER */}
+      <footer className="relative bg-brand-navy text-slate-300 overflow-hidden mt-auto">
+        {/* Subtle dot-grid pattern for texture */}
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="absolute -top-24 right-0 w-[420px] h-[420px] bg-[radial-gradient(ellipse_at_center,var(--color-brand-orange)_0%,transparent_70%)] opacity-10 pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
+            {/* Logo + baseline */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Image
+                  src="/obooking-logo.png"
+                  alt="Obooking Gift"
+                  width={120}
+                  height={55}
+                  className="h-8 w-auto object-contain brightness-0 invert"
+                />
+                <span className="font-display text-white font-semibold text-lg">Obooking Gift</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed max-w-xs">
+                Voyages de rêve, séjours de luxe et bons d'achat exclusifs à gagner — tentez votre chance dès maintenant.
+              </p>
+            </div>
+
+            {/* Quick links */}
+            <div>
+              <h5 className="text-white text-xs font-black uppercase tracking-wider mb-4">Liens rapides</h5>
+              <ul className="space-y-2.5 text-xs">
+                <li><Link href="/" className="hover:text-white transition-colors">Explorer les campagnes</Link></li>
+                <li><a href="#how-it-works" className="hover:text-white transition-colors">Comment ça marche</a></li>
+              </ul>
+            </div>
+
+            {/* Social */}
+            <div>
+              <h5 className="text-white text-xs font-black uppercase tracking-wider mb-4">Suivez-nous</h5>
+              <div className="flex items-center gap-3">
+                <a
+                  href="#"
+                  aria-label="Obooking Gift sur Facebook"
+                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF6B47] hover:border-[#FF6B47] hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  <FacebookIcon className="h-4 w-4" />
+                </a>
+                <a
+                  href="#"
+                  aria-label="Obooking Gift sur Instagram"
+                  className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-[#FF6B47] hover:border-[#FF6B47] hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  <InstagramIcon className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Gradient separator */}
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent my-8" />
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
+            <span>Plateforme sécurisée &copy; {new Date().getFullYear()} Obooking Contests. Tous droits réservés.</span>
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
+              <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
+            </div>
+          </div>
         </div>
       </footer>
     </main>
+  )
+}
+
+// Simple Clock component wrapper to replace Lucide Clock if missing
+function Clock(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+// Minimal brand icons for the footer's social row (lucide-react has no brand icon set)
+function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5H17V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.6V13h2.7v8h3.2Z" />
+    </svg>
+  )
+}
+
+function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
   )
 }

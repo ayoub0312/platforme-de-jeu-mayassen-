@@ -120,7 +120,7 @@ export function ApiDocsTab() {
               <CopyButton text={baseUrl} />
             </div>
             {!config?.baseUrl && (
-              <p className="text-[11px] text-amber-600 mt-1.5">APP_BASE_URL n'est pas encore configurée — valeur d'exemple affichée.</p>
+              <p className="text-[11px] text-amber-600 mt-1.5">⚠ APP_BASE_URL n'est pas encore configurée — valeur d'exemple affichée.</p>
             )}
           </div>
 

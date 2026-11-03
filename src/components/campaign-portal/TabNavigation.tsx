@@ -10,11 +10,11 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, setActiveTab, gameMode = 'ROULETTE' }: TabNavigationProps) {
   const allTabs = [
-    { id: 'game', label: 'Jouer', icon: Play },
+    { id: 'game', label: 'Lancer', icon: Play },
     { id: 'draws', label: 'Tirages', icon: Calendar },
     { id: 'challenges', label: 'Défis', icon: Target },
-    { id: 'prizes', label: 'Mes lots', icon: Trophy },
-    { id: 'referral', label: 'Parrainage', icon: Share2 }
+    { id: 'prizes', label: 'Lots', icon: Trophy },
+    { id: 'referral', label: ' partage', icon: Share2 }
   ] as const
 
   // A campaign is either Roulette (Lancer/Défis/Partage) or Tirage au Sort (Tirages) — never both.
@@ -23,24 +23,21 @@ export function TabNavigation({ activeTab, setActiveTab, gameMode = 'ROULETTE' }
     : allTabs.filter(t => t.id !== 'draws')
 
   return (
-    <div role="tablist" className="hidden md:flex w-full items-center gap-0.5 mb-8 p-1 rounded-full bg-paper-2 border border-rule">
+    <div className="hidden md:flex w-full items-center bg-slate-100/80 border border-slate-200 mb-6 p-1 rounded-2xl">
       {tabs.map((t) => {
         const Icon = t.icon
         const isActive = activeTab === t.id
         return (
           <button
             key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
             onClick={() => setActiveTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-full text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               isActive
-                ? 'bg-surface text-ink-900 shadow-[0_0_0_1px_var(--rule),var(--shadow-premium-sm)]'
-                : 'text-ink-500 hover:text-ink-900'
+                ? 'bg-white text-[#FF6B47] border border-[#FF6B47] shadow-sm'
+                : 'text-slate-800 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <Icon className={`h-4 w-4 ${isActive ? 'text-brand-600' : ''}`} aria-hidden="true" />
+            <Icon className={`h-4 w-4 ${isActive ? 'text-[#FF6B47]' : 'text-slate-800'}`} />
             <span>{t.label}</span>
           </button>
         )

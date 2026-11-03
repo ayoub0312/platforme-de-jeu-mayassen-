@@ -71,7 +71,7 @@ export function Modal({ open, onClose, title, children, maxWidthClassName = 'max
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-ink-900/40"
+          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -85,23 +85,23 @@ export function Modal({ open, onClose, title, children, maxWidthClassName = 'max
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${maxWidthClassName} max-h-[92vh] overflow-y-auto rounded-[var(--radius-ds-lg)] bg-surface border border-rule p-6 sm:p-7`}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            className={`relative w-full ${maxWidthClassName} max-h-[92vh] overflow-y-auto rounded-[var(--radius-ds-lg)] bg-surface border border-black/[0.06] p-6 sm:p-8`}
             style={{ boxShadow: 'var(--shadow-premium-lg)' }}
           >
             <button
               type="button"
               onClick={onClose}
               aria-label="Fermer"
-              className="absolute right-4 top-4 p-2 rounded-full transition-colors text-ink-500 hover:text-ink-900 hover:bg-black/[0.05] cursor-pointer"
+              className="absolute right-5 top-5 p-2 bg-surface-alt hover:bg-brand-50 rounded-full transition-all border border-black/[0.06] text-ink-500 hover:text-ink-900 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
             {title && (
-              <h3 id={titleId} className="text-lg font-semibold text-ink-900 mb-5 pr-10 tracking-tight">
+              <h3 id={titleId} className="font-display text-xl font-semibold text-ink-900 mb-4 pr-10">
                 {title}
               </h3>
             )}

@@ -70,18 +70,18 @@ export function VoucherActions({ prizeName, partnerName, winnerName, confirmatio
   }
 
   return (
-    <div className="flex items-center gap-2 mt-6">
+    <div className="flex items-center gap-2.5 mt-5">
       <button
         type="button"
         onClick={handleDownloadPdf}
-        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-3 rounded-full bg-surface border border-rule-strong text-ink-900 hover:bg-paper-2 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer"
+        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface border border-black/[0.08] text-ink-700 hover:bg-black/[0.04] text-xs font-bold transition-all cursor-pointer"
       >
-        <Download className="h-3.5 w-3.5" aria-hidden="true" /> PDF
+        <Download className="h-3.5 w-3.5" /> Télécharger en PDF
       </button>
       <button
         type="button"
         onClick={handleShare}
-        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-3 rounded-full bg-surface border border-rule-strong text-ink-900 hover:bg-paper-2 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer"
+        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface border border-black/[0.08] text-ink-700 hover:bg-black/[0.04] text-xs font-bold transition-all cursor-pointer"
       >
         {copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Share2 className="h-3.5 w-3.5" />}
         {copied ? 'Lien copié !' : 'Partager'}

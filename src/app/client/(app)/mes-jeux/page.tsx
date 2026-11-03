@@ -10,17 +10,17 @@ export default function MesJeuxPage() {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes jeux</h1>
+        <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes jeux</h1>
         <p className="text-sm text-[var(--ink-500)] mt-1.5 max-w-lg">Vos lots gagnés, vos participations et les campagnes accessibles.</p>
       </header>
 
       {/* Lots gagnés */}
       <section className="mb-10">
-        <h2 className="text-[13px] font-semibold text-ink-900 mb-3">Lots gagnés</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Lots gagnés</h2>
         {activityLoading ? (
           <div className="h-24 rounded-2xl skeleton-shimmer" />
         ) : activity && activity.prizesWon.length > 0 ? (
-          <div className="rounded-2xl border border-rule bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
+          <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
             {activity.prizesWon.map((p) => (
               <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                 <div className="min-w-0">
@@ -36,7 +36,7 @@ export default function MesJeuxPage() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
-            <div className="h-11 w-11 rounded-full border border-rule bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
               <Trophy className="h-5 w-5 text-[var(--ink-500)]" />
             </div>
             <p className="text-sm text-[var(--ink-500)]">Aucun lot gagné pour l'instant.</p>
@@ -46,11 +46,11 @@ export default function MesJeuxPage() {
 
       {/* Mes participations */}
       <section className="mb-10">
-        <h2 className="text-[13px] font-semibold text-ink-900 mb-3">Mes participations</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Mes participations</h2>
         {activityLoading ? (
           <div className="h-24 rounded-2xl skeleton-shimmer" />
         ) : activity && activity.participations.length > 0 ? (
-          <div className="rounded-2xl border border-rule bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
+          <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
             {activity.participations.map((p) => (
               <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                 <div className="min-w-0">
@@ -63,7 +63,7 @@ export default function MesJeuxPage() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
-            <div className="h-11 w-11 rounded-full border border-rule bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
               <Ticket className="h-5 w-5 text-[var(--ink-500)]" />
             </div>
             <p className="text-sm text-[var(--ink-500)] max-w-sm mx-auto">Aucune participation pour l'instant — inscrivez-vous à une campagne active depuis le site pour commencer à jouer.</p>
@@ -73,13 +73,13 @@ export default function MesJeuxPage() {
 
       {/* Nouveaux jeux */}
       <section>
-        <h2 className="text-[13px] font-semibold text-ink-900 mb-3">Nouveaux jeux Obooking Gift</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Nouveaux jeux Obooking Gift</h2>
         {newGamesLoading ? (
           <div className="h-40 rounded-2xl skeleton-shimmer" />
         ) : newGames && newGames.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {newGames.map((c) => (
-              <div key={c.id} className="rounded-2xl border border-rule bg-[var(--surface)] shadow-[var(--shadow-premium-sm)] overflow-hidden transition-shadow hover:shadow-[var(--shadow-premium-md)]">
+              <div key={c.id} className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] shadow-[var(--shadow-premium-sm)] overflow-hidden transition-shadow hover:shadow-[var(--shadow-premium-md)]">
                 {c.imageData && c.imageMimeType ? (
                   <img src={`data:${c.imageMimeType};base64,${c.imageData}`} alt={c.title} className="w-full h-32 object-cover" />
                 ) : (
@@ -107,7 +107,7 @@ export default function MesJeuxPage() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-black/[0.1] py-10 px-6 text-center">
-            <div className="h-11 w-11 rounded-full border border-rule bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
+            <div className="h-11 w-11 rounded-xl bg-[var(--surface-alt)] flex items-center justify-center mx-auto mb-3">
               <Sparkles className="h-5 w-5 text-[var(--ink-500)]" />
             </div>
             <p className="text-sm text-[var(--ink-500)]">Aucun nouveau jeu pour le moment.</p>
