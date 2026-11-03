@@ -38,6 +38,7 @@ interface Prize {
 interface Partner {
   id: string
   name: string
+  slug: string
 }
 
 interface Campaign {
@@ -474,7 +475,7 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
 
                       {campaign.partner ? (
                         <Link
-                          href={`/company/${getPartnerSlug(campaign.partner.name)}`}
+                          href={`/company/${campaign.partner.slug || getPartnerSlug(campaign.partner.name)}`}
                           className="cta-flash bg-gradient-brand relative inline-flex items-center gap-1 px-3 py-2 text-white rounded-lg text-xxs font-black tracking-tight transition-all hover:brightness-110 hover:scale-105 active:scale-95 cursor-pointer shrink-0"
                           style={{ boxShadow: 'var(--shadow-premium-glow)' }}
                         >

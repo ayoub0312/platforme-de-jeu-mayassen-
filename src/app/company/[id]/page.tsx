@@ -14,16 +14,19 @@ interface CompanyPageProps {
 
 // cache() dedupes this lookup between generateMetadata and the page render —
 // both run for every request but React collapses them into a single query.
-const getPartnerBySlug = cache((id: string) =>
-  prisma.partner.findFirst({
+const getPartnerBySlug = cache((rawId: string) => {
+  const id = decodeURIComponent(rawId)
+  return prisma.partner.findFirst({
     where: {
       OR: [
         { id },
+        { slug: id.toLowerCase() },
+        // Anciens liens construits depuis le nom (avant l'ajout de Partner.slug).
         { name: { equals: id.toLowerCase().replace(/-/g, ' ') } },
       ],
     },
   })
-)
+})
 
 export async function generateMetadata({ params }: CompanyPageProps): Promise<Metadata> {
   const { id } = await params
@@ -72,7 +75,8 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
   const campaigns = await prisma.campaign.findMany({
     where: {
       partnerId: partner.id,
-      isActive: true
+      isActive: true,
+      isDraft: false,
     },
     include: {
       partner: { select: { name: true } },
