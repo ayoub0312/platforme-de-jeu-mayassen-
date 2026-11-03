@@ -127,13 +127,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     setLoginPending(true)
 
     try {
-      const res = await loginMutation.mutateAsync({
+      // Le cookie de session (HttpOnly) est posé par le serveur dans la réponse.
+      await loginMutation.mutateAsync({
         email: loginEmail,
         password: loginPassword,
       })
-
-      // Set cookie
-      document.cookie = `admin_session=${res.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`
 
       // Reload page to apply auth context
       window.location.reload()
@@ -144,9 +142,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
     }
   }
 
-  const handleLogout = () => {
-    document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict'
-    window.location.reload()
+  const logoutMutation = trpc.logoutAdmin.useMutation()
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync()
+    } finally {
+      // Efface aussi un éventuel ancien cookie non-HttpOnly posé avant la migration.
+      document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Strict'
+      window.location.reload()
+    }
   }
 
   // Tab State

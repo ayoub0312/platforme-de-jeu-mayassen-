@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { router, publicProcedure, rateLimitedProcedure, adminProcedure, superAdminProcedure, writeProcedure, partnerProcedure, customerProcedure } from '../trpc'
 import { prisma } from '../../lib/db'
 import crypto from 'crypto'
-import { redis, authRatelimit, customerLoginRatelimit, customerSignupRatelimit } from '../../lib/redis'
+import { redis, authRatelimit, customerLoginRatelimit, customerSignupRatelimit, adminLoginEmailRatelimit, adminLoginIpRatelimit } from '../../lib/redis'
+import { ADMIN_SESSION_COOKIE, CUSTOMER_SESSION_COOKIE, sessionCookie, clearedSessionCookie } from '../../lib/cookies'
 import { creditPendingPurchases } from '../../lib/loyalty-api'
 import { TRPCError } from '@trpc/server'
 import { TokenStatus, EarnMethod, PrizeType, Prize, Role } from '@prisma/client'
@@ -95,6 +96,21 @@ function checkPasswordStrength(password: string): string | null {
   return null
 }
 
+// Hash bcrypt factice comparé quand le compte n'existe pas, pour que le temps
+// de réponse de loginAdmin ne révèle pas quels emails existent.
+let dummyPasswordHash: string | null = null
+async function getDummyPasswordHash(): Promise<string> {
+  if (!dummyPasswordHash) dummyPasswordHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
+  return dummyPasswordHash
+}
+
+class TokenAlreadyUsedError extends Error {}
+
+// Champs d'une ligne User qui peuvent sortir vers un client non authentifié.
+function toPublicPlayer(user: { id: string; name: string | null; email: string; referralCode: string | null }) {
+  return { id: user.id, name: user.name, email: user.email, referralCode: user.referralCode }
+}
+
 // Templates préconfigurés proposés à l'étape "Config" du wizard de création de
 // campagne (Phase 2). Statiques pour l'instant — pas besoin d'une table dédiée.
 const CAMPAIGN_TEMPLATES = [
@@ -143,13 +159,34 @@ export const appRouter = router({
         password: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      let allowed: boolean
+      try {
+        const [byEmail, byIp] = await Promise.all([
+          adminLoginEmailRatelimit.limit(input.email.trim().toLowerCase()),
+          adminLoginIpRatelimit.limit(ctx.ip || 'unknown'),
+        ])
+        allowed = byEmail.success && byIp.success
+      } catch (err) {
+        console.error('[RateLimit ERROR] limiteur loginAdmin indisponible — requête AUTORISÉE (fail-open):', err)
+        allowed = true
+      }
+      if (!allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Trop de tentatives de connexion. Réessayez dans quelques minutes.' })
+      }
+
       // 1. Fetch user from database
       const user = await prisma.user.findUnique({
         where: { email: input.email },
       })
 
-      if (!user) {
+      // Le mot de passe est vérifié AVANT le rôle : sinon l'erreur FORBIDDEN
+      // des comptes PLAYER révélait quels emails existent en base.
+      const isPasswordValid = await bcrypt.compare(
+        input.password,
+        user?.passwordHash || (await getDummyPasswordHash())
+      )
+      if (!user || !user.passwordHash || !isPasswordValid) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Adresse email ou mot de passe incorrect.',
@@ -161,22 +198,6 @@ export const appRouter = router({
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: "Vous n'avez pas l'autorisation d'accéder à cette interface.",
-        })
-      }
-
-      // Check password
-      if (!user.passwordHash) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Adresse email ou mot de passe incorrect.',
-        })
-      }
-
-      const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash)
-      if (!isPasswordValid) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Adresse email ou mot de passe incorrect.',
         })
       }
 
@@ -251,16 +272,17 @@ export const appRouter = router({
         role: user.role,
         partnerId,
       })
+      ctx.resHeaders?.append('Set-Cookie', sessionCookie(ADMIN_SESSION_COOKIE, token, 7 * 24 * 60 * 60))
 
       return {
-        token,
         role: user.role,
         partnerId,
       }
     }),
 
   // Admin Logout Mutation
-  logoutAdmin: publicProcedure.mutation(async () => {
+  logoutAdmin: publicProcedure.mutation(async ({ ctx }) => {
+    ctx.resHeaders?.append('Set-Cookie', clearedSessionCookie(ADMIN_SESSION_COOKIE))
     return { success: true }
   }),
 
@@ -374,6 +396,7 @@ export const appRouter = router({
           isDraft: false,
           ...partnerFilter
         },
+        omit: { senderEmailPassword: true },
         include: {
           partner: { select: { name: true } },
           // Must match the ordering spinRoulette uses to compute prizeIndex,
@@ -390,6 +413,7 @@ export const appRouter = router({
     .query(async ({ input }) => {
       const campaign = await prisma.campaign.findUnique({
         where: { id: input.id },
+        omit: { senderEmailPassword: true },
         include: {
           partner: true,
           prizes: {
@@ -559,7 +583,7 @@ export const appRouter = router({
         })
 
         return {
-          user,
+          user: toPublicPlayer(user),
           tokensCount: tokens,
           message: 'Welcome back! You have already registered for this campaign.',
         }
@@ -664,7 +688,7 @@ export const appRouter = router({
       })
 
       return {
-        user,
+        user: toPublicPlayer(user),
         tokensCount: startingTokens,
         message: 'Inscription réussie ! Vous pouvez jouer dès maintenant.',
       }
@@ -681,15 +705,13 @@ export const appRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // a. Rate limit check: Prevent clicking multiple times within 2 seconds
+      // SET NX : lecture et pose du verrou en une seule commande atomique.
       const lockKey = `spin_lock:${input.email}`
       let isLocked = false
       try {
-        const lockVal = await redis.get<string>(lockKey)
-        if (lockVal) {
-          isLocked = true
-        }
+        isLocked = (await redis.set(lockKey, 'locked', { ex: 2, nx: true })) === null
       } catch (err) {
-        console.warn('[Redis Warning] Failed to read rate-limit lock from Redis, ignoring lock:', err)
+        console.warn('[Redis Warning] Failed to set rate-limit lock in Redis, ignoring lock:', err)
       }
 
       if (isLocked) {
@@ -697,12 +719,6 @@ export const appRouter = router({
           code: 'TOO_MANY_REQUESTS',
           message: 'Please wait a moment between spins.',
         })
-      }
-
-      try {
-        await redis.set(lockKey, 'locked', { ex: 2 })
-      } catch (err) {
-        console.warn('[Redis Warning] Failed to write rate-limit lock to Redis:', err)
       }
 
       // b. Verify player exists
@@ -809,33 +825,36 @@ export const appRouter = router({
       // g. Record winning and consume token inside atomic SQL transaction
       let createdUserPrize: { id: string }
       try {
-        const [, userPrizeResult] = await prisma.$transaction([
-          // Mark play token as USED
-          prisma.playToken.update({
-            where: { id: unusedToken.id },
+        createdUserPrize = await prisma.$transaction(async (tx) => {
+          // Consommation conditionnelle du jeton (status UNUSED dans le WHERE) :
+          // deux requêtes parallèles ayant lu le même jeton ne peuvent pas
+          // toutes les deux le consommer et gagner chacune un lot.
+          const consumed = await tx.playToken.updateMany({
+            where: { id: unusedToken.id, status: TokenStatus.UNUSED },
             data: { status: TokenStatus.USED },
-          }),
-          // Record won prize
-          prisma.userPrize.create({
+          })
+          if (consumed.count === 0) {
+            throw new TokenAlreadyUsedError()
+          }
+          const userPrize = await tx.userPrize.create({
             data: {
               userId: user.id,
               prizeId: selectedPrize.id,
               status: 'PENDING',
             },
-          }),
-          // If prize has limited stock, decrement remaining stock in database
-          ...(selectedPrize.totalStock !== -1
-            ? [
-              prisma.prize.update({
-                where: { id: selectedPrize.id },
-                data: { remainingStock: { decrement: 1 } },
-              }),
-            ]
-            : []),
-        ])
-        createdUserPrize = userPrizeResult as { id: string }
+            select: { id: true },
+          })
+          if (selectedPrize.totalStock !== -1) {
+            await tx.prize.update({
+              where: { id: selectedPrize.id },
+              data: { remainingStock: { decrement: 1 } },
+            })
+          }
+          return userPrize
+        }, { timeout: 20000, maxWait: 10000 })
       } catch (err) {
-        console.error('SQL transaction failed, attempting compensation:', err)
+        const tokenAlreadyUsed = err instanceof TokenAlreadyUsedError
+        if (!tokenAlreadyUsed) console.error('SQL transaction failed, attempting compensation:', err)
         // Compensation logic: Revert Redis stock lock if SQL database write failed
         if (selectedPrize.totalStock !== -1) {
           try {
@@ -843,6 +862,12 @@ export const appRouter = router({
           } catch (redisErr) {
             console.warn('[Redis Warning] Failed to revert stock in Redis:', redisErr)
           }
+        }
+        if (tokenAlreadyUsed) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Ce lancer a déjà été utilisé. Réessayez.',
+          })
         }
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -1209,8 +1234,10 @@ export const appRouter = router({
       z.object({
         email: z.string().email(),
         campaignId: z.string(),
-        fileData: z.string(),
-        fileMimeType: z.string(),
+        // Mêmes limites que /api/upload-receipt (2 Mo, images ou PDF) : la
+        // procédure est publique et peut être appelée sans passer par cette route.
+        fileData: z.string().max(Math.ceil((2 * 1024 * 1024) / 3) * 4, 'Fichier trop volumineux (2 Mo maximum).').regex(/^[A-Za-z0-9+/]*={0,2}$/, 'Fichier invalide.'),
+        fileMimeType: z.enum(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']),
       })
     )
     .mutation(async ({ input }) => {
@@ -1281,10 +1308,19 @@ export const appRouter = router({
       signature: z.string()
     }))
     .query(async ({ input }) => {
-      const secret = process.env.SHARED_API_SECRET || "obooking-travel-secure-shared-api-secret-key-2026-xyz!";
-      const expectedSignature = crypto.createHmac('sha256', secret).update(input.email).digest('hex');
-      
-      if (input.signature !== expectedSignature) {
+      // Pas de repli codé en dur : il était public, donc n'importe qui pouvait
+      // signer une requête et lire les gains de n'importe quel email.
+      const secret = process.env.SHARED_API_SECRET
+      const expectedSignature = secret
+        ? crypto.createHmac('sha256', secret).update(input.email).digest()
+        : null
+      const providedSignature = Buffer.from(input.signature, 'hex')
+
+      if (
+        !expectedSignature ||
+        providedSignature.length !== expectedSignature.length ||
+        !crypto.timingSafeEqual(providedSignature, expectedSignature)
+      ) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid signature. Request verification failed.',
@@ -3496,10 +3532,12 @@ export const appRouter = router({
       }
 
       const token = await createCustomerSessionToken({ customerId: customer.id, email: customer.email })
-      return { token }
+      ctx.resHeaders?.append('Set-Cookie', sessionCookie(CUSTOMER_SESSION_COOKIE, token, 30 * 24 * 60 * 60))
+      return { success: true }
     }),
 
-  logoutCustomer: publicProcedure.mutation(async () => {
+  logoutCustomer: publicProcedure.mutation(async ({ ctx }) => {
+    ctx.resHeaders?.append('Set-Cookie', clearedSessionCookie(CUSTOMER_SESSION_COOKIE))
     return { success: true }
   }),
 

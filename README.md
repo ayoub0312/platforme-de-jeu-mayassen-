@@ -64,8 +64,8 @@ Voir `.env.example` pour la liste complète. Résumé :
 | `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Non | Base Turso distante (production) |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Non (repli mémoire locale) | Rate limiting + stock atomique |
 | `APP_BASE_URL` | Recommandé | Base des liens générés dans les emails |
-| `SESSION_SECRET` | Recommandé (obligatoire en prod) | Signature des sessions admin + chiffrement des mots de passe SMTP |
-| `SHARED_API_SECRET` | Non | Secret partagé avec le site vitrine Obooking |
+| `SESSION_SECRET` | **Oui en prod** (l'app refuse de signer des sessions sans lui) | Signature des sessions admin/client + chiffrement des mots de passe SMTP |
+| `SHARED_API_SECRET` | Oui si intégration obooking.tn | Secret partagé avec le site vitrine Obooking (requêtes refusées s'il est absent) |
 
 La validation de ces variables au démarrage se fait dans `src/env.ts` (avertissements clairs en console,
 jamais bloquant grâce aux replis déjà en place).

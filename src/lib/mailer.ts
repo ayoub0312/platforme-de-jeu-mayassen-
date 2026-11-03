@@ -20,6 +20,18 @@ function createTransporter(apiKey: string) {
   })
 }
 
+// Le nom du joueur est saisi librement sur un formulaire public : sans
+// échappement, on pouvait injecter des liens dans un email envoyé depuis le
+// domaine vérifié du partenaire.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 interface SendWinnerEmailParams {
   to: string
   winnerName: string | null
@@ -89,7 +101,7 @@ export async function sendWinnerEmail({
         </tr>
         <tr>
           <td style="padding:28px 32px 8px 32px; color:#241f1c; font-size:14px;">
-            <p style="margin:0 0 12px 0;">${greeting},</p>
+            <p style="margin:0 0 12px 0;">${escapeHtml(greeting)},</p>
             <p style="margin:0 0 16px 0;">Vous venez de remporter :</p>
           </td>
         </tr>
@@ -98,7 +110,7 @@ export async function sendWinnerEmail({
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF7ED; border:1px solid #FFE3BF; border-radius:12px;">
               <tr>
                 <td style="padding:16px 20px; text-align:center; font-weight:800; font-size:15px; color:#241f1c;">
-                  🎁 ${prizeName}
+                  🎁 ${escapeHtml(prizeName)}
                 </td>
               </tr>
             </table>
@@ -113,14 +125,14 @@ export async function sendWinnerEmail({
         </tr>
         <tr>
           <td style="padding:8px 32px 8px 32px; text-align:center;">
-            <a href="${voucherUrl}" style="display:inline-block; background:#FF6B47; color:#ffffff; text-decoration:none; font-weight:700; font-size:13px; padding:12px 24px; border-radius:10px;">
+            <a href="${escapeHtml(voucherUrl)}" style="display:inline-block; background:#FF6B47; color:#ffffff; text-decoration:none; font-weight:700; font-size:13px; padding:12px 24px; border-radius:10px;">
               Voir mon bon d'achat
             </a>
           </td>
         </tr>
         <tr>
           <td style="padding:20px 32px 28px 32px; text-align:center; font-size:12px; color:#9ca3af;">
-            Offert par ${partnerName}
+            Offert par ${escapeHtml(partnerName)}
           </td>
         </tr>
       </table>
@@ -198,7 +210,7 @@ export async function sendDrawRegistrationEmail({
         </tr>
         <tr>
           <td style="padding:28px 32px 8px 32px; color:#241f1c; font-size:14px;">
-            <p style="margin:0 0 12px 0;">${greeting},</p>
+            <p style="margin:0 0 12px 0;">${escapeHtml(greeting)},</p>
             <p style="margin:0 0 16px 0;">Votre participation au tirage au sort est bien enregistrée :</p>
           </td>
         </tr>
@@ -207,7 +219,7 @@ export async function sendDrawRegistrationEmail({
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF7ED; border:1px solid #FFE3BF; border-radius:12px;">
               <tr>
                 <td style="padding:16px 20px; text-align:center; font-weight:800; font-size:15px; color:#241f1c;">
-                  🎟️ ${campaignTitle}
+                  🎟️ ${escapeHtml(campaignTitle)}
                 </td>
               </tr>
             </table>
@@ -221,7 +233,7 @@ export async function sendDrawRegistrationEmail({
         </tr>` : ''}
         <tr>
           <td style="padding:20px 32px 28px 32px; text-align:center; font-size:12px; color:#9ca3af;">
-            Vous recevrez un e-mail si vous êtes tiré au sort.<br />Offert par ${partnerName}
+            Vous recevrez un e-mail si vous êtes tiré au sort.<br />Offert par ${escapeHtml(partnerName)}
           </td>
         </tr>
       </table>

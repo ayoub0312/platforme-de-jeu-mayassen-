@@ -1,5 +1,7 @@
 // Web Crypto based lightweight Edge-compatible signed sessions
-const SECRET = process.env.SESSION_SECRET || 'a-very-secure-fallback-secret-for-b2b-analytics-portal-2026';
+import { getSessionSecret } from './secret';
+
+const ADMIN_ROLES: ReadonlyArray<UserSession['role']> = ['SUPERADMIN', 'PARTNER', 'READONLY'];
 
 // Helper to convert array buffer to base64url
 function bufferToBase64Url(buffer: ArrayBuffer): string {
@@ -28,7 +30,7 @@ function base64UrlToString(base64url: string): string {
 // Get CryptoKey for HMAC
 async function getCryptoKey(): Promise<CryptoKey> {
   const enc = new TextEncoder();
-  const keyData = enc.encode(SECRET);
+  const keyData = enc.encode(getSessionSecret());
   return crypto.subtle.importKey(
     'raw',
     keyData,
@@ -93,7 +95,14 @@ export async function verifySessionToken(token: string | undefined): Promise<Use
     
     const payloadStr = base64UrlToString(payloadBase64);
     const session: UserSession = JSON.parse(payloadStr);
-    
+
+    // Les jetons client (customer_session) sont signés avec la même clé : sans
+    // ce contrôle, un client auto-inscrit pouvait placer son jeton dans le
+    // cookie admin_session et passer adminProcedure/writeProcedure.
+    if (!ADMIN_ROLES.includes(session.role) || typeof session.email !== 'string') {
+      return null;
+    }
+
     // Check expiration
     if (session.exp < Math.floor(Date.now() / 1000)) {
       return null; // Expired
@@ -170,6 +179,10 @@ export async function verifyCustomerSessionToken(token: string | undefined): Pro
 
     const payloadStr = base64UrlToString(payloadBase64);
     const session: CustomerSession = JSON.parse(payloadStr);
+
+    if (typeof session.customerId !== 'string' || 'role' in session) {
+      return null;
+    }
 
     if (session.exp < Math.floor(Date.now() / 1000)) {
       return null;

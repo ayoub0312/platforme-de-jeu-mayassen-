@@ -11,6 +11,8 @@ export interface Context {
   // userSession. Un Customer authentifié n'a donc structurellement aucun
   // moyen de passer ces procédures, même en connaissant leurs noms.
   customerSession?: CustomerSession | null
+  // En-têtes de la réponse HTTP — utilisés pour poser les cookies de session.
+  resHeaders?: Headers
 }
 
 const t = initTRPC.context<Context>().create()

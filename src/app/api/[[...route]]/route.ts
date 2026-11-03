@@ -82,7 +82,7 @@ app.use(
   '/trpc/*',
   trpcServer({
     router: appRouter,
-    createContext: async (_opts, c) => {
+    createContext: async (opts, c) => {
       const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || '127.0.0.1'
       const userAgent = c.req.header('user-agent') || 'unknown'
 
@@ -99,6 +99,7 @@ app.use(
         userAgent,
         userSession,
         customerSession,
+        resHeaders: opts.resHeaders,
       }
     },
   })

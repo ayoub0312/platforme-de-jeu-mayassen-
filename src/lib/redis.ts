@@ -58,7 +58,9 @@ if (isRedisConfigured) {
       const val = store.get(key)
       return val !== undefined ? (val as T) : null
     },
-    set: async (key: string, value: any, options?: { ex?: number }): Promise<'OK'> => {
+    set: async (key: string, value: any, options?: { ex?: number; nx?: boolean }): Promise<'OK' | null> => {
+      dropIfExpired(key)
+      if (options?.nx && store.has(key)) return null
       store.set(key, value)
       if (options?.ex) expiryAt.set(key, Date.now() + options.ex * 1000)
       return 'OK'
@@ -166,4 +168,9 @@ const customerLoginRatelimit: RateLimiter = createFixedWindowRateLimiter(8, 15 *
 // souple que l'ancien 3/h — 10 inscriptions par heure et par IP.
 const customerSignupRatelimit: RateLimiter = createFixedWindowRateLimiter(10, 60 * 60, 'customersignup')
 
-export { redis, ratelimit, authRatelimit, customerLoginRatelimit, customerSignupRatelimit, isRedisConfigured }
+// Connexion au back-office (SUPERADMIN/PARTNER) : par compte ET par IP, pour
+// freiner à la fois le brute-force d'un compte et le password spraying.
+const adminLoginEmailRatelimit: RateLimiter = createFixedWindowRateLimiter(8, 15 * 60, 'adminlogin-email')
+const adminLoginIpRatelimit: RateLimiter = createFixedWindowRateLimiter(30, 15 * 60, 'adminlogin-ip')
+
+export { redis, ratelimit, authRatelimit, customerLoginRatelimit, customerSignupRatelimit, adminLoginEmailRatelimit, adminLoginIpRatelimit, isRedisConfigured }

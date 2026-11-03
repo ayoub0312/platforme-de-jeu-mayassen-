@@ -45,17 +45,39 @@ export async function POST(req: Request) {
     return json({ redeemed: false, reason: 'expired', message: 'Bon expiré.', code }, 409)
   }
 
-  const updated = await prisma.loyaltyVoucher.update({
-    where: { code },
-    data: { status: 'REDEEMED', redeemedAt: new Date() },
+  // Mise à jour conditionnelle : deux appels simultanés ne peuvent pas tous
+  // les deux faire passer le bon de ACTIVE à REDEEMED (un seul bon = une seule
+  // réduction).
+  const now = new Date()
+  const { count } = await prisma.loyaltyVoucher.updateMany({
+    where: {
+      code,
+      status: voucher.status,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    data: { status: 'REDEEMED', redeemedAt: now },
   })
 
   void orderRef // conservé pour traçabilité éventuelle côté obooking.tn
 
+  if (count === 0) {
+    const current = await prisma.loyaltyVoucher.findUnique({ where: { code } })
+    if (current?.status === 'REDEEMED') {
+      return json({
+        redeemed: true,
+        alreadyRedeemed: true,
+        code: current.code,
+        valueTnd: current.valueTnd,
+        redeemedAt: current.redeemedAt ? current.redeemedAt.toISOString() : null,
+      })
+    }
+    return json({ redeemed: false, reason: 'expired', message: 'Bon expiré.', code }, 409)
+  }
+
   return json({
     redeemed: true,
-    code: updated.code,
-    valueTnd: updated.valueTnd,
-    redeemedAt: updated.redeemedAt ? updated.redeemedAt.toISOString() : null,
+    code: voucher.code,
+    valueTnd: voucher.valueTnd,
+    redeemedAt: now.toISOString(),
   })
 }

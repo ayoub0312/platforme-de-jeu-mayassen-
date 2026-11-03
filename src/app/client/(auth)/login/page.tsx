@@ -17,8 +17,8 @@ export default function ClientLoginPage() {
     e.preventDefault()
     setError(null)
     try {
-      const res = await loginMut.mutateAsync({ email, password })
-      document.cookie = `customer_session=${res.token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Strict`
+      // Le cookie de session (HttpOnly) est posé par le serveur dans la réponse.
+      await loginMut.mutateAsync({ email, password })
       router.push('/client/mes-informations')
       router.refresh()
     } catch (err: any) {
