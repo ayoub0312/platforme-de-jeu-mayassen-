@@ -114,8 +114,8 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl w-full max-w-4xl border border-slate-100 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+      <div className="bg-white rounded-2xl w-full max-w-4xl border border-rule shadow-2xl relative max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 z-10 cursor-pointer"
@@ -126,14 +126,14 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
 
         <div className="p-6 sm:p-8">
           <h3 className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-[#FF6B47]" />
+            <Trophy className="h-6 w-6 text-brand-600" />
             Gestion du tirage {data ? `« ${data.title} »` : ''}
           </h3>
           <p className="text-slate-400 text-xs font-semibold mb-6">Réglages, inscrits et lancement du tirage, lot par lot.</p>
 
           {!data ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-6 w-6 text-[#FF6B47] animate-spin" />
+              <Loader2 className="h-6 w-6 text-brand-600 animate-spin" />
             </div>
           ) : (
             <>
@@ -142,25 +142,25 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="flex items-center gap-1.5 text-xs font-black text-slate-600 uppercase tracking-wide mb-2">
-                      <Calendar className="h-3.5 w-3.5 text-[#FF6B47]" /> Date du tirage
+                      <Calendar className="h-3.5 w-3.5 text-brand-600" /> Date du tirage
                     </label>
                     <input
                       type="datetime-local"
                       value={drawDate}
                       onChange={(e) => setDrawDate(e.target.value)}
-                      className="w-full bg-white border border-orange-200 text-slate-900 px-4 h-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                      className="w-full bg-white border border-orange-200 text-slate-900 px-4 h-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
                   <div>
                     <label className="flex items-center gap-1.5 text-xs font-black text-slate-600 uppercase tracking-wide mb-2">
-                      <Users2 className="h-3.5 w-3.5 text-[#FF6B47]" /> Un participant peut gagner plusieurs lots ?
+                      <Users2 className="h-3.5 w-3.5 text-brand-600" /> Un participant peut gagner plusieurs lots ?
                     </label>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setAllowMultipleWins(true)}
                         className={`flex-1 px-4 h-12 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                          allowMultipleWins ? 'bg-[#FF6B47] border-[#FF6B47] text-white' : 'bg-white border-orange-200 text-slate-500 hover:bg-orange-50'
+                          allowMultipleWins ? 'bg-brand-600 border-brand-500 text-white' : 'bg-white border-orange-200 text-slate-500 hover:bg-orange-50'
                         }`}
                       >
                         Oui
@@ -196,7 +196,7 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                   className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer"
                 >
                   <span className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wide">
-                    <Users2 className="h-4 w-4 text-[#FF6B47]" />
+                    <Users2 className="h-4 w-4 text-brand-600" />
                     Participants inscrits ({data.participants.length})
                   </span>
                   <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${showParticipants ? 'rotate-180' : ''}`} />
@@ -224,7 +224,7 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
               </div>
 
               {/* Lots */}
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Lots à gagner</label>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Lots à gagner</label>
               <div className="space-y-3">
                 {data.prizes.map((prize) => {
                   const isDrawn = prize.winners.length > 0
@@ -236,7 +236,7 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="font-bold text-sm text-slate-800 truncate">{prize.name}</span>
                           <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-2.5 py-1">
-                            🎫 {prize.participantCount} inscrit{prize.participantCount > 1 ? 's' : ''}
+                            {prize.participantCount} inscrit{prize.participantCount > 1 ? 's' : ''}
                           </span>
                         </div>
 
@@ -251,7 +251,7 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                               const v = Math.max(1, Number(e.target.value) || 1)
                               if (v !== prize.totalStock) handleWinnerCountChange(prize.id, v)
                             }}
-                            className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47] disabled:opacity-60"
+                            className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-60"
                           />
 
                           {isDrawn ? (
@@ -266,11 +266,11 @@ export function DrawManagementModal({ open, campaignId, onClose }: DrawManagemen
                               title={prize.participantCount === 0 ? 'Aucun inscrit' : 'Lancer le tirage'}
                               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black transition-all border shadow-sm ${
                                 canDraw
-                                  ? 'bg-[#FF6B47] hover:bg-[#e85530] border-[#FF6B47] text-white cursor-pointer'
+                                  ? 'bg-brand-600 hover:bg-brand-700 border-brand-500 text-white cursor-pointer'
                                   : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
                               }`}
                             >
-                              {runDrawMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '🏆'} Tirage
+                              {runDrawMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Lancer le tirage
                             </button>
                           )}
                         </div>

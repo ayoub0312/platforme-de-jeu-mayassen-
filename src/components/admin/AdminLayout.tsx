@@ -31,6 +31,12 @@ const ROLE_LABELS: Record<string, string> = {
   READONLY: 'Lecteur',
 }
 
+const WORKSPACE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Administration',
+  PARTNER: 'Espace partenaire',
+  READONLY: 'Administration',
+}
+
 export function AdminLayout({
   session,
   navItems,
@@ -48,6 +54,7 @@ export function AdminLayout({
   const prefersReducedMotion = useReducedMotion()
 
   const activeItem = navItems.find((n) => n.id === activeId)
+  const initials = session.email.slice(0, 2).toUpperCase()
 
   useEffect(() => {
     setMobileOpen(false)
@@ -55,16 +62,20 @@ export function AdminLayout({
 
   const sidebarContent = (
     <>
-      <div className={`flex items-center gap-2.5 px-4 h-16 shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
-        <div className="h-9 w-9 rounded-xl bg-gradient-brand-signature flex items-center justify-center text-white font-display font-bold text-lg shrink-0">
+      <div className={`flex items-center gap-2.5 h-16 shrink-0 ${collapsed ? 'justify-center' : 'px-5'}`}>
+        <span className="h-7 w-7 rounded-lg bg-brand-600 flex items-center justify-center text-white text-sm font-semibold shrink-0" aria-hidden="true">
           O
-        </div>
+        </span>
         {!collapsed && (
-          <span className="font-display font-semibold text-white text-lg tracking-tight">Obooking Gift</span>
+          <span className="text-[15px] font-semibold text-ink-900 tracking-tight">Obooking Gift</span>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1">
+      {!collapsed && (
+        <p className="px-5 pt-2 pb-2 text-xs font-medium text-ink-500">{WORKSPACE_LABELS[session.role] ?? 'Espace'}</p>
+      )}
+
+      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5" aria-label="Navigation principale">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = item.id === activeId
@@ -75,24 +86,23 @@ export function AdminLayout({
               onClick={() => onNavigate(item.id)}
               title={collapsed ? item.label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 h-11 rounded-[var(--radius-ds-sm)] text-sm font-bold transition-colors cursor-pointer ${
-                collapsed ? 'justify-center' : ''
+              className={`relative w-full flex items-center gap-2.5 h-9 rounded-lg text-sm transition-colors duration-150 cursor-pointer ${
+                collapsed ? 'justify-center' : 'px-2.5'
               } ${
                 isActive
-                  ? 'bg-gradient-brand-signature text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/[0.06]'
+                  ? 'bg-surface text-ink-900 font-medium shadow-[0_0_0_1px_var(--rule)]'
+                  : 'text-ink-700 hover:text-ink-900 hover:bg-black/[0.035]'
               }`}
             >
-              <Icon className="h-4.5 w-4.5 shrink-0" />
+              {isActive && !collapsed && (
+                <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-500" aria-hidden="true" />
+              )}
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-brand-600' : 'text-ink-500'}`} />
               {!collapsed && (
                 <>
                   <span className="truncate flex-1 text-left">{item.label}</span>
                   {!!item.badge && (
-                    <span
-                      className={`shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                        isActive ? 'bg-white/25 text-white' : 'bg-brand-500 text-white'
-                      }`}
-                    >
+                    <span className="shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-md text-[11px] font-semibold flex items-center justify-center bg-brand-50 text-brand-700 tabular-nums">
                       {item.badge}
                     </span>
                   )}
@@ -106,20 +116,20 @@ export function AdminLayout({
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
-        className="hidden lg:flex items-center gap-2.5 px-4 h-12 shrink-0 text-white/50 hover:text-white text-xs font-bold cursor-pointer border-t border-white/10"
+        className={`hidden lg:flex items-center gap-2 h-11 shrink-0 text-ink-500 hover:text-ink-900 text-xs font-medium cursor-pointer border-t border-rule ${collapsed ? 'justify-center' : 'px-5'}`}
       >
         {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        {!collapsed && <span>Réduire</span>}
+        {!collapsed && <span>Réduire le menu</span>}
       </button>
     </>
   )
 
   return (
-    <div className="min-h-screen flex bg-surface-alt">
+    <div className="min-h-screen flex bg-paper">
       {/* Desktop sidebar */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 bg-surface-dark transition-[width] duration-200 ${
-          collapsed ? 'w-[76px]' : 'w-64'
+        className={`hidden lg:flex flex-col shrink-0 sticky top-0 h-screen bg-paper-2 border-r border-rule transition-[width] duration-200 ${
+          collapsed ? 'w-[64px]' : 'w-60'
         }`}
       >
         {sidebarContent}
@@ -133,21 +143,22 @@ export function AdminLayout({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-900/60 lg:hidden"
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-40 bg-ink-900/40 lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
               initial={prefersReducedMotion ? { opacity: 0 } : { x: '-100%' }}
               animate={prefersReducedMotion ? { opacity: 1 } : { x: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { x: '-100%' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-surface-dark lg:hidden"
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-paper-2 border-r border-rule lg:hidden"
             >
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label="Fermer le menu"
-                className="absolute right-3 top-3 p-2 rounded-lg text-white/60 hover:text-white cursor-pointer"
+                className="absolute right-3 top-3.5 p-2 rounded-lg text-ink-500 hover:text-ink-900 hover:bg-black/[0.04] cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -159,8 +170,7 @@ export function AdminLayout({
 
       {/* Main column */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Topbar */}
-        <header className="h-16 shrink-0 flex items-center gap-3 px-4 sm:px-6 border-b border-black/[0.06] bg-surface">
+        <header className="sticky top-0 z-20 h-14 shrink-0 flex items-center gap-3 px-4 sm:px-6 lg:px-8 border-b border-rule bg-paper">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -170,22 +180,21 @@ export function AdminLayout({
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-sm font-bold text-ink-500 min-w-0">
-            <span className="hidden sm:inline">Administration</span>
-            <span className="hidden sm:inline text-ink-500/40">/</span>
-            <span className="text-ink-900 truncate">{activeItem?.label ?? ''}</span>
+          <div className="flex items-center gap-1.5 text-sm min-w-0">
+            <span className="hidden sm:inline text-ink-500 whitespace-nowrap">{WORKSPACE_LABELS[session.role] ?? 'Espace'}</span>
+            <span className="hidden sm:inline text-ink-500/50" aria-hidden="true">/</span>
+            <span className="text-ink-900 font-medium truncate">{activeItem?.label ?? ''}</span>
           </div>
 
           {onSearchChange && (
-            <div className="relative flex-1 max-w-sm ml-2 hidden md:block">
+            <div className="relative flex-1 max-w-xs ml-4 hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-500" />
               <input
-                type="text"
+                type="search"
                 value={searchValue ?? ''}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full h-9 pl-9 pr-3 rounded-[var(--radius-ds-sm)] bg-surface-alt border border-black/[0.06] text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500"
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-surface border border-rule text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
               />
             </div>
           )}
@@ -196,17 +205,15 @@ export function AdminLayout({
               onClick={() => setAvatarMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={avatarMenuOpen}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-ds-sm)] hover:bg-black/[0.04] cursor-pointer"
+              className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-full hover:bg-black/[0.04] cursor-pointer"
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-brand-signature text-white flex items-center justify-center text-xs font-black uppercase shrink-0">
-                {session.email.slice(0, 2)}
-              </div>
-              <div className="hidden sm:flex flex-col items-start leading-tight">
-                <span className="text-xs font-bold text-ink-900 max-w-[140px] truncate">{session.email}</span>
-                <span className="text-[10px] font-black uppercase tracking-wide text-brand-600">
-                  {ROLE_LABELS[session.role] ?? session.role}
-                </span>
-              </div>
+              <span className="h-8 w-8 rounded-full bg-ink-900 text-paper flex items-center justify-center text-[11px] font-semibold shrink-0">
+                {initials}
+              </span>
+              <span className="hidden sm:flex flex-col items-start leading-tight min-w-0">
+                <span className="text-[13px] font-medium text-ink-900 max-w-[180px] truncate">{session.email}</span>
+                <span className="text-[11px] text-ink-500">{ROLE_LABELS[session.role] ?? session.role}</span>
+              </span>
               <ChevronDown className="h-3.5 w-3.5 text-ink-500 shrink-0" />
             </button>
 
@@ -216,24 +223,22 @@ export function AdminLayout({
                   <div className="fixed inset-0 z-30" onClick={() => setAvatarMenuOpen(false)} />
                   <motion.div
                     role="menu"
-                    initial={{ opacity: 0, y: -8 }}
+                    initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-56 rounded-[var(--radius-ds-md)] bg-surface border border-black/[0.06] p-2 z-40"
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute right-0 top-full mt-2 w-60 rounded-xl bg-surface border border-rule p-1.5 z-40"
                     style={{ boxShadow: 'var(--shadow-premium-lg)' }}
                   >
-                    <div className="px-3 py-2 border-b border-black/[0.06] mb-1">
-                      <p className="text-xs font-bold text-ink-900 truncate">{session.email}</p>
-                      <p className="text-[10px] font-black uppercase tracking-wide text-brand-600 mt-0.5">
-                        {ROLE_LABELS[session.role] ?? session.role}
-                      </p>
+                    <div className="px-3 py-2.5 border-b border-rule mb-1">
+                      <p className="text-[13px] font-medium text-ink-900 truncate">{session.email}</p>
+                      <p className="text-xs text-ink-500 mt-0.5">{ROLE_LABELS[session.role] ?? session.role}</p>
                     </div>
                     <button
                       type="button"
                       role="menuitem"
                       onClick={onLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius-ds-sm)] text-sm font-bold text-[var(--danger)] hover:bg-[var(--danger)]/10 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 h-9 rounded-lg text-sm text-ink-700 hover:text-[var(--danger)] hover:bg-[var(--danger)]/[0.06] cursor-pointer"
                     >
                       <LogOut className="h-4 w-4" /> Se déconnecter
                     </button>
@@ -244,7 +249,7 @@ export function AdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>
   )

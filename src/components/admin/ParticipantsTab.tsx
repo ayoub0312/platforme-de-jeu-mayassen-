@@ -59,7 +59,7 @@ export function ParticipantsTab({ partnerId }: { partnerId?: string }) {
     <Card className="overflow-hidden">
       <div className="p-6 border-b border-black/[0.06] flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="text-xl font-bold text-ink-900">Participants</h3>
+          <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Participants</h3>
           <p className="text-ink-500 text-xs mt-1">
             Toutes les personnes ayant participé à vos campagnes : coordonnées, lancers joués et lots gagnés.
           </p>

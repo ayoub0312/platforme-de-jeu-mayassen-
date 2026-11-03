@@ -96,13 +96,13 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
           de cet écran, l'admin doit la voir en un coup d'œil. */}
       <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
         <label className="flex items-center gap-1.5 text-xs font-black text-slate-600 uppercase tracking-wide mb-2">
-          <Calendar className="h-3.5 w-3.5 text-[#FF6B47]" /> Date du tirage au sort *
+          <Calendar className="h-3.5 w-3.5 text-brand-600" /> Date du tirage au sort *
         </label>
         <input
           type="datetime-local"
           value={sharedDrawDate ? sharedDrawDate.slice(0, 16) : ''}
           onChange={(e) => setDrawDateForAll(e.target.value)}
-          className="w-full sm:w-64 bg-white border border-orange-200 text-slate-900 px-4 h-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+          className="w-full sm:w-64 bg-white border border-orange-200 text-slate-900 px-4 h-12 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
         />
       </div>
 
@@ -124,7 +124,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
       )}
 
       <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Lots à gagner</label>
+        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Lots à gagner</label>
         <div className="space-y-2">
           {prizes.map((prize, index) => (
             <div key={index} className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
@@ -141,7 +141,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
                 value={prize.name}
                 onChange={(e) => updatePrize(index, { name: e.target.value })}
                 placeholder="Nom du lot"
-                className="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                className="flex-1 min-w-[140px] bg-white border border-slate-200 text-slate-900 px-3 h-9 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
               <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
                 <span className="text-[10px] text-slate-400 font-bold">Gagnants</span>
@@ -150,7 +150,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
                   min={1}
                   value={prize.totalStock}
                   onChange={(e) => updatePrize(index, { totalStock: Math.max(1, Number(e.target.value)) })}
-                  className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                  className="w-16 bg-white border border-slate-200 text-slate-900 px-2 h-9 rounded-lg text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
               <button type="button" onClick={() => deletePrize(index)} className="p-2 text-red-400 hover:text-white hover:bg-red-500 bg-red-50 border border-red-100 rounded-lg transition-all shrink-0 cursor-pointer">
@@ -175,7 +175,7 @@ export function DrawConfigEditor({ data, setData }: DrawConfigEditorProps) {
           onChange={(e) => setData((p) => ({ ...p, postSignupMessage: e.target.value }))}
           placeholder="Ex: Merci pour votre participation ! Le tirage aura lieu le..."
           rows={3}
-          className="w-full bg-white border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all resize-none"
+          className="w-full bg-white border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all resize-none"
         />
       </Disclosure>
     </div>

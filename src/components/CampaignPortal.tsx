@@ -290,19 +290,20 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
   if (!activeCampaign) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto px-4">
-        <HelpCircle className="h-12 w-12 text-slate-300" />
-        <h3 className="text-lg font-bold text-slate-700 mt-4">Aucune campagne active</h3>
-        <p className="text-slate-400 text-sm mt-2">
-          Il n'y a actuellement aucune campagne de configurée. Veuillez repasser plus tard.
+        <HelpCircle className="h-8 w-8 text-ink-500/50" />
+        <h3 className="text-lg font-semibold text-ink-900 mt-4">Aucun jeu en cours</h3>
+        <p className="text-ink-500 text-sm mt-1.5">
+          Ce partenaire n'a pas de jeu actif pour le moment. Revenez bientôt.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 flex flex-col items-center">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col items-center">
       {/* 1. ROTATING HERO ADS BANNER */}
       <HeroBanner
+        key={activeCampaign.id}
         activeCampaign={activeCampaign}
         playerEmail={playerEmail}
         setActiveTab={setActiveTab}
@@ -311,7 +312,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
       />
 
       {/* 2. MAIN HUB GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-7xl items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full items-start">
         {/* LEFT COLUMN: ACTIVE DRAWS / KOR3A */}
         {campaigns && campaigns.length > 1 && (
           <ActiveGamesList
@@ -328,43 +329,43 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
             campaigns && campaigns.length > 1 ? 'lg:col-span-7' : 'lg:col-span-12'
           }`}
         >
-          <div className="w-full flex items-center justify-between px-2 mb-6">
-            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-              🎡 Zone de Jeu
-            </h3>
-           
+          <div className="w-full flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold tracking-tight text-ink-900">
+              {activeCampaign.gameMode === 'DRAW' ? 'Tirage au sort' : 'Roulette'}
+            </h2>
           </div>
 
           {/* Main Card Container */}
-          <div className="w-full bg-white border border-slate-200/80 rounded-3xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.03),0_1px_3px_rgba(0,0,0,0.01)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl">
+          <div className="w-full bg-surface border border-rule rounded-2xl overflow-hidden flex flex-col" style={{ boxShadow: 'var(--shadow-premium-sm)' }}>
             {/* Card Header for Authenticated Users */}
             {playerEmail && playerName && (
-              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF6B47] font-extrabold text-sm uppercase">
+              <div className="px-5 sm:px-6 py-3.5 border-b border-rule flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-full bg-ink-900 flex items-center justify-center text-paper font-semibold text-[11px] uppercase shrink-0">
                     {playerName.slice(0, 2)}
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800">{playerName}</div>
-                    <div className="text-[10px] text-slate-450 font-medium">{playerEmail}</div>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-ink-900 truncate">{playerName}</div>
+                    <div className="text-xs text-ink-500 truncate">{playerEmail}</div>
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg text-xxs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  className="h-8 px-3 rounded-full text-[13px] text-ink-500 hover:text-ink-900 hover:bg-black/[0.04] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
                 >
-                  <LogOut className="h-3.5 w-3.5" /> Quitter
+                  <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> <span className="hidden sm:inline">Changer de joueur</span><span className="sm:hidden">Quitter</span>
                 </button>
               </div>
             )}
 
             {/* Card Body */}
-            <div className="p-6 sm:p-8 flex-1 bg-white">
+            <div className="p-5 sm:p-8 flex-1">
               {!playerEmail || !playerName ? (
                 <LeadCaptureModal
                   campaignId={activeCampaign.id}
                   partnerId={activeCampaign.partnerId || ''}
                   referredByCode={referredByCode}
+                  gameMode={activeCampaign.gameMode}
                   onSuccess={handleLeadCaptureSuccess}
                 />
               ) : isPlayerInfoLoading ? (
@@ -433,10 +434,10 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
             </div>
 
             {/* Date / Validity footer on card */}
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 text-xxs text-slate-450 flex items-center gap-1.5 font-semibold">
-              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <div className="px-5 sm:px-6 py-3 border-t border-rule text-[13px] text-ink-500 flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
               <span>
-                active du {new Date(activeCampaign.startDate).toLocaleDateString('fr-FR')} au{' '}
+                Du {new Date(activeCampaign.startDate).toLocaleDateString('fr-FR')} au{' '}
                 {new Date(activeCampaign.endDate).toLocaleDateString('fr-FR')}
               </span>
             </div>
@@ -445,7 +446,7 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
       </div>
 
       {/* 3. HOW IT WORKS INFO SECTION */}
-      <HowItWorks />
+      {activeCampaign.gameMode !== 'DRAW' && <HowItWorks />}
 
       {/* 4. MOBILE FLOATING BOTTOM NAVBAR */}
       <MobileNavbar

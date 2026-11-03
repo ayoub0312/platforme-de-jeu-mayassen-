@@ -462,60 +462,58 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
   // Render Login overlay if not authenticated
   if (!isAuthenticated) {
+    const fieldCls = 'w-full h-10 bg-surface border border-field hover:border-ink-700 rounded-[10px] px-3.5 text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-colors'
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
-        <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#FF6B47] transition-all mb-6">
-          <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
-        </Link>
-        <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-slate-200/85 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-          {/* Decorative background glows */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-orange-400/20 rounded-full blur-2xl"></div>
-          <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl"></div>
+      <div className="min-h-screen flex flex-col bg-paper">
+        <header className="h-16 px-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold text-ink-900">
+            <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-sm flex items-center justify-center" aria-hidden="true">O</span>
+            Obooking Gift
+          </Link>
+          <Link href="/" className="text-[13px] text-ink-500 hover:text-ink-900 transition-colors">
+            Retour au site
+          </Link>
+        </header>
 
-          <div className="relative z-10">
-            <div className="flex flex-col items-center mb-8">
-              <div className="p-4 bg-orange-500/10 rounded-2xl mb-4 border border-orange-500/15">
-                <ShieldAlert className="h-8 w-8 text-[#FF6B47]" />
-              </div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center">
-                Connexion Partenaire
-              </h1>
-              <p className="text-slate-400 text-xs mt-1 text-center font-medium">
-                Saisissez vos identifiants pour accéder aux statistiques et à la console.
-              </p>
-            </div>
+        <main className="flex-1 flex items-center justify-center px-4 pb-16">
+          <div className="w-full max-w-[400px]">
+            <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Connexion à votre espace</h1>
+            <p className="text-sm text-ink-500 mt-1.5">Gérez vos campagnes, vos participants et vos gagnants.</p>
 
-            <form onSubmit={handleLoginSubmit} className="space-y-5">
+            <form onSubmit={handleLoginSubmit} className="mt-8 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                <label htmlFor="admin-login-email" className="block text-[13px] font-medium text-ink-700 mb-1.5">
                   Adresse email
                 </label>
                 <input
+                  id="admin-login-email"
                   type="email"
                   required
+                  autoComplete="email"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="admin@agency.com"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  placeholder="vous@entreprise.com"
+                  className={fieldCls}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                <label htmlFor="admin-login-password" className="block text-[13px] font-medium text-ink-700 mb-1.5">
                   Mot de passe
                 </label>
                 <PasswordInput
+                  id="admin-login-password"
                   required
+                  autoComplete="current-password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className={fieldCls}
                 />
               </div>
 
               {loginError && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-150 text-red-600 rounded-xl text-xs font-semibold">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                <div role="alert" className="flex items-start gap-2 px-3 py-2.5 bg-[var(--danger)]/[0.06] border border-[var(--danger)]/20 text-[var(--danger)] rounded-[10px] text-[13px]">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-px" />
                   <span>{loginError}</span>
                 </div>
               )}
@@ -523,33 +521,29 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <button
                 type="submit"
                 disabled={loginPending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-[#FF6B47] hover:bg-[#E85530] disabled:bg-orange-400 text-white rounded-xl text-sm font-black transition-all cursor-pointer shadow-md shadow-orange-500/10 active:scale-98"
+                className="w-full h-10 flex items-center justify-center gap-2 bg-ink-900 hover:bg-slate-800 disabled:opacity-60 text-paper rounded-full text-sm font-medium transition-colors cursor-pointer"
               >
-                {loginPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Se connecter'
-                )}
+                {loginPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Se connecter'}
               </button>
             </form>
 
-            <p className="text-center text-xs text-slate-450 font-semibold mt-6">
-              Pas encore de compte ?{' '}
-              <Link href="/partner/signup" className="text-[#FF6B47] hover:underline font-bold">
+            <p className="text-[13px] text-ink-500 mt-8 pt-6 border-t border-rule">
+              Vous êtes une agence ou un hôtel ?{' '}
+              <Link href="/partner/signup" className="text-ink-900 font-medium underline underline-offset-4 decoration-rule-strong hover:decoration-brand-500">
                 Créer un espace partenaire
               </Link>
             </p>
           </div>
-        </div>
+        </main>
       </div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4 text-slate-400">
-        <RefreshCw className="h-8 w-8 animate-spin text-[#FF6B47]" />
-        <span className="text-sm font-semibold">Chargement du tableau de bord d'administration...</span>
+      <div className="min-h-screen flex items-center justify-center gap-3 text-ink-500 bg-paper">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        <span className="text-sm">Chargement de votre espace…</span>
       </div>
     )
   }
@@ -1094,7 +1088,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           {activeTab === 'leads' && (
             <div className="mt-0">
           {!stats || stats.campaigns.length === 0 ? (
-            <div className="text-center py-16 border border-slate-100 rounded-3xl bg-white shadow-sm max-w-xl mx-auto">
+            <div className="text-center py-16 border border-rule rounded-2xl bg-white shadow-sm max-w-xl mx-auto">
               <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
               <h3 className="text-lg font-bold text-slate-800 mt-4">Aucune donnée analytique</h3>
               <p className="text-slate-400 text-sm mt-2">
@@ -1119,13 +1113,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             return (
               <>
                 {/* Leads Whitelist Banner */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white border border-slate-100 p-6 rounded-2xl shadow-sm gap-4">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white border border-rule p-6 rounded-2xl shadow-sm gap-4">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">
+                    <h3 className="text-lg font-semibold text-ink-900 tracking-tight">
                       Suivi Analytique : {stats.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm">
-                      <LinkIcon className="h-4 w-4 text-[#FF6B47]" />
+                      <LinkIcon className="h-4 w-4 text-brand-600" />
                       <span>Domaine dynamic CORS :</span>
                       <span className="text-slate-700 font-mono text-xs bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
                         {stats.allowedDomains || '(Aucun domaine whitelisté)'}
@@ -1138,7 +1132,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <select
                       value={activeCampaignIdVal}
                       onChange={(e) => setSelectedCampaignId(e.target.value)}
-                      className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-full lg:w-auto"
+                      className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-full lg:w-auto"
                     >
                       {stats.campaigns.map(c => (
                         <option key={c.id} value={c.id}>
@@ -1151,16 +1145,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
                 {/* Metrics boxes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-                  <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                  <div className="bg-white border border-rule p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider">Total Leads</span>
-                      <Users className="h-5 w-5 text-[#FF6B47]" />
+                      <Users className="h-5 w-5 text-brand-600" />
                     </div>
                     <div className="text-3xl font-black text-slate-850 mt-3">{activeCampaign.totalLeads}</div>
                     <p className="text-xs text-slate-400 mt-2">Contacts capturés sur cette campagne</p>
                   </div>
 
-                  <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                  <div className="bg-white border border-rule p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider">Lancers Joués</span>
                       <Play className="h-5 w-5 text-emerald-500" />
@@ -1169,16 +1163,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <p className="text-xs text-slate-400 mt-2">Total de lancers de roulette effectués</p>
                   </div>
 
-                  <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                  <div className="bg-white border border-rule p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider font-sans">Engagement</span>
-                      <ArrowUpRight className="h-5 w-5 text-[#FF6B47]" />
+                      <ArrowUpRight className="h-5 w-5 text-brand-600" />
                     </div>
                     <div className="text-3xl font-black text-slate-850 mt-3">{conversionRate}%</div>
                     <p className="text-xs text-slate-400 mt-2">Leads ayant effectué au moins un lancer</p>
                   </div>
 
-                  <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                  <div className="bg-white border border-rule p-6 rounded-2xl shadow-sm">
                     <div className="flex justify-between items-start text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-wider">Statut</span>
                       <CheckCircle className={`h-5 w-5 ${activeCampaign.isActive ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
@@ -1191,9 +1185,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </div>
 
                 {/* Real-time Prize stocks */}
-                <div className="mt-8 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-                  <h3 className="text-lg font-bold text-[#241F1C] mb-4 flex items-center gap-2">
-                    <Package className="h-5 w-5 text-[#FF6B47]" /> État Réel des Stocks
+                <div className="mt-8 bg-white border border-rule p-6 rounded-2xl shadow-sm">
+                  <h3 className="text-lg font-bold text-ink-900 mb-4 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-brand-600" /> État Réel des Stocks
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {activeCampaign.prizes.map((prize: any) => {
@@ -1233,11 +1227,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </div>
 
                 {/* Section Maintenance / Outils */}
-                <div className="mt-8 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                <div className="mt-8 bg-white border border-rule p-6 rounded-2xl shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-[#FF6B47]" /> Maintenance
+                        <Settings className="h-5 w-5 text-brand-600" /> Maintenance
                       </h3>
                       <p className="text-slate-400 text-xs mt-1">
                         Gérez et optimisez le stockage des jetons de jeu.
@@ -1247,7 +1241,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       <button
                         onClick={handleCleanStaleTokens}
                         disabled={expireStaleTokensMut.isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-[#FF6B47] disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-brand-600 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
                       >
                         {expireStaleTokensMut.isPending ? (
                           <>
@@ -1267,7 +1261,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 {/* Captured Leads List */}
                 <Card className="mt-8 overflow-hidden">
                   <div className="p-6 border-b border-black/[0.06]">
-                    <h3 className="text-xl font-bold text-ink-900">Leads Capturés</h3>
+                    <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Leads Capturés</h3>
                     <p className="text-ink-500 text-xs mt-1">Visualisation et export des contacts de la campagne.</p>
                   </div>
 
@@ -1353,11 +1347,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* TAB CONTENT: TICKETS MODERATION */}
       {activeTab === 'receipts' && (
-        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mt-0 bg-surface border border-rule rounded-2xl overflow-hidden animate-in fade-in duration-200">
+          <div className="p-6 border-b border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Tickets de caisse à vérifier</h3>
-              <p className="text-slate-450 text-xs mt-1">
+              <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Tickets de caisse à vérifier</h3>
+              <p className="text-slate-500 text-[13px] mt-1">
                 Validez ou rejetez les tickets de caisse soumis par les joueurs pour deblocquer leur participation.
               </p>
             </div>
@@ -1377,7 +1371,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
             ) : (
               <table className="w-full text-left text-sm text-slate-500">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <thead className="bg-paper-2 text-xs font-medium text-slate-500 border-b border-rule">
                   <tr>
                     <th className="px-6 py-4 font-bold">Joueur</th>
                     <th className="px-6 py-4 font-bold">Campagne</th>
@@ -1402,7 +1396,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                             href={`data:${sub.fileMimeType};base64,${sub.fileData}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-[#FF6B47] hover:text-[#E85530] rounded-lg text-xs font-bold transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-brand-600 hover:text-brand-700 rounded-lg text-xs font-bold transition-colors"
                           >
                             Voir le PDF (nouvel onglet)
                           </a>
@@ -1453,7 +1447,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         {!!pendingPartners?.length && (
           <Card className="overflow-hidden mb-6 border-2 border-brand-500/30">
             <div className="p-6 border-b border-black/[0.06]">
-              <h3 className="text-xl font-bold text-ink-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 tracking-tight">
                 <Clock className="h-5 w-5 text-brand-500" /> Demandes en attente ({pendingPartners.length})
               </h3>
               <p className="text-ink-500 text-xs mt-1">Auto-inscriptions à valider avant que le partenaire puisse se connecter.</p>
@@ -1497,7 +1491,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         <Card className="overflow-hidden">
           <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-ink-900">Gestion des Partenaires</h3>
+              <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Gestion des Partenaires</h3>
               <p className="text-ink-500 text-xs mt-1">Créez des espaces partenaires avec leur propre compte de connexion.</p>
             </div>
             <div className="flex items-center gap-3">
@@ -1627,11 +1621,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* TAB CONTENT: CAMPAIGNS CRUD */}
       {activeTab === 'campaigns' && (
-        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mt-0 bg-surface border border-rule rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">{isSuperAdmin ? 'Gestion des Campagnes' : 'Mes campagnes'}</h3>
-              <p className="text-slate-450 text-xs mt-1">
+              <h3 className="text-lg font-semibold text-ink-900 tracking-tight">{isSuperAdmin ? 'Gestion des Campagnes' : 'Mes campagnes'}</h3>
+              <p className="text-slate-500 text-[13px] mt-1">
                 {isSuperAdmin
                   ? 'Associez des campagnes à vos partenaires et déterminez les périodes de validité.'
                   : 'Créez vos roulettes et tirages au sort, configurez les lots, activez ou mettez en pause vos campagnes.'}
@@ -1646,7 +1640,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Rechercher une campagne..."
                   value={campaignSearch}
                   onChange={(e) => setCampaignSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48 sm:w-56"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 w-48 sm:w-56"
                 />
               </div>
 
@@ -1654,7 +1648,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <select
                   value={campaignPartnerFilter}
                   onChange={(e) => setCampaignPartnerFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-44"
                 >
                   <option value="all">Toutes les entreprises</option>
                   <option value="system">Système Général</option>
@@ -1683,7 +1677,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 return matchesSearch && matchesPartner
               })
               return filtered.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {filtered.map((c) => (
                     <CampaignCard
                       key={c.id}
@@ -1763,11 +1757,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* TAB CONTENT: PRIZES CRUD */}
       {activeTab === 'prizes' && (
-        <div className="mt-0 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mt-0 bg-surface border border-rule rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Gestion des Lots</h3>
-              <p className="text-slate-450 text-xs mt-1">Configurez les récompenses de la roulette, ajustez les probabilités de gain et le stock disponible.</p>
+              <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Gestion des Lots</h3>
+              <p className="text-slate-500 text-[13px] mt-1">Configurez les récompenses de la roulette, ajustez les probabilités de gain et le stock disponible.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -1778,14 +1772,14 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   placeholder="Rechercher un lot..."
                   value={prizeSearch}
                   onChange={(e) => setPrizeSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48 sm:w-56"
+                  className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 w-48 sm:w-56"
                 />
               </div>
 
               <select
                 value={prizePartnerFilter}
                 onChange={(e) => setPrizePartnerFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-44"
               >
                 <option value="all">Toutes les entreprises</option>
                 <option value="system">Système Général</option>
@@ -1796,7 +1790,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               <button
                 onClick={() => openPrizeModal('create')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95 whitespace-nowrap"
               >
                 <Plus className="h-4 w-4" /> Ajouter
               </button>
@@ -1814,7 +1808,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               })
               return filtered.length > 0 ? (
                 <table className="w-full text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  <thead className="bg-paper-2 text-xs font-medium text-slate-500 border-b border-rule">
                     <tr>
                       <th className="px-6 py-4 font-bold">Lot</th>
                       <th className="px-6 py-4 font-bold">Campagne</th>
@@ -1841,7 +1835,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                             )}
                             {p.drawDate && p.winners && p.winners.length > 0 && (
                               <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-xl mt-2 font-bold w-max max-w-xs flex flex-col gap-0.5 shadow-sm">
-                                <span className="flex items-center gap-1">🏆 Gagnant(s) :</span>
+                                <span className="flex items-center gap-1">Gagnant(s) :</span>
                                 {p.winners.map((w: any, idx: number) => (
                                   <span key={idx} className="font-semibold text-slate-700 ml-1 text-xxs leading-normal">
                                     • {w.user.name || 'Joueur'} ({w.user.email})
@@ -1876,7 +1870,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                           <td className="px-6 py-4">
                             {p.drawDate ? (
                               <div className="flex flex-col gap-1">
-                                <span className="bg-orange-50 text-[#FF6B47] border border-orange-100 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide inline-block w-max">
+                                <span className="bg-orange-50 text-brand-600 border border-orange-100 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide inline-block w-max">
                                   Tirage
                                 </span>
                                 <span className="text-[10px] text-slate-550 font-semibold">
@@ -1884,10 +1878,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                                 </span>
                                 <button
                                   onClick={() => setParticipantsModal({ open: true, prizeName: p.name, list: p.participants || [] })}
-                                  className="text-[10px] text-slate-550 hover:text-[#FF6B47] hover:border-[#FF6B47] hover:bg-orange-50/20 font-bold bg-slate-100 border border-slate-200/50 px-1.5 py-0.5 rounded w-max transition-all cursor-pointer flex items-center gap-0.5"
+                                  className="text-[10px] text-slate-550 hover:text-brand-600 hover:border-brand-500 hover:bg-orange-50/20 font-bold bg-slate-100 border border-slate-200/50 px-1.5 py-0.5 rounded w-max transition-all cursor-pointer flex items-center gap-0.5"
                                   title="Cliquez pour voir la liste des inscrits"
                                 >
-                                  🎫 {p.participantCount || 0} inscrit(s)
+                                  {p.participantCount || 0} inscrit(s)
                                 </button>
                               </div>
                             ) : (
@@ -1914,7 +1908,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                                     </>
                                   ) : (
                                     <>
-                                      🏆 Tirage
+                                      Tirage
                                     </>
                                   )}
                                 </button>
@@ -1974,7 +1968,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
         <Card className="overflow-hidden">
           <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold text-ink-900">Membres & Joueurs</h3>
+              <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Membres & Joueurs</h3>
               <p className="text-ink-500 text-xs mt-1">Créez des utilisateurs, ajustez leurs rôles (Superadmin, Partenaire, Joueur) et attribuez manuellement des lancers.</p>
             </div>
 
@@ -1982,7 +1976,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <select
                 value={userRoleFilter}
                 onChange={(e) => setUserRoleFilter(e.target.value as typeof userRoleFilter)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-40"
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-40"
               >
                 <option value="all">Tous les rôles</option>
                 <option value="SUPERADMIN">Agence (Superadmin)</option>
@@ -1993,7 +1987,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <select
                 value={userPartnerFilter}
                 onChange={(e) => setUserPartnerFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-44"
               >
                 <option value="all">Toutes les entreprises</option>
                 <option value="agency">Agence obooking (staff)</option>
@@ -2224,7 +2218,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-ink-900">Clients (fidélité)</h3>
+                  <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Clients (fidélité)</h3>
                   <p className="text-ink-500 text-xs mt-1">Les voyageurs qui achètent des services obooking et cumulent des points merci. Distinct des utilisateurs (staff / partenaires / joueurs).</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -2234,13 +2228,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       type="text" placeholder="Rechercher un client..."
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
-                      className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] w-48"
+                      className="bg-slate-50 border border-slate-200 text-slate-700 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 w-48"
                     />
                   </div>
                   <select
                     value={customerPartnerFilter}
                     onChange={(e) => setCustomerPartnerFilter(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer shadow-sm w-44"
+                    className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-sm w-44"
                   >
                     <option value="all">Tous les partenaires</option>
                     <option value="none">Sans partenaire</option>
@@ -2355,16 +2349,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
                   <h3 className="text-lg font-bold text-ink-900 mb-4">{customerModal.mode === 'edit' ? 'Modifier le client' : 'Nouveau client'}</h3>
                   <div className="space-y-3">
-                    <input type="email" placeholder="Email *" value={customerModal.email} onChange={(e) => setCustomerModal(m => ({ ...m, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
-                    <input type="text" placeholder="Nom" value={customerModal.name} onChange={(e) => setCustomerModal(m => ({ ...m, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
-                    <input type="text" placeholder="Téléphone" value={customerModal.phone} onChange={(e) => setCustomerModal(m => ({ ...m, phone: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                    <input type="email" placeholder="Email *" value={customerModal.email} onChange={(e) => setCustomerModal(m => ({ ...m, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <input type="text" placeholder="Nom" value={customerModal.name} onChange={(e) => setCustomerModal(m => ({ ...m, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <input type="text" placeholder="Téléphone" value={customerModal.phone} onChange={(e) => setCustomerModal(m => ({ ...m, phone: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
                     <div className="relative">
                       <input
                         type={customerModal.showPassword ? 'text' : 'password'}
                         placeholder={customerModal.mode === 'edit' ? 'Nouveau mot de passe (vide = inchangé)' : 'Mot de passe * (min. 8 caractères)'}
                         value={customerModal.password}
                         onChange={(e) => setCustomerModal(m => ({ ...m, password: e.target.value }))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                       <button type="button" onClick={() => setCustomerModal(m => ({ ...m, showPassword: !m.showPassword }))} title={customerModal.showPassword ? 'Masquer' : 'Afficher'} className="absolute right-3 top-2.5 text-slate-400 hover:text-ink-700 cursor-pointer">
                         {customerModal.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -2374,12 +2368,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       <p className="text-[11px] text-ink-500 -mt-1">Le mot de passe actuel ne peut pas être affiché (chiffré). Saisissez-en un nouveau pour le réinitialiser.</p>
                     )}
                     <div className={`grid ${customerModal.mode === 'edit' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                      <select value={customerModal.partnerId} onChange={(e) => setCustomerModal(m => ({ ...m, partnerId: e.target.value }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]">
+                      <select value={customerModal.partnerId} onChange={(e) => setCustomerModal(m => ({ ...m, partnerId: e.target.value }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500">
                         <option value="">Partenaire d'origine…</option>
                         {partners?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       {customerModal.mode === 'create' && (
-                        <input type="number" min={0} placeholder="Points initiaux" value={customerModal.initialPoints} onChange={(e) => setCustomerModal(m => ({ ...m, initialPoints: parseInt(e.target.value) || 0 }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                        <input type="number" min={0} placeholder="Points initiaux" value={customerModal.initialPoints} onChange={(e) => setCustomerModal(m => ({ ...m, initialPoints: parseInt(e.target.value) || 0 }))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
                       )}
                     </div>
                     {customerModalError && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-150 text-red-600 rounded-xl text-xs font-semibold"><AlertTriangle className="h-4 w-4 shrink-0" /><span>{customerModalError}</span></div>}
@@ -2400,9 +2394,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
                   <h3 className="text-lg font-bold text-ink-900 mb-1">Ajuster les points</h3>
                   <p className="text-xs text-ink-500 mb-4">{pointsModal.customerName}</p>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Variation (+ pour créditer, − pour débiter)</label>
-                  <input type="number" value={pointsModal.delta} onChange={(e) => setPointsModal(m => ({ ...m, delta: parseInt(e.target.value) || 0 }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] mb-3" />
-                  <input type="text" placeholder="Motif (optionnel)" value={pointsModal.reason} onChange={(e) => setPointsModal(m => ({ ...m, reason: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]" />
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Variation (+ pour créditer, − pour débiter)</label>
+                  <input type="number" value={pointsModal.delta} onChange={(e) => setPointsModal(m => ({ ...m, delta: parseInt(e.target.value) || 0 }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 mb-3" />
+                  <input type="text" placeholder="Motif (optionnel)" value={pointsModal.reason} onChange={(e) => setPointsModal(m => ({ ...m, reason: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
                   <div className="flex justify-end gap-2 mt-5">
                     <button onClick={() => setPointsModal(m => ({ ...m, open: false }))} className="px-4 py-2 text-sm font-bold text-ink-500 hover:text-ink-900 cursor-pointer">Annuler</button>
                     <Button size="sm" onClick={savePoints} disabled={adminAdjustCustomerPointsMut.isPending}>
@@ -2446,7 +2440,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     <Sparkles className="h-5 w-5 text-brand-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-ink-900">Programme de Fidélité — Points Merci</h3>
+                    <h3 className="text-lg font-semibold text-ink-900 tracking-tight">Programme de Fidélité — Points Merci</h3>
                     <p className="text-ink-500 text-xs mt-1 max-w-xl">
                       Les clients gagnent des points à chaque achat sur obooking.tn, puis les convertissent en bons de réduction TND. Configurez ici les taux.
                     </p>
@@ -2457,7 +2451,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   <button
                     type="button"
                     onClick={() => setLoyaltyForm(f => ({ ...f, loyaltyEnabled: !f.loyaltyEnabled }))}
-                    className={`relative w-12 h-7 rounded-full transition-all ${loyaltyForm.loyaltyEnabled ? 'bg-[#FF6B47]' : 'bg-slate-300'}`}
+                    className={`relative w-12 h-7 rounded-full transition-all ${loyaltyForm.loyaltyEnabled ? 'bg-brand-600' : 'bg-slate-300'}`}
                   >
                     <span className={`absolute top-1 left-1 h-5 w-5 bg-white rounded-full shadow transition-all ${loyaltyForm.loyaltyEnabled ? 'translate-x-5' : ''}`} />
                   </button>
@@ -2467,49 +2461,49 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               {/* Formulaire de config */}
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2 flex items-center gap-1.5">
+                  <label className="text-[13px] font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
                     <Coins className="h-3.5 w-3.5" /> Gain : points par 1 TND dépensé
                   </label>
                   <input
                     type="number" min={0} step="0.1"
                     value={loyaltyForm.pointsPerTnd}
                     onChange={(e) => setLoyaltyForm(f => ({ ...f, pointsPerTnd: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <p className="text-[11px] text-ink-500 mt-1.5">Ex : 1 → un achat de 500 TND rapporte 500 points.</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2 flex items-center gap-1.5">
+                  <label className="text-[13px] font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
                     <Wallet className="h-3.5 w-3.5" /> Conversion : points pour 1 TND de bon
                   </label>
                   <input
                     type="number" min={1} step="1"
                     value={loyaltyForm.redeemPointsPerTnd}
                     onChange={(e) => setLoyaltyForm(f => ({ ...f, redeemPointsPerTnd: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <p className="text-[11px] text-ink-500 mt-1.5">Ex : 100 → 100 points = 1 TND de réduction.</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Seuil minimum de conversion (points)</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Seuil minimum de conversion (points)</label>
                   <input
                     type="number" min={0} step="1"
                     value={loyaltyForm.minRedeemPoints}
                     onChange={(e) => setLoyaltyForm(f => ({ ...f, minRedeemPoints: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <p className="text-[11px] text-ink-500 mt-1.5">En dessous, le client ne peut pas encore convertir.</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Validité d'un bon (jours)</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Validité d'un bon (jours)</label>
                   <input
                     type="number" min={0} step="1"
                     value={loyaltyForm.voucherValidityDays}
                     onChange={(e) => setLoyaltyForm(f => ({ ...f, voucherValidityDays: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <p className="text-[11px] text-ink-500 mt-1.5">Durée avant expiration. <b>0 = illimité</b> (le bon n'expire jamais).</p>
                 </div>
@@ -2532,13 +2526,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <div className="p-6 flex flex-col md:flex-row items-stretch gap-4">
                 {/* Saisie du montant */}
                 <div className="md:w-56 shrink-0">
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Montant d'un achat (TND)</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Montant d'un achat (TND)</label>
                   <div className="relative">
                     <input
                       type="number" min={0} step="10"
                       value={loyaltySimAmount}
                       onChange={(e) => setLoyaltySimAmount(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-14 py-3 text-lg font-bold focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-14 py-3 text-lg font-bold focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">TND</span>
                   </div>
@@ -2563,7 +2557,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     </div>
                     <div className="text-3xl font-black mt-2">{voucherTnd.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}<span className="text-base font-bold ml-1">TND</span></div>
                     <div className="text-[11px] font-bold mt-1 text-white/90">
-                      {reachesMin ? '✓ Convertible en bon' : `⚠ Seuil min. ${loyaltyForm.minRedeemPoints} pts non atteint`}
+                      {reachesMin ? 'Convertible en bon' : `Seuil min. ${loyaltyForm.minRedeemPoints} pts non atteint`}
                     </div>
                   </div>
                 </div>
@@ -2583,16 +2577,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
       {activeTab === 'homepage' && (
         <div className="space-y-6">
           {/* Hero video/poster card */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white border border-rule rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
-              <Video className="h-5 w-5 text-[#FF6B47]" /> Vidéo du Hero (Page d'Accueil)
+              <Video className="h-5 w-5 text-brand-600" /> Vidéo du Hero (Page d'Accueil)
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-5">
               Vidéo de fond en boucle affichée en haut de la page d'accueil. Courte et compressée, 20 Mo max.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Vidéo (MP4/WEBM, 20 Mo max)</label>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Vidéo (MP4/WEBM, 20 Mo max)</label>
               <div className="h-32 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden mb-2">
                 {heroForm.newVideoData ? (
                   <video
@@ -2629,11 +2623,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
             </div>
 
-            <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end">
+            <div className="pt-5 mt-5 border-t border-rule flex justify-end">
               <button
                 onClick={handleSaveHero}
                 disabled={updateSiteSettingsMut.isPending}
-                className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
               >
                 {updateSiteSettingsMut.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 Sauvegarder le Hero
@@ -2642,16 +2636,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           </div>
 
           {/* Promo banners marquee card */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white border border-rule rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1">
-              <LayoutTemplate className="h-5 w-5 text-[#FF6B47]" /> Bandeau Publicitaire (Marquee)
+              <LayoutTemplate className="h-5 w-5 text-brand-600" /> Bandeau Publicitaire (Marquee)
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-5">
               Images défilantes affichées sous la liste des campagnes.
             </p>
 
             {/* Add new banner */}
-            <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 mb-5">
+            <div className="bg-slate-50/60 border border-rule rounded-2xl p-4 mb-5">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className={`h-16 w-24 shrink-0 rounded-lg border bg-white flex items-center justify-center overflow-hidden ${
                   bannerFormError && !newBannerForm.imageData ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'
@@ -2674,7 +2668,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   onClick={handleAddBanner}
                   disabled={createPromoBannerMut.isPending}
-                  className="px-4 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0"
+                  className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" /> Ajouter
                 </button>
@@ -2703,8 +2697,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* PARTNER MODAL */}
       {partnerModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setPartnerModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
@@ -2712,8 +2706,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Globe className="h-5 w-5 text-[#FF6B47]" />
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <Globe className="h-5 w-5 text-brand-600" />
               {partnerModal.mode === 'create' ? 'Créer un espace partenaire' : 'Modifier le partenaire'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -2806,7 +2800,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               {partnerModal.mode === 'create' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Mot de passe initial *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe initial *</label>
                   <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <input
@@ -2814,7 +2808,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                         value={partnerForm.password}
                         onChange={(e) => setPartnerForm(p => ({ ...p, password: e.target.value }))}
                         className={`w-full bg-slate-50 border text-slate-900 px-4 pr-10 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 transition-all ${
-                          partnerFormErrors.password ? 'border-[var(--danger)] focus:ring-[var(--danger)]' : 'border-slate-200 focus:ring-[#FF6B47]'
+                          partnerFormErrors.password ? 'border-[var(--danger)] focus:ring-[var(--danger)]' : 'border-slate-200 focus:ring-brand-500'
                         }`}
                       />
                       <button
@@ -2842,7 +2836,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Logo</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Logo</label>
                 <div className="flex items-center gap-3">
                   {partnerForm.logoUrl ? (
                     <img src={partnerForm.logoUrl} alt="" className="h-14 w-14 rounded-xl object-cover border border-slate-200" />
@@ -2860,7 +2854,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Couleur primaire</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Couleur primaire</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -2872,7 +2866,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Couleur secondaire</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Couleur secondaire</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -2886,20 +2880,20 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Domaines dynamic CORS whitelistés</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Domaines dynamic CORS whitelistés</label>
                 <input
                   type="text"
                   placeholder="Ex: localhost:3000, gourmetbistro.com, secure.net"
                   value={partnerForm.allowedDomains}
                   onChange={(e) => setPartnerForm(p => ({ ...p, allowedDomains: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                 />
                 <span className="text-[10px] text-slate-400 mt-2 block leading-normal font-semibold">
                   Séparez plusieurs domaines par des virgules sans espaces. Laissez vide pour tout bloquer hors origine principale.
                 </span>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setPartnerModal(p => ({ ...p, open: false }))}
@@ -2910,7 +2904,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createPartnerMut.isPending || updatePartnerMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createPartnerMut.isPending || updatePartnerMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2929,10 +2923,10 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
           jamais reconsultable ensuite (le mot de passe n'est jamais renvoyé
           par une query, uniquement par la réponse de la mutation). */}
       {passwordRevealModal.open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <KeyRound className="h-5 w-5 text-[#FF6B47]" />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <KeyRound className="h-5 w-5 text-brand-600" />
               {passwordRevealModal.title}
             </h3>
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs font-semibold mb-5">
@@ -2942,13 +2936,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Identifiant</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Identifiant</label>
                 <div className="font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800">
                   {passwordRevealModal.email}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mot de passe temporaire</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe temporaire</label>
                 <div className="flex items-center gap-2">
                   <div className="font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 flex-1 truncate">
                     {passwordRevealModal.password}
@@ -2971,7 +2965,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <button
                 type="button"
                 onClick={() => setPasswordRevealModal({ open: false, email: '', password: '', title: '' })}
-                className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all"
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all"
               >
                 J'ai noté le mot de passe
               </button>
@@ -2982,9 +2976,9 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* REJECT PARTNER REQUEST MODAL — motif optionnel */}
       {rejectModal.open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-800 mb-2">Rejeter la demande de "{rejectModal.name}" ?</h3>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-semibold text-ink-900 mb-1 tracking-tight">Rejeter la demande de "{rejectModal.name}" ?</h3>
             <p className="text-slate-400 text-xs font-semibold mb-4">
               Motif optionnel (conservé dans le journal d'activité, non transmis automatiquement au partenaire).
             </p>
@@ -2993,7 +2987,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               onChange={(e) => setRejectModal(m => ({ ...m, reason: e.target.value }))}
               rows={3}
               placeholder="Ex : informations incomplètes, domaine déjà couvert par un autre partenaire..."
-              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all resize-none"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all resize-none"
             />
             <div className="pt-5 flex items-center justify-end gap-3">
               <button
@@ -3018,8 +3012,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* CAMPAIGN MODAL */}
       {campaignModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-xl p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setCampaignModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
@@ -3027,8 +3021,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Sliders className="h-5 w-5 text-[#FF6B47]" />
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <Sliders className="h-5 w-5 text-brand-600" />
               {campaignModal.mode === 'create' ? 'Créer une Campagne' : 'Modifier la Campagne'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -3063,24 +3057,24 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               className="space-y-4"
             >
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Titre de la Campagne *</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Titre de la Campagne *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Grand Jeu d'Été Boulangerie"
                   value={campaignForm.title}
                   onChange={(e) => setCampaignForm(p => ({ ...p, title: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                 />
               </div>
 
               {isSuperAdmin && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Partenaire B2B Propriétaire</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Partenaire B2B Propriétaire</label>
                   <select
                     value={campaignForm.partnerId}
                     onChange={(e) => setCampaignForm(p => ({ ...p, partnerId: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-850 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                   >
                     <option value="">Aucun - Campagne Système Générale</option>
                     {partners?.map(p => (
@@ -3092,23 +3086,23 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Date de Début *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Date de Début *</label>
                   <input
                     type="datetime-local"
                     required
                     value={campaignForm.startDate}
                     onChange={(e) => setCampaignForm(p => ({ ...p, startDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Date de Fin *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Date de Fin *</label>
                   <input
                     type="datetime-local"
                     required
                     value={campaignForm.endDate}
                     onChange={(e) => setCampaignForm(p => ({ ...p, endDate: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
               </div>
@@ -3119,7 +3113,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   id="campaignActive"
                   checked={campaignForm.isActive}
                   onChange={(e) => setCampaignForm(p => ({ ...p, isActive: e.target.checked }))}
-                  className="h-5 w-5 rounded-md border-slate-300 text-[#FF6B47] focus:ring-[#FF6B47] cursor-pointer accent-orange-500"
+                  className="h-5 w-5 rounded-md border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer accent-orange-500"
                 />
                 <label htmlFor="campaignActive" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
                   Campagne active et ouverte aux participations immédiates
@@ -3127,29 +3121,29 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Type de Jeu</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Type de Jeu</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'ROULETTE' }))}
                     className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
                       campaignForm.gameMode === 'ROULETTE'
-                        ? 'bg-[#FF6B47] border-[#FF6B47] text-white shadow-md shadow-orange-500/10'
+                        ? 'bg-brand-600 border-brand-500 text-white shadow-md shadow-orange-500/10'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    🎰 Roulette
+                    Roulette
                   </button>
                   <button
                     type="button"
                     onClick={() => setCampaignForm(p => ({ ...p, gameMode: 'DRAW' }))}
                     className={`px-4 py-3 rounded-xl text-xs font-black transition-all border ${
                       campaignForm.gameMode === 'DRAW'
-                        ? 'bg-[#FF6B47] border-[#FF6B47] text-white shadow-md shadow-orange-500/10'
+                        ? 'bg-brand-600 border-brand-500 text-white shadow-md shadow-orange-500/10'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    🎟️ Tirage au Sort
+                    Tirage au sort
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 font-semibold">
@@ -3160,7 +3154,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Photo de la Campagne</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Photo de la Campagne</label>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
                     {campaignForm.imageData ? (
@@ -3195,8 +3189,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </p>
               </div>
 
-              <div className="border-t border-slate-100 pt-4">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+              <div className="border-t border-rule pt-4">
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
                   Email d'Envoi Automatique au Gagnant (Optionnel)
                 </label>
                 <p className="text-[10px] text-slate-400 mb-3 font-semibold">
@@ -3204,24 +3198,24 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Adresse d'envoi</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Adresse d'envoi</label>
                     <input
                       type="email"
                       placeholder="gift@obooking.tn"
                       value={campaignForm.senderEmail}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmail: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">
                       Clé API Resend {campaignForm.hasSenderEmailPassword && <span className="text-emerald-500 normal-case font-semibold">(déjà configurée)</span>}
                     </label>
                     <PasswordInput
                       placeholder={campaignForm.hasSenderEmailPassword ? '••••••••••••••••' : 're_xxxxxxxxxxxxxxxx'}
                       value={campaignForm.senderEmailPassword}
                       onChange={(e) => setCampaignForm(p => ({ ...p, senderEmailPassword: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-3 h-11 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                     />
                   </div>
                 </div>
@@ -3231,186 +3225,186 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     href="https://resend.com/domains"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#FF6B47] hover:underline"
+                    className="text-brand-600 hover:underline"
                   >
                     vérifié dans Resend
                   </a>.
                 </p>
               </div>
 
-              {/* 📢 HERO BANNER ADS SECTION */}
-              <div className="border-t border-slate-100 pt-4 mt-4">
+              {/* HERO BANNER ADS SECTION */}
+              <div className="border-t border-rule pt-4 mt-4">
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  📢 Annonces de la Bannière Hero (Optionnel)
+                  Annonces du hero (facultatif)
                 </h4>
                 <p className="text-[10px] text-slate-400 mb-4 font-semibold">
                   Laissez ces champs vides pour utiliser la bannière Obooking / Seychelles / Tout est la par défaut.
                 </p>
 
                 {/* Slide 1 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl mb-4 space-y-3">
-                  <span className="text-[10px] font-black text-[#FF6B47] uppercase tracking-wider">Slide 1</span>
+                <div className="bg-slate-50/50 border border-rule p-3.5 rounded-xl mb-4 space-y-3">
+                  <span className="text-[10px] font-black text-brand-600 uppercase tracking-wider">Slide 1</span>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Badge</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Badge</label>
                       <input
                         type="text"
-                        placeholder="Ex: ✈️ Offre Spéciale"
+                        placeholder="Ex : Offre spéciale"
                         value={campaignForm.adBadge1}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge1: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Titre</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Titre</label>
                       <input
                         type="text"
                         placeholder="Ex: Seychelles avec -15%"
                         value={campaignForm.adTitle1}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle1: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Description</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
                     <textarea
                       placeholder="Ex: Entrez le code promo SEYCH15 lors de votre réservation..."
                       value={campaignForm.adDesc1}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc1: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Slide 2 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl mb-4 space-y-3">
+                <div className="bg-slate-50/50 border border-rule p-3.5 rounded-xl mb-4 space-y-3">
                   <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider">Slide 2</span>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Badge</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Badge</label>
                       <input
                         type="text"
-                        placeholder="Ex: 🏝️ Grand tirage"
+                        placeholder="Ex : Grand tirage"
                         value={campaignForm.adBadge2}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge2: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Titre</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Titre</label>
                       <input
                         type="text"
                         placeholder="Ex: Gagnez un séjour aux Maldives !"
                         value={campaignForm.adTitle2}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle2: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Description</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
                     <textarea
                       placeholder="Ex: Le grand prix de la roulette Obooking est un séjour complet de 5 jours..."
                       value={campaignForm.adDesc2}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc2: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Slide 3 */}
-                <div className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl mb-4 space-y-3">
+                <div className="bg-slate-50/50 border border-rule p-3.5 rounded-xl mb-4 space-y-3">
                   <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Slide 3</span>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Badge</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Badge</label>
                       <input
                         type="text"
-                        placeholder="Ex: 🛒 Partenaire"
+                        placeholder="Ex : Partenaire"
                         value={campaignForm.adBadge3}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adBadge3: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Titre</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Titre</label>
                       <input
                         type="text"
                         placeholder="Ex: Faites vos achats et Gagnez !"
                         value={campaignForm.adTitle3}
                         onChange={(e) => setCampaignForm(p => ({ ...p, adTitle3: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Description</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
                     <textarea
                       placeholder="Ex: Scannez votre ticket de caisse dans l'onglet des défis..."
                       value={campaignForm.adDesc3}
                       onChange={(e) => setCampaignForm(p => ({ ...p, adDesc3: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* 🌴 PROMO FLASH SECTION */}
-              <div className="border-t border-slate-100 pt-4 mt-4">
+              {/* PROMO FLASH SECTION */}
+              <div className="border-t border-rule pt-4 mt-4">
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  🌴 Promo Flash de Côté (Optionnel)
+                  Offre promotionnelle (facultatif)
                 </h4>
                 <p className="text-[10px] text-slate-400 mb-4 font-semibold">
                   Laissez ces champs vides pour utiliser la promo Seychelles Island Escape par défaut.
                 </p>
 
-                <div className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl space-y-3">
+                <div className="bg-slate-50/50 border border-rule p-3.5 rounded-xl space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">Titre de la Promo</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Titre de la Promo</label>
                       <input
                         type="text"
                         placeholder="Ex: Seychelles Island Escape"
                         value={campaignForm.promoTitle}
                         onChange={(e) => setCampaignForm(p => ({ ...p, promoTitle: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">Code Promo</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Code Promo</label>
                       <input
                         type="text"
                         placeholder="Ex: SEYCH15"
                         value={campaignForm.promoCode}
                         onChange={(e) => setCampaignForm(p => ({ ...p, promoCode: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">URL de Redirection</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">URL de Redirection</label>
                     <input
                       type="text"
                       placeholder="Ex: https://obooking.com"
                       value={campaignForm.promoUrl}
                       onChange={(e) => setCampaignForm(p => ({ ...p, promoUrl: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47]"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">Description</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
                     <textarea
                       placeholder="Ex: Voyagez à prix réduit vers les îles Seychelles avec le code promo exclusif d'Obooking..."
                       value={campaignForm.promoDesc}
                       onChange={(e) => setCampaignForm(p => ({ ...p, promoDesc: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] h-16 resize-none"
+                      className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setCampaignModal(p => ({ ...p, open: false }))}
@@ -3421,7 +3415,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createCampaignMut.isPending || updateCampaignMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createCampaignMut.isPending || updateCampaignMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -3438,8 +3432,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* PRIZE MODAL */}
       {prizeModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setPrizeModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800"
@@ -3447,8 +3441,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Trophy className="h-5 w-5 text-[#FF6B47]" />
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <Trophy className="h-5 w-5 text-brand-600" />
               {prizeModal.mode === 'create' ? 'Ajouter un Lot' : 'Modifier le Lot'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -3486,11 +3480,11 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               className="space-y-4"
             >
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Campagne Cible *</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Campagne Cible *</label>
                 <select
                   value={prizeForm.campaignId}
                   onChange={(e) => setPrizeForm(p => ({ ...p, campaignId: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                 >
                   {campaigns?.map(c => (
                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -3499,24 +3493,24 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Désignation du Lot *</label>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Désignation du Lot *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: T-Shirt Vintage, 10% de réduction"
                   value={prizeForm.name}
                   onChange={(e) => setPrizeForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Type de Récompense *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Type de Récompense *</label>
                   <select
                     value={prizeForm.type}
                     onChange={(e) => setPrizeForm(p => ({ ...p, type: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                   >
                     <option value="PHYSICAL">Lot Physique (Stock limité)</option>
                     <option value="DIGITAL">Lot Digital (Code / Bon d'achat)</option>
@@ -3524,20 +3518,20 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Stock Initial (-1 = Illimité)</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Stock Initial (-1 = Illimité)</label>
                   <input
                     type="number"
                     required
                     value={prizeForm.totalStock}
                     onChange={(e) => setPrizeForm(p => ({ ...p, totalStock: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Probabilité de gain (%) *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Probabilité de gain (%) *</label>
                   <input
                     type="number"
                     min="0"
@@ -3546,16 +3540,16 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                     required
                     value={prizeForm.winProbability}
                     onChange={(e) => setPrizeForm(p => ({ ...p, winProbability: Number(e.target.value) }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Consolation (Si rupture stock)</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Consolation (Si rupture stock)</label>
                   <select
                     value={prizeForm.fallbackPrizeId}
                     onChange={(e) => setPrizeForm(p => ({ ...p, fallbackPrizeId: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                   >
                     <option value="">Aucun fallback (Lot de consolation par défaut)</option>
                     {prizes
@@ -3568,27 +3562,27 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
                   Date du Tirage au Sort (Optionnel - Pour jeu Kor3a)
                 </label>
                 <input
                   type="datetime-local"
                   value={prizeForm.drawDate}
                   onChange={(e) => setPrizeForm(p => ({ ...p, drawDate: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                   Si définie, ce lot est attribué par tirage au sort   à la date indiquée et n'apparaîtra pas sur la roulette. La probabilité de gain sera ignorée.
                 </p>
                 {campaigns?.find(c => c.id === prizeForm.campaignId)?.gameMode === 'DRAW' && !prizeForm.drawDate && (
                   <p className="text-[10px] text-amber-600 mt-1 font-bold">
-                    ⚠️ Cette campagne est en mode Tirage au Sort — une date de tirage est requise pour que ce lot soit jouable.
+                    Cette campagne est en mode Tirage au Sort — une date de tirage est requise pour que ce lot soit jouable.
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
                   Durée de validité (en jours)
                 </label>
                 <input
@@ -3597,14 +3591,14 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                   required
                   value={prizeForm.validityDays}
                   onChange={(e) => setPrizeForm(p => ({ ...p, validityDays: Number(e.target.value) }))}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                   Nombre de jours durant lesquels le lot digital ou la remise reste valide après avoir été gagné (ex: 30).
                 </p>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setPrizeModal(p => ({ ...p, open: false }))}
@@ -3615,7 +3609,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createPrizeMut.isPending || updatePrizeMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createPrizeMut.isPending || updatePrizeMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -3632,8 +3626,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* USER MODAL */}
       {userModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setUserModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
@@ -3641,8 +3635,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <UserCheck className="h-5 w-5 text-[#FF6B47]" />
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <UserCheck className="h-5 w-5 text-brand-600" />
               {userModal.mode === 'create' ? 'Créer un Utilisateur' : 'Modifier le Profil & Crédits'}
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
@@ -3705,24 +3699,24 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 />
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Téléphone</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Téléphone</label>
                   <input
                     type="tel"
                     placeholder="Ex: +33 6 12 34 56 78"
                     value={userForm.phone}
                     onChange={(e) => setUserForm(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Niveau d'Accès Rôle *</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Niveau d'Accès Rôle *</label>
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm(p => ({ ...p, role: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-4 h-12 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                   >
                     <option value="PLAYER">PLAYER (Joueur de roulette)</option>
                     <option value="PARTNER">PARTNER (Accès aux analytiques de sa marque)</option>
@@ -3733,12 +3727,12 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
               {/* Spin Credit Granting Section */}
               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3 mt-4">
-                <h4 className="text-xs font-bold text-[#FF6B47] uppercase tracking-wide flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-brand-600 uppercase tracking-wide flex items-center gap-1.5">
                   <Play className="h-4 w-4 fill-orange-500" /> Crédits de lancers (Lancers NON UTILISÉS)
                 </h4>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Campagne Cible pour l'octroi</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Campagne Cible pour l'octroi</label>
                   <select
                     value={userForm.campaignIdForTokens}
                     onChange={(e) => {
@@ -3746,7 +3740,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       const currentUnused = userModal.data?.tokensByCampaign?.[cId]?.unused || 0
                       setUserForm(p => ({ ...p, campaignIdForTokens: cId, playTokensCount: currentUnused }))
                     }}
-                    className="w-full bg-white border border-slate-200 text-slate-800 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] cursor-pointer"
+                    className="w-full bg-white border border-slate-200 text-slate-800 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
                   >
                     {campaigns?.map(c => (
                       <option key={c.id} value={c.id}>{c.title}</option>
@@ -3755,13 +3749,13 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Solde cible de lancers non-utilisés</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Solde cible de lancers non-utilisés</label>
                   <input
                     type="number"
                     min="0"
                     value={userForm.playTokensCount}
                     onChange={(e) => setUserForm(p => ({ ...p, playTokensCount: Number(e.target.value) }))}
-                    className="w-full bg-white border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6B47] transition-all"
+                    className="w-full bg-white border border-slate-200 text-slate-900 px-3 h-10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                   <span className="text-[9px] text-slate-400 mt-1 block font-semibold leading-normal">
                     La sauvegarde ajoutera ou supprimera des PlayTokens inutilisés pour correspondre exactement à cette valeur.
@@ -3769,7 +3763,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setUserModal(p => ({ ...p, open: false }))}
@@ -3780,7 +3774,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                 <button
                   type="submit"
                   disabled={createUserMut.isPending || updateUserMut.isPending}
-                  className="px-6 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
+                  className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-sm shadow-orange-500/10"
                 >
                   {createUserMut.isPending || updateUserMut.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -3797,8 +3791,8 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
 
       {/* PARTICIPANTS MODAL */}
       {participantsModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 border border-slate-100 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/40">
+          <div className="bg-surface rounded-2xl w-full  p-6 border border-rule shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setParticipantsModal(p => ({ ...p, open: false }))}
               className="absolute right-5 top-5 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-all border border-slate-200 text-slate-400 hover:text-slate-800 cursor-pointer"
@@ -3806,22 +3800,22 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 mb-2">
-              <Users className="h-5 w-5 text-[#FF6B47]" />
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-1 tracking-tight">
+              <Users className="h-5 w-5 text-brand-600" />
               Inscrits au Tirage
             </h3>
             <p className="text-slate-400 text-xs font-semibold mb-6">
               Liste des participants enregistrés pour le lot <strong className="text-slate-700 font-extrabold">{participantsModal.prizeName}</strong>.
             </p>
 
-            <div className="max-h-[60vh] overflow-y-auto border border-slate-100 rounded-2xl">
+            <div className="max-h-[60vh] overflow-y-auto border border-rule rounded-2xl">
               {participantsModal.list.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs font-semibold">
                   Aucun participant n'est encore inscrit à ce tirage au sort.
                 </div>
               ) : (
                 <table className="w-full text-left text-xs text-slate-550">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 sticky top-0 z-10">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400 border-b border-rule sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 font-bold">Nom</th>
                       <th className="px-4 py-3 font-bold">Email</th>
@@ -3834,7 +3828,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
                       <tr key={u.id || idx} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 font-extrabold text-slate-800">{u.name || 'N/A'}</td>
                         <td className="px-4 py-3 font-semibold text-slate-655">{u.email}</td>
-                        <td className="px-4 py-3 font-mono font-bold text-[#FF6B47]">{u.phone || 'N/A'}</td>
+                        <td className="px-4 py-3 font-mono font-bold text-brand-600">{u.phone || 'N/A'}</td>
                         <td className="px-4 py-3 text-right text-slate-400 font-semibold">
                           {new Date(u.createdAt).toLocaleString('fr-FR')}
                         </td>
@@ -3845,7 +3839,7 @@ export function PartnerDashboard({ partnerId, initialSession, allPartnersForSwit
               )}
             </div>
 
-            <div className="pt-4 mt-4 flex items-center justify-end border-t border-slate-100">
+            <div className="pt-4 mt-4 flex items-center justify-end border-t border-rule">
               <button
                 type="button"
                 onClick={() => setParticipantsModal(p => ({ ...p, open: false }))}

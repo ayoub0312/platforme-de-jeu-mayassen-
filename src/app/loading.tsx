@@ -9,12 +9,12 @@ export default function Loading() {
       style={{ backgroundColor: 'var(--color-brand-warm-white)' }}
     >
       <div className="relative h-24 w-24 flex items-center justify-center">
-        <div className="absolute bottom-2 h-px w-16 bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
-        <div className="animate-plane-takeoff text-[#FF6B47]">
+        <div className="absolute bottom-2 h-px w-16 bg-rule-strong" />
+        <div className="animate-plane-takeoff text-brand-600">
           <Plane className="h-10 w-10 -rotate-45" strokeWidth={2} />
         </div>
       </div>
-      <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Chargement...</p>
+      <p className="text-[13px] text-ink-500">Chargement…</p>
     </div>
   )
 }

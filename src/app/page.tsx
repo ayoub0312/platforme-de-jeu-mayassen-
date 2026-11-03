@@ -13,7 +13,7 @@ export default async function Home() {
 
   // 2. Query all active campaigns with their prizes and partner metadata
   const campaigns = await prisma.campaign.findMany({
-    where: { isActive: true },
+    where: { isActive: true, isDraft: false },
     include: {
       partner: true,
       prizes: true,
@@ -48,6 +48,7 @@ export default async function Home() {
       ? {
           id: campaign.partner.id,
           name: campaign.partner.name,
+          slug: campaign.partner.slug,
         }
       : null,
     prizes: campaign.prizes.map((prize) => ({

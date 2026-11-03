@@ -20,15 +20,15 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const STATUS_CLASSES: Record<BadgeStatus, string> = {
   actif: 'bg-[var(--success)]/10 text-[var(--success)]',
   pause: 'bg-[var(--warning)]/10 text-[var(--warning)]',
-  termine: 'bg-black/[0.06] text-ink-500',
+  termine: 'bg-paper-2 text-ink-500 shadow-[inset_0_0_0_1px_var(--rule)]',
   epuise: 'bg-[var(--danger)]/10 text-[var(--danger)]',
-  gagne: 'bg-brand-50 text-brand-600',
+  gagne: 'bg-brand-50 text-brand-700',
   en_attente: 'bg-[var(--info)]/10 text-[var(--info)]',
   success: 'bg-[var(--success)]/10 text-[var(--success)]',
   danger: 'bg-[var(--danger)]/10 text-[var(--danger)]',
   warning: 'bg-[var(--warning)]/10 text-[var(--warning)]',
   info: 'bg-[var(--info)]/10 text-[var(--info)]',
-  neutral: 'bg-black/[0.06] text-ink-500',
+  neutral: 'bg-paper-2 text-ink-500 shadow-[inset_0_0_0_1px_var(--rule)]',
 }
 
 const STATUS_LABELS: Record<BadgeStatus, string> = {
@@ -48,7 +48,7 @@ const STATUS_LABELS: Record<BadgeStatus, string> = {
 export function Badge({ status = 'neutral', className = '', children, ...props }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_CLASSES[status]} ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${STATUS_CLASSES[status]} ${className}`}
       {...props}
     >
       {children ?? STATUS_LABELS[status]}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, ArrowRight, Gamepad2 } from 'lucide-react'
+import { ArrowRight, Gamepad2, Check } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Campaign {
@@ -25,19 +25,19 @@ interface ActiveGamesListProps {
   handleSwitchCampaign: (campaignId: string) => void
 }
 
+const formatDate = (d: string | Date) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+
 export function ActiveGamesList({
   campaigns,
   activeCampaign,
   handleSwitchCampaign,
 }: ActiveGamesListProps) {
   return (
-    <div className="lg:col-span-5 space-y-6">
-      <div className="flex items-center justify-between px-2">
-        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-          🎰 Jeux Actifs
-        </h3>
-        <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-full text-xxs font-black text-slate-600">
-          {campaigns.length} {campaigns.length > 1 ? 'Jeux' : 'Jeu'}
+    <div className="lg:col-span-5 min-w-0">
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="text-xl font-semibold tracking-tight text-ink-900">Jeux en cours</h2>
+        <span className="text-[13px] text-ink-500 tabular-nums">
+          {campaigns.length} jeu{campaigns.length > 1 ? 'x' : ''}
         </span>
       </div>
 
@@ -45,119 +45,51 @@ export function ActiveGamesList({
         <EmptyState
           icon={Gamepad2}
           title="Aucun jeu actif pour le moment"
-          description="Revenez bientôt : de nouvelles campagnes seront bientôt disponibles."
-          className="bg-white border border-slate-200 rounded-3xl"
+          description="Revenez bientôt : de nouveaux jeux seront disponibles."
+          className="bg-surface border border-rule rounded-2xl"
         />
       ) : (
-      <div className="space-y-4">
-        {campaigns.map((c) => {
-          const isActiveGame = c.id === activeCampaign.id
-          const partnerName = c.partner?.name || 'Partenaire B2B'
-
-          // Custom branding palettes per partner
-          let brandBadge = 'bg-orange-50 text-orange-700 border-orange-100'
-          let brandRing = 'border-orange-300'
-          let textHighlight = 'text-[#FF6B47]'
-
-          return (
-            <div
-              key={c.id}
-              className={`bg-white border rounded-3xl p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${isActiveGame ? `${brandRing} border-2 scale-[1.01]` : 'border-slate-200 hover:border-slate-300'
-                }`}
-            >
-              {/* Partner Header */}
-              <div className="flex items-center justify-between mb-3">
-                <span className={`px-2.5 py-1 border rounded-lg text-[10px] font-black ${brandBadge}`}>
-                  🤝 {partnerName}
-                </span>
-                <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" /> Exp: {new Date(c.endDate).toLocaleDateString('fr-FR')}
-                </span>
-              </div>
-
-              <h4 className="font-extrabold text-sm text-slate-900 leading-snug line-clamp-1">{c.title}</h4>
-              <p className="text-[10px] text-slate-500 mt-1 font-semibold">
-                Tentez de remporter l'un des {c.prizes.length} lots disponibles.
-              </p>
-
-              {/* Compact Scheduled Draw Info */}
-              {c.prizes.some((p) => p.drawDate) && (
-                <div className="mt-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col gap-1 shadow-sm">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    ✨ Tirage Exceptionnel
-                  </span>
-                  <div className="text-[10px] font-bold text-slate-700 leading-snug">
-                    {c.prizes
-                      .filter((p) => p.drawDate)
-                      .map((p) => (
-                        <div key={p.id} className="flex items-center justify-between gap-2">
-                          <span>• {p.name}</span>
-                          <span className="text-slate-400 text-xxs shrink-0 font-medium">
-                            Le {new Date(p.drawDate!).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Compact Challenges List */}
-              <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-2 text-[10px] text-slate-600 font-bold">
-                <div>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">
-                    🎡 Défis Roulette (Lancers) :
-                  </span>
-                  <div className="space-y-0.5 pl-1.5">
-                    <div className="flex items-center gap-1.5">
-                      • ✈️ Visiter l'agence Obooking <span className={`font-black ${textHighlight}`}>+1 lancer</span>
+        <ul className="space-y-3">
+          {campaigns.map((c) => {
+            const isActiveGame = c.id === activeCampaign.id
+            const drawPrizes = c.prizes.filter((p) => p.drawDate)
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchCampaign(c.id)}
+                  aria-current={isActiveGame ? 'true' : undefined}
+                  className={`w-full text-left rounded-2xl border bg-surface p-5 transition-colors duration-150 cursor-pointer ${
+                    isActiveGame ? 'border-ink-900 shadow-[0_0_0_1px_var(--ink-900)]' : 'border-rule hover:border-rule-strong'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[13px] text-ink-500 truncate">
+                        {c.partner?.name || 'Partenaire'} · jusqu’au {formatDate(c.endDate)}
+                      </p>
+                      <h3 className="mt-1 text-base font-semibold tracking-tight text-ink-900 leading-snug line-clamp-2">{c.title}</h3>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      • 📸 Suivre sur Instagram <span className={`font-black ${textHighlight}`}>+1 lancer</span>
-                    </div>
-                  </div>
-                </div>
-
-                {c.prizes.some((p) => p.drawDate) && (
-                  <div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">
-                      🎟️ Défis Tirage :
-                    </span>
-                    <div className="space-y-0.5 pl-1.5">
-                      <div className="flex items-center gap-1.5">• 🧾 Scanner ticket caisse {partnerName}</div>
-                      <div className="flex items-center gap-1.5">• 🎟️ S'inscrire au Grand Tirage</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Card Actions Footer */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-4">
-                {isActiveGame ? (
-                  <>
-                    <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Sélectionné
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${brandBadge} flex items-center gap-1`}>
-                      🎡 En cours
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[10px] text-slate-400 font-semibold">Prêt à jouer ?</span>
-                    <button
-                      onClick={() => handleSwitchCampaign(c.id)}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-[10px] rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-sm hover:shadow-md active:scale-95"
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                        isActiveGame ? 'bg-ink-900 text-paper' : 'text-ink-700 bg-paper-2 border border-rule'
+                      }`}
                     >
-                      Jouer à ce jeu <ArrowRight className="h-3 w-3" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                      {isActiveGame ? <><Check className="h-3 w-3" aria-hidden="true" /> En cours</> : <>Jouer <ArrowRight className="h-3 w-3" aria-hidden="true" /></>}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-sm text-ink-700">
+                    {c.prizes.length} lot{c.prizes.length > 1 ? 's' : ''} à gagner
+                    {drawPrizes.length > 0 && (
+                      <span className="text-ink-500"> · tirage le {formatDate(drawPrizes[0].drawDate!)}</span>
+                    )}
+                  </p>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       )}
     </div>
   )

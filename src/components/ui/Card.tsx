@@ -1,5 +1,7 @@
 import type { HTMLAttributes } from 'react'
 
+// `glass` est conservé pour compatibilité mais rendu comme une carte pleine :
+// le verre dépoli est exclu du design system (design.md).
 type CardVariant = 'default' | 'glass'
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -7,18 +9,14 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   hoverLift?: boolean
 }
 
-const VARIANT_CLASSES: Record<CardVariant, string> = {
-  default: 'bg-surface border border-black/[0.06]',
-  glass: 'bg-white/70 backdrop-blur-xl border border-white/40',
-}
-
 export function Card({ variant = 'default', hoverLift = false, className = '', style, children, ...props }: CardProps) {
+  void variant
   return (
     <div
-      className={`rounded-[var(--radius-ds-lg)] transition-all duration-300 ${VARIANT_CLASSES[variant]} ${
-        hoverLift ? 'hover:-translate-y-1' : ''
+      className={`rounded-[var(--radius-ds-md)] bg-surface border border-rule transition-colors duration-150 ${
+        hoverLift ? 'hover:border-rule-strong' : ''
       } ${className}`}
-      style={{ boxShadow: 'var(--shadow-premium-md)', ...style }}
+      style={{ boxShadow: 'var(--shadow-premium-sm)', ...style }}
       {...props}
     >
       {children}

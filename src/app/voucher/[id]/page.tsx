@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import QRCode from 'qrcode'
-import { Gift, AlertTriangle, ArrowLeft, Mail, User, Calendar, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { VoucherActions } from '@/components/VoucherActions'
 
 export const dynamic = 'force-dynamic'
@@ -36,18 +36,18 @@ export default async function VoucherPage({ params }: VoucherPageProps) {
 
   if (!userPrize) {
     return (
-      <main className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white border border-slate-200/80 rounded-[32px] p-8 max-w-md w-full shadow-xl text-center">
-          <AlertTriangle className="h-12 w-12 text-[#FF6B47] mx-auto mb-4" />
-          <h2 className="text-xl font-black text-slate-800">Bon d'Achat Introuvable</h2>
-          <p className="text-slate-500 text-xs mt-2 leading-relaxed">
-            Ce lien n'est plus valide ou le gain associé n'existe pas.
+      <main className="min-h-screen flex items-center justify-center px-4 bg-paper">
+        <div className="w-full max-w-md">
+          <p className="text-[13px] font-medium text-ink-500">Bon introuvable</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">Ce bon n&apos;existe pas ou plus</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-700">
+            Le lien n&apos;est plus valide ou le gain associé a été supprimé.
           </p>
           <Link
             href="/"
-            className="mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#FF6B47] hover:bg-[#e85530] text-white rounded-xl text-xs font-black transition-all"
+            className="mt-6 inline-flex h-10 items-center gap-2 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour à l&apos;accueil
           </Link>
         </div>
       </main>
@@ -72,76 +72,42 @@ export default async function VoucherPage({ params }: VoucherPageProps) {
   })
 
   return (
-    <main className="relative z-10 min-h-screen flex items-center justify-center p-4 overflow-hidden">
-
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Ticket card with torn-edge stub effect */}
-        <div className="bg-white rounded-[28px] shadow-2xl overflow-hidden border border-slate-100">
-          {/* Header */}
-          <div className="bg-linear-to-tr from-[#FF6B47] to-orange-500 px-6 py-8 text-center relative">
-            <div className="inline-flex p-3 bg-white/15 rounded-2xl mb-3">
-              <Gift className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-white/80 text-[10px] font-black uppercase tracking-widest">Bon d'Achat</p>
-            <h1 className="text-white font-black text-lg mt-1 leading-snug px-2">{userPrize.prize.name}</h1>
-          </div>
-
-          {/* Perforation line */}
-          <div className="relative h-0 border-t-2 border-dashed border-slate-200 mx-6">
-            <div className="absolute -left-9 -top-3 h-6 w-6 rounded-full bg-[#F1F5F9]" />
-            <div className="absolute -right-9 -top-3 h-6 w-6 rounded-full bg-[#F1F5F9]" />
-          </div>
-
-          {/* Details */}
-          <div className="px-6 py-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                <User className="h-4 w-4 text-[#FF6B47]" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Gagnant</p>
-                <p className="text-sm font-bold text-slate-800">{userPrize.user.name || 'Client'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                <Mail className="h-4 w-4 text-[#FF6B47]" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Email</p>
-                <p className="text-sm font-bold text-slate-800 break-all">{userPrize.user.email}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                <Calendar className="h-4 w-4 text-[#FF6B47]" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Gagné le</p>
-                <p className="text-sm font-bold text-slate-800">{wonDate}</p>
-              </div>
-            </div>
-
-            <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wide ${
-              isDelivered
-                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                : 'bg-amber-50 text-amber-600 border border-amber-100'
+    <main className="min-h-screen flex items-center justify-center px-4 py-10 bg-paper text-ink-900">
+      <div className="w-full max-w-sm">
+        <article className="rounded-2xl border border-rule bg-surface overflow-hidden" style={{ boxShadow: 'var(--shadow-premium-md)' }}>
+          <div className="h-1 bg-brand-500" aria-hidden="true" />
+          <header className="px-6 pt-6 pb-5">
+            <p className="text-[13px] text-ink-500">Bon d&apos;achat · {partnerName}</p>
+            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight leading-tight [overflow-wrap:anywhere]">{userPrize.prize.name}</h1>
+            <p className={`mt-3 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium ${
+              isDelivered ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--warning)]/10 text-[var(--warning)]'
             }`}>
-              <CheckCircle2 className="h-4 w-4" />
-              {isDelivered ? 'Remis' : 'En attente de remise'}
-            </div>
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+              {isDelivered ? 'Lot remis' : 'En attente de remise'}
+            </p>
+          </header>
 
-            {/* QR code — mis en valeur, à présenter en agence */}
-            <div className="flex flex-col items-center pt-2">
-              <img
-                src={qrDataUrl}
-                alt="QR code du bon d'achat"
-                className="h-40 w-40 rounded-2xl border border-slate-200 p-2 bg-white shadow-sm"
-              />
-              <p className="text-[10px] text-slate-450 mt-3 font-semibold text-center max-w-[220px]">
-                Présentez ce QR code (ou le code ci-dessous) en agence lors de la remise de votre lot.
+          <dl className="mx-6 border-y border-rule divide-y divide-rule text-sm">
+            <div className="flex justify-between gap-4 py-3">
+              <dt className="text-ink-500">Gagnant</dt>
+              <dd className="font-medium text-right">{userPrize.user.name || 'Client'}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-3">
+              <dt className="text-ink-500">Email</dt>
+              <dd className="font-medium text-right min-w-0 [overflow-wrap:anywhere]">{userPrize.user.email}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-3">
+              <dt className="text-ink-500">Gagné le</dt>
+              <dd className="font-medium text-right">{wonDate}</dd>
+            </div>
+          </dl>
+
+          <div className="px-6 pt-6 pb-6">
+            <div className="flex flex-col items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrDataUrl} alt="QR code du bon d'achat" className="h-44 w-44 rounded-xl border border-rule p-2 bg-white" />
+              <p className="text-[13px] text-ink-500 mt-3 text-center max-w-[240px] leading-snug">
+                Présentez ce QR code ou le code ci-dessous lors de la remise de votre lot.
               </p>
             </div>
 
@@ -156,19 +122,17 @@ export default async function VoucherPage({ params }: VoucherPageProps) {
             />
           </div>
 
-          {/* Code footer */}
-          <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 text-center">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Code de confirmation</p>
-            <p className="text-lg font-black text-slate-800 tracking-[0.2em]">{confirmationCode}</p>
-            <p className="text-[10px] text-slate-400 mt-2 font-semibold">Offert par {partnerName}</p>
-          </div>
-        </div>
+          <footer className="bg-paper-2 border-t border-rule px-6 py-4 flex items-center justify-between gap-4">
+            <span className="text-[13px] text-ink-500">Code de confirmation</span>
+            <span className="font-mono text-base font-medium tracking-[0.18em]">{confirmationCode}</span>
+          </footer>
+        </article>
 
         <Link
           href="/"
-          className="mt-5 flex items-center justify-center gap-2 text-slate-500 hover:text-slate-700 text-xs font-bold transition-colors"
+          className="mt-5 flex items-center justify-center gap-1.5 text-[13px] text-ink-500 hover:text-ink-900 transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Retour à l'accueil
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Retour à l&apos;accueil
         </Link>
       </div>
     </main>

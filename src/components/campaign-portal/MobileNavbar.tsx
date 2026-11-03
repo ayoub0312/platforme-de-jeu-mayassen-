@@ -20,11 +20,11 @@ export function MobileNavbar({
   if (!playerEmail || !playerName) return null
 
   const allTabs = [
-    { id: 'game', label: 'Lancer', icon: Play },
+    { id: 'game', label: 'Jouer', icon: Play },
     { id: 'draws', label: 'Tirages', icon: Calendar },
     { id: 'challenges', label: 'Défis', icon: Target },
-    { id: 'prizes', label: 'Lots', icon: Trophy },
-    { id: 'referral', label: 'partage', icon: Share2 }
+    { id: 'prizes', label: 'Mes lots', icon: Trophy },
+    { id: 'referral', label: 'Parrainage', icon: Share2 }
   ] as const
 
   const tabs = gameMode === 'DRAW'
@@ -32,7 +32,7 @@ export function MobileNavbar({
     : allTabs.filter(t => t.id !== 'draws')
 
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-slate-50/95 backdrop-blur-md border border-slate-200/80 p-1 rounded-2xl shadow-xl z-50 flex items-center justify-around md:hidden animate-fade-in">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md bg-surface border border-rule p-1 rounded-full z-50 flex items-center justify-around md:hidden" style={{ boxShadow: 'var(--shadow-premium-lg)' }}>
       {tabs.map((t) => {
         const Icon = t.icon
         const isActive = activeTab === t.id
@@ -46,14 +46,12 @@ export function MobileNavbar({
                 element.scrollIntoView({ behavior: 'smooth' })
               }
             }}
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-2 rounded-xl transition-all border cursor-pointer ${
-              isActive
-                ? 'bg-white border-[#FF6B47] text-[#FF6B47] font-bold shadow-sm'
-                : 'border-transparent text-slate-800 hover:text-slate-950'
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-full transition-colors cursor-pointer ${
+              isActive ? 'bg-paper-2 text-ink-900 font-medium' : 'text-ink-500 hover:text-ink-900'
             }`}
           >
-            <Icon className={`h-4 w-4 ${isActive ? 'text-[#FF6B47]' : 'text-slate-800'}`} />
-            <span className="text-[9px]">{t.label}</span>
+            <Icon className={`h-4 w-4 ${isActive ? 'text-brand-600' : ''}`} aria-hidden="true" />
+            <span className="text-[11px]">{t.label}</span>
           </button>
         )
       })}

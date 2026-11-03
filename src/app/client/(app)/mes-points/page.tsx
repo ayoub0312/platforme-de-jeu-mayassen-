@@ -54,7 +54,7 @@ export default function MesPointsPage() {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="font-display text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes points merci</h1>
+        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-[var(--ink-900)]">Mes points merci</h1>
         <p className="text-sm text-[var(--ink-500)] mt-1.5 max-w-lg">
           Cumulez des points à chaque achat sur obooking.tn, puis convertissez-les en bons de réduction.
         </p>
@@ -64,12 +64,12 @@ export default function MesPointsPage() {
       {isLoading ? (
         <div className="h-32 rounded-2xl skeleton-shimmer mb-8" />
       ) : (
-        <section className="relative overflow-hidden rounded-2xl bg-[var(--brand-600)] text-white p-7 mb-8 shadow-[var(--shadow-premium-md)]">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">
-            <Coins className="h-3.5 w-3.5" /> Solde disponible
+        <section className="relative overflow-hidden rounded-2xl bg-ink-900 text-paper p-7 mb-8">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium text-white/70">
+            <Coins className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" /> Solde disponible
           </div>
           <div className="mt-2 flex items-end gap-2">
-            <span className="font-display text-5xl font-semibold leading-none tabular-nums">{fmt(balance)}</span>
+            <span className="text-5xl font-semibold leading-none tabular-nums">{fmt(balance)}</span>
             <span className="text-lg font-semibold text-white/80 pb-1">points</span>
           </div>
           {enabled && (
@@ -80,17 +80,17 @@ export default function MesPointsPage() {
 
       {/* Conversion */}
       {!enabled ? (
-        <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] p-6 mb-10 text-sm text-[var(--ink-500)]">
+        <div className="rounded-2xl border border-rule bg-[var(--surface)] p-6 mb-10 text-sm text-[var(--ink-500)]">
           Le programme de fidélité est actuellement désactivé. Revenez bientôt.
         </div>
       ) : (
-        <section className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] shadow-[var(--shadow-premium-sm)] p-6 mb-10">
+        <section className="rounded-2xl border border-rule bg-[var(--surface)] shadow-[var(--shadow-premium-sm)] p-6 mb-10">
           <h2 className="text-base font-semibold text-[var(--ink-900)]">Convertir mes points en bon</h2>
           <p className="text-[13px] text-[var(--ink-500)] mt-0.5 tabular-nums">
             {redeemRate} points = 1 TND · minimum {minRedeem} points
           </p>
 
-          <label className="block text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mt-6 mb-2">Points à convertir</label>
+          <label className="block text-[13px] font-medium text-ink-700 mt-6 mb-1.5">Points à convertir</label>
           <div className="flex items-stretch gap-2">
             <input
               type="number"
@@ -99,12 +99,12 @@ export default function MesPointsPage() {
               value={amount || ''}
               onChange={(e) => { setAmount(parseInt(e.target.value) || 0); setError(null) }}
               placeholder={`Min. ${minRedeem}`}
-              className="flex-1 h-12 bg-[var(--surface-alt)] border border-black/[0.08] rounded-xl px-4 text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]/25 focus:border-[var(--brand-500)]"
+              className="flex-1 h-12 bg-surface border border-rule-strong rounded-[10px] px-4 text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]/25 focus:border-[var(--brand-500)]"
             />
             <button
               type="button"
               onClick={() => setAmount(balance)}
-              className="shrink-0 px-4 rounded-xl border border-black/[0.08] text-xs font-bold text-[var(--brand-700)] hover:bg-[var(--brand-50)] transition-colors tabular-nums"
+              className="shrink-0 px-4 rounded-full border border-rule-strong text-xs font-medium text-[var(--brand-700)] hover:bg-[var(--brand-50)] transition-colors tabular-nums"
             >
               Tout ({fmt(balance)})
             </button>
@@ -112,7 +112,7 @@ export default function MesPointsPage() {
 
           <div className="flex items-center justify-between mt-4 py-3 border-t border-b border-dashed border-black/[0.1]">
             <span className="text-[13px] font-medium text-[var(--ink-500)]">Valeur du bon</span>
-            <span className="font-display text-2xl font-semibold text-[var(--brand-600)] tabular-nums">{fmtTnd(value)} TND</span>
+            <span className="text-2xl font-semibold text-[var(--brand-600)] tabular-nums">{fmtTnd(value)} TND</span>
           </div>
 
           {error && (
@@ -125,7 +125,7 @@ export default function MesPointsPage() {
             type="button"
             onClick={handleRedeem}
             disabled={!canRedeem || redeemMut.isPending}
-            className="mt-5 w-full h-12 inline-flex items-center justify-center gap-2 bg-[var(--brand-500)] hover:bg-[var(--brand-600)] disabled:bg-black/[0.08] disabled:text-[var(--ink-500)] disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-colors"
+            className="mt-5 w-full h-11 inline-flex items-center justify-center gap-2 bg-ink-900 hover:bg-slate-800 disabled:opacity-45 disabled:cursor-not-allowed text-paper rounded-full text-sm font-medium transition-colors"
           >
             {redeemMut.isPending ? 'Conversion…' : <>Générer mon bon <ArrowRight className="h-4 w-4" /></>}
           </button>
@@ -133,7 +133,7 @@ export default function MesPointsPage() {
           {/* Bon généré — style ticket */}
           {generated && (
             <div className="mt-5 rounded-xl border border-[var(--brand-500)]/25 bg-[var(--brand-50)] p-5">
-              <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)]">
+              <div className="text-[13px] font-semibold text-ink-900">
                 Bon de réduction · {fmtTnd(generated.valueTnd)} TND
               </div>
               <div className="flex items-center justify-between gap-3 mt-2">
@@ -156,9 +156,9 @@ export default function MesPointsPage() {
       )}
 
       {/* Historique */}
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-[var(--ink-500)] mb-3">Historique des points</h2>
+      <h2 className="text-[13px] font-semibold text-ink-900 mb-3">Historique des points</h2>
       {history && history.length > 0 ? (
-        <div className="rounded-2xl border border-black/[0.06] bg-[var(--surface)] divide-y divide-black/[0.05] overflow-hidden">
+        <div className="rounded-2xl border border-rule bg-[var(--surface)] divide-y divide-rule overflow-hidden">
           {history.map((t) => (
             <div key={t.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="min-w-0">
