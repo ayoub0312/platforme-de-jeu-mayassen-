@@ -7,26 +7,36 @@ page par page : on l'amende quand le système doit évoluer.
 
 Historique : une première version « modern-minimal » (sobre, encre et blanc)
 a été refusée — jugée pas assez « jeu », avec une typo et des boutons noirs
-qui ne plaisaient pas. Direction validée : **ludique et colorée**.
+qui ne plaisaient pas. Direction validée : **ludique et colorée**, puis
+enrichie d'un **thème aviation** (la plateforme appartient à une agence de
+voyage) : vidéo hero plein écran, tableau des départs, cartes d'embarquement,
+itinéraire de vol.
 
 ## Genre
-playful — thème « Hum » adapté à la marque : fond crème, corail de marque
+playful — thème « Hum » adapté à la marque, version aviation : fond ciel brume, corail de marque
 en couleur principale, jaune soleil et turquoise en accents, bleu nuit pour
 le texte. Vivant, festif, jamais enfantin.
 
 ## Familles de mise en page
-- **Public (accueil, page partenaire)** : bandeau hero corail (titre bleu
-  nuit, mot-clé surligné au marqueur jaune, bouton « cartoon », roue
-  illustrée ou vidéo hero), puis cartes colorées.
+- **Accueil** : hero plein écran — la vidéo hero (téléversée dans le
+  back-office, onglet Page d'accueil) sous un voile bleu nuit, ou à défaut
+  une scène de ciel au crépuscule avec un avion qui suit sa trajectoire.
+  En bas du hero, le **tableau des départs** (élément signature) : les vrais
+  jeux qui se terminent bientôt, jours restants en tuiles à volets, statut
+  « Embarquement » ou « Dernier appel ». Ensuite le catalogue en **cartes
+  d'embarquement** (talon perforé, bouton « Embarquer »), puis l'itinéraire
+  en trois escales sur fond bleu nuit.
+- **Page partenaire (joueur)** : hero en grande carte d'embarquement
+  (bandeau corail, compagnie = partenaire, talon jaune « À gagner »).
 - **App (back-office, espace client)** : barre latérale bleu nuit, élément
-  actif en pilule corail ; contenu sur fond crème, cartes blanches arrondies.
-- **Auth** : écran partagé — panneau corail avec la roue à gauche (grand
-  écran uniquement), formulaire à droite.
+  actif en pilule corail ; contenu sur fond ciel brume, cartes blanches arrondies.
+- **Auth** : écran partagé — panneau ciel au crépuscule avec l'avion à
+  gauche (grand écran uniquement), formulaire à droite.
 
 ## Couleurs (tokens dans `src/app/globals.css`)
-- `--paper` oklch(97.6% 0.016 85) crème · `--paper-2` oklch(94.6% 0.028 85)
-- `--surface` oklch(99.6% 0.005 85) cartes et champs
-- `--rule` oklch(90.5% 0.022 80) · `--rule-strong` oklch(84% 0.03 78)
+- `--paper` oklch(95.8% 0.012 240) ciel brume · `--paper-2` oklch(92.5% 0.02 240)
+- `--surface` oklch(99.6% 0.003 240) cartes et champs
+- `--rule` oklch(89% 0.018 240) · `--rule-strong` oklch(82% 0.025 240)
 - `--field` oklch(64% 0.03 265) contour des champs (≥ 3:1)
 - `--ink-900` oklch(26% 0.055 265) bleu nuit · `--ink-700` · `--ink-500`
 - `--brand-500` oklch(70% 0.19 38) corail de marque (#FF6B47) — fonds vifs
@@ -62,9 +72,16 @@ Boutons « à presser » : relief de 4 px sous le bouton, qui s'écrase au clic.
 
 ## Mouvement
 - Ressort (`--ease-spring`) réservé aux boutons à presser.
-- Roue décorative : rotation lente (28 s), coupée avec `prefers-reduced-motion`.
+- Avion du ciel : suit sa trajectoire en 14 s (SVG animateMotion) ; figé à
+  mi-parcours avec `prefers-reduced-motion`.
+- Tuiles du tableau des départs : bascule « volet » à l'affichage (une fois).
+- La vraie roue (jeu) reste le seul moment « spectacle » interactif.
 - Cartes : léger soulèvement au survol. Pas de curseur personnalisé, pas de
   barre de progression de scroll.
+
+## À éviter (tics d'interfaces générées)
+Flèches accolées aux libellés de boutons, métadonnées séparées par des
+points médians, étiquettes en majuscules, un seul mot surligné dans un titre.
 
 ## Contenu honnête
 Aucun lot, chiffre ou promesse inventé : les titres et listes « à gagner »

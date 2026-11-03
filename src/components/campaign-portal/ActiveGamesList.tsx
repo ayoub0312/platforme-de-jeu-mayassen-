@@ -66,7 +66,7 @@ export function ActiveGamesList({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[13px] text-ink-500 truncate">
-                        {c.partner?.name || 'Partenaire'} · jusqu’au {formatDate(c.endDate)}
+                        Jusqu’au {formatDate(c.endDate)}
                       </p>
                       <h3 className="mt-1 text-lg text-ink-900 leading-snug line-clamp-2">{c.title}</h3>
                     </div>
@@ -82,7 +82,7 @@ export function ActiveGamesList({
                   <p className="mt-3 text-sm text-ink-700">
                     {c.prizes.length} lot{c.prizes.length > 1 ? 's' : ''} à gagner
                     {drawPrizes.length > 0 && (
-                      <span className="text-ink-500"> · tirage le {formatDate(drawPrizes[0].drawDate!)}</span>
+                      <span className="text-ink-500">, tirage le {formatDate(drawPrizes[0].drawDate!)}</span>
                     )}
                   </p>
                 </button>

@@ -1,4 +1,4 @@
-/* Hallmark · genre: playful · theme: Hum (adapté à la marque Obooking) · enrichment: Tier-A CSS art (roue)
+/* Hallmark · genre: playful · theme: Hum « Aviation » (marque Obooking) · enrichment: vidéo hero + art CSS/SVG (ciel, avion)
  * design-system: design.md · designed-as-app
  */
 @import "tailwindcss";
@@ -7,13 +7,13 @@
    --ink-*, --surface*, --color-brand-*) sont conservés et pointent vers la
    palette : tous les composants existants en héritent sans réécriture. */
 :root {
-  /* Fonds crème (teinte 85) */
-  --paper: oklch(97.6% 0.016 85);
-  --paper-2: oklch(94.6% 0.028 85);
-  --surface: oklch(99.6% 0.005 85);
+  /* Fonds « ciel brume » (teinte 240) */
+  --paper: oklch(95.8% 0.012 240);
+  --paper-2: oklch(92.5% 0.02 240);
+  --surface: oklch(99.6% 0.003 240);
   --surface-alt: var(--paper-2);
-  --rule: oklch(90.5% 0.022 80);
-  --rule-strong: oklch(84% 0.03 78);
+  --rule: oklch(89% 0.018 240);
+  --rule-strong: oklch(82% 0.025 240);
   /* Contour des champs : au moins 3:1 sur surface (WCAG 1.4.11). */
   --field: oklch(64% 0.03 265);
 
@@ -90,12 +90,12 @@
    pas foncés = bleu nuit. Les pas non standard (slate-150/450/550/850)
    existaient déjà dans le code sans être définis. */
 @theme {
-  --color-slate-50: oklch(97.6% 0.016 85);
-  --color-slate-100: oklch(94.6% 0.028 85);
-  --color-slate-150: oklch(92.5% 0.025 82);
-  --color-slate-200: oklch(90.5% 0.022 80);
-  --color-slate-250: oklch(87% 0.026 79);
-  --color-slate-300: oklch(84% 0.03 78);
+  --color-slate-50: oklch(95.8% 0.012 240);
+  --color-slate-100: oklch(92.5% 0.02 240);
+  --color-slate-150: oklch(91% 0.019 240);
+  --color-slate-200: oklch(89% 0.018 240);
+  --color-slate-250: oklch(85.5% 0.022 240);
+  --color-slate-300: oklch(82% 0.025 240);
   --color-slate-400: oklch(55% 0.035 265);
   --color-slate-450: oklch(53% 0.035 265);
   --color-slate-500: oklch(50% 0.035 265);
@@ -329,6 +329,19 @@ h4, h5, h6 {
   .btn-game, .btn-game-sun, .btn-game-light { transition: background-color 120ms linear; }
   .btn-game:hover, .btn-game-sun:hover, .btn-game-light:hover,
   .btn-game:active, .btn-game-sun:active, .btn-game-light:active { transform: none; }
+}
+
+/* Tuiles « volet » du tableau des départs : un léger bascule à l'affichage. */
+.flap {
+  animation: flap-in 520ms var(--ease-out) both;
+  transform-origin: 50% 50%;
+}
+@keyframes flap-in {
+  0% { transform: rotateX(-90deg); opacity: 0; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flap { animation: none; }
 }
 
 /* Roue décorative (hero, panneaux d'auth) — art CSS, purement visuel. */

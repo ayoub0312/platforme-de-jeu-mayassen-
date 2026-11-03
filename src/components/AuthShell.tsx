@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SkyScene } from './aviation/SkyScene'
 
 // Gabarit commun des pages d'authentification (design.md § Auth) : en-tête
 // minimal, formulaire seul centré sur 400 px, pas d'icône décorative.
@@ -23,22 +24,15 @@ export function AuthShell({ title, subtitle, backHref = '/', backLabel = 'Retour
   return (
     <div className="min-h-screen grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] bg-paper text-ink-900">
       {/* Panneau de marque — décoratif, masqué sur mobile */}
-      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-brand-500 p-10 xl:p-14" aria-hidden="true">
-        <Link href="/" tabIndex={-1} className="flex items-center gap-2.5 font-display text-xl font-semibold text-ink-900">
-          <span className="h-9 w-9 rounded-xl bg-ink-900 text-white text-base flex items-center justify-center">O</span>
+      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden p-10 xl:p-14 text-white" aria-hidden="true">
+        <SkyScene routeClassName="absolute left-[4%] top-[22%] w-[92%]" />
+        <Link href="/" tabIndex={-1} className="relative flex items-center gap-2.5 font-display text-xl font-semibold text-white">
+          <span className="h-9 w-9 rounded-xl bg-brand-500 text-ink-900 text-base flex items-center justify-center">O</span>
           Obooking Gift
         </Link>
-        <div className="relative mx-auto w-[min(70%,320px)]">
-          <span className="absolute left-1/2 -top-5 z-10 -translate-x-1/2 h-0 w-0 border-x-[14px] border-x-transparent border-t-[22px] border-t-ambre-400" />
-          <div className="deco-wheel w-full" />
-          <span className="absolute inset-0 m-auto h-[22%] w-[22%] rounded-full bg-ink-900 shadow-[0_0_0_6px_var(--ambre-400)]" />
-        </div>
-        <p className="font-display text-3xl xl:text-4xl font-semibold leading-tight text-ink-900 max-w-sm">
-          Tournez la roue, gagnez votre prochain voyage.
+        <p className="relative font-display text-4xl xl:text-5xl font-semibold leading-[1.02] max-w-md">
+          Votre prochain voyage commence par un jeu
         </p>
-        <span className="absolute top-24 right-10 h-3 w-3 rounded-full bg-ambre-400" />
-        <span className="absolute bottom-32 right-16 h-4 w-4 rotate-45 rounded-[4px] bg-lagon-400" />
-        <span className="absolute top-1/2 left-8 h-2.5 w-2.5 rounded-full bg-ink-900" />
       </aside>
 
       <div className="flex flex-col min-w-0">
