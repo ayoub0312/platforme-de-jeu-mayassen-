@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { HowItWorksTimeline } from './HowItWorksTimeline'
 import { PromoCarousel } from './PromoCarousel'
+import { PoweredByLoomens } from './PoweredByLoomens'
 
 interface Prize {
   id: string
@@ -601,9 +602,10 @@ export function AggregatorPortal({ initialCampaigns, isAdminConnected, siteSetti
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
             <span>Plateforme sécurisée &copy; {new Date().getFullYear()} Obooking Contests. Tous droits réservés.</span>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
               <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
+              <PoweredByLoomens tone="light" />
             </div>
           </div>
         </div>

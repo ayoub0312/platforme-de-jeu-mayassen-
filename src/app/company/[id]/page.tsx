@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { CampaignPortal } from '@/components/CampaignPortal'
+import { PoweredByLoomens } from '@/components/PoweredByLoomens'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
 
@@ -127,8 +128,9 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
 
       {/* Footer */}
       <footer className="border-t border-slate-200/60 py-6 bg-white/60 backdrop-blur-md text-slate-500 text-xs text-center z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 font-semibold">
-          Jeu concours sécurisé propulsé par Obooking &copy; {new Date().getFullYear()}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 font-semibold flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+          <span>Jeu concours sécurisé propulsé par Obooking &copy; {new Date().getFullYear()}</span>
+          <PoweredByLoomens tone="dark" />
         </div>
       </footer>
     </main>
