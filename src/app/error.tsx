@@ -28,7 +28,7 @@ export default function Error({
         <button
           type="button"
           onClick={() => unstable_retry()}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 h-10 px-4 btn-game text-sm"
         >
           <RotateCcw className="h-4 w-4" /> Réessayer
         </button>

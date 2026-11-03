@@ -91,7 +91,7 @@ function CompleteReset({ token }: { token: string }) {
           <Check className="h-4 w-4 shrink-0 text-[var(--success)]" />
           <p className="text-sm font-medium">Votre mot de passe a bien été modifié.</p>
         </div>
-        <Link href="/client/login" className="mt-4 inline-flex h-10 items-center px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors">
+        <Link href="/client/login" className="mt-4 inline-flex h-10 items-center px-4 btn-game text-sm">
           Se connecter
         </Link>
       </AuthCard>

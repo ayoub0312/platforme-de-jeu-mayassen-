@@ -45,7 +45,7 @@ export default async function VoucherPage({ params }: VoucherPageProps) {
           </p>
           <Link
             href="/"
-            className="mt-6 inline-flex h-10 items-center gap-2 px-4 rounded-full bg-ink-900 hover:bg-slate-800 text-paper text-sm font-medium transition-colors"
+            className="mt-6 inline-flex h-10 items-center gap-2 px-4 btn-game text-sm"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour à l&apos;accueil
           </Link>

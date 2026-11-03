@@ -67,7 +67,7 @@ export default function ParametresPage() {
             <button
               type="submit"
               disabled={changePasswordMut.isPending}
-              className="h-10 inline-flex items-center justify-center bg-ink-900 hover:bg-slate-800 text-paper rounded-full px-5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              className="h-10 inline-flex items-center justify-center btn-game px-5 text-[15px] disabled:pointer-events-none"
             >
               {changePasswordMut.isPending ? 'Mise à jour…' : 'Mettre à jour'}
             </button>

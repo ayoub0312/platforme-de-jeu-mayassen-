@@ -2,12 +2,21 @@
   {
     "date": "2026-11-03",
     "scope": "app",
+    "macrostructure": "Coral hero band + colorful card grid (public) · navy side-rail (app) · split auth",
+    "theme": "Hum (adapté marque Obooking)",
+    "genre": "playful",
+    "enrichment": "Tier-A CSS art (roue décorative)",
+    "nav": "N1b (public) · side-rail (app)",
+    "footer": "Ft2 inline single line",
+    "brief": "Refonte ludique et colorée demandée après refus de la version modern-minimal"
+  },
+  {
+    "date": "2026-11-03",
+    "scope": "app",
     "macrostructure": "Workbench (app) + two-column hero (public)",
     "theme": "Coral",
     "genre": "modern-minimal",
-    "enrichment": "none (typography + real prize data)",
-    "nav": "N1b (public) · side-rail (app)",
-    "footer": "Ft2 inline single line",
-    "brief": "Obooking Gift · refonte complète : back-office, portail joueur, espace client, auth — design-system: design.md"
+    "enrichment": "none",
+    "brief": "Première refonte — refusée par l'utilisateur (trop sobre, pas assez jeu)"
   }
 ]

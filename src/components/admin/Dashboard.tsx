@@ -22,7 +22,7 @@ import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-const DONUT_COLORS = ['var(--color-brand-500)', 'var(--color-info)', 'var(--color-ink-500)']
+const DONUT_COLORS = ['var(--color-brand-500)', 'var(--color-ambre-400)', 'var(--color-lagon-400)']
 
 function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: string }) {
   const prefersReducedMotion = useReducedMotion()
@@ -56,6 +56,7 @@ function TrendBadge({ percent }: { percent: number }) {
 }
 
 interface KpiCellProps {
+  tone?: 'brand' | 'ambre' | 'lagon' | 'ink'
   label: string
   value: number
   suffix?: string
@@ -63,11 +64,13 @@ interface KpiCellProps {
   emphasis?: boolean
 }
 
-function KpiCell({ label, value, suffix, trend, emphasis }: KpiCellProps) {
+const KPI_TONES = { brand: 'bg-brand-500', ambre: 'bg-ambre-400', lagon: 'bg-lagon-400', ink: 'bg-ink-900' }
+
+function KpiCell({ tone = 'brand', label, value, suffix, trend, emphasis }: KpiCellProps) {
   return (
     <div className="bg-surface px-5 py-4 min-w-0">
-      <p className="text-[13px] text-ink-500 truncate">{label}</p>
-      <p className={`mt-1.5 font-semibold tabular-nums tracking-tight ${emphasis ? 'text-brand-700' : 'text-ink-900'} text-[28px] leading-none`}>
+      <p className="text-[13px] font-semibold text-ink-700 truncate flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full shrink-0 ${KPI_TONES[tone]}`} aria-hidden="true" />{label}</p>
+      <p className={`mt-2 font-display font-semibold tabular-nums ${emphasis ? 'text-brand-700' : 'text-ink-900'} text-[32px] leading-none`}>
         <AnimatedCounter value={value} suffix={suffix} />
       </p>
       <div className="mt-2 h-4">{trend !== undefined && <TrendBadge percent={trend} />}</div>
@@ -75,7 +78,7 @@ function KpiCell({ label, value, suffix, trend, emphasis }: KpiCellProps) {
   )
 }
 
-const KPI_GRID = 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-px bg-rule'
+const KPI_GRID = 'grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-px bg-rule'
 
 const TOOLTIP_STYLE = { borderRadius: 10, fontSize: 12, border: '1px solid var(--rule)', boxShadow: 'var(--shadow-premium-md)' }
 
@@ -108,18 +111,18 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <Card className={`p-0 overflow-hidden ${KPI_GRID}`}>
-        <KpiCell label="Leads capturés" value={kpis.totalLeads} trend={trends.totalLeads} />
-        <KpiCell label="Campagnes actives" value={kpis.activeCampaigns} />
-        <KpiCell label="Tours joués aujourd'hui" value={kpis.spinsToday} trend={trends.spinsToday} />
-        <KpiCell label="Lots restants" value={kpis.lotsRestants} />
-        <KpiCell label="Taux de conversion" value={kpis.conversionRate} suffix="%" trend={trends.conversionRate} />
-        <KpiCell label="Gagnants à contacter" value={kpis.gagnantsAContacter} emphasis={kpis.gagnantsAContacter > 0} />
+        <KpiCell tone="brand" label="Leads capturés" value={kpis.totalLeads} trend={trends.totalLeads} />
+        <KpiCell tone="lagon" label="Campagnes actives" value={kpis.activeCampaigns} />
+        <KpiCell tone="ambre" label="Tours joués aujourd'hui" value={kpis.spinsToday} trend={trends.spinsToday} />
+        <KpiCell tone="lagon" label="Lots restants" value={kpis.lotsRestants} />
+        <KpiCell tone="ambre" label="Taux de conversion" value={kpis.conversionRate} suffix="%" trend={trends.conversionRate} />
+        <KpiCell tone="brand" label="Gagnants à contacter" value={kpis.gagnantsAContacter} emphasis={kpis.gagnantsAContacter > 0} />
       </Card>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-ink-900 mb-4">Leads — 30 derniers jours</h3>
+          <h3 className="font-display text-lg font-semibold text-ink-900 mb-4">Leads — 30 derniers jours</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={leadsTrend} margin={{ left: -20, right: 8, top: 4, bottom: 0 }}>
@@ -138,14 +141,14 @@ export function Dashboard() {
                   formatter={(v) => [String(v), 'Leads']}
                   contentStyle={TOOLTIP_STYLE}
                 />
-                <Line type="monotone" dataKey="count" stroke="var(--color-brand-500)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="count" stroke="var(--color-brand-500)" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-ink-900 mb-4">Tours joués par campagne</h3>
+          <h3 className="font-display text-lg font-semibold text-ink-900 mb-4">Tours joués par campagne</h3>
           <div className="h-64">
             {spinsPerCampaign.length === 0 ? (
               <EmptyState icon={Sliders} title="Aucun tour joué" description="Les statistiques apparaîtront dès les premières participations." />
@@ -162,7 +165,7 @@ export function Dashboard() {
                   />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-500)' }} allowDecimals={false} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Bar dataKey="count" fill="var(--color-brand-500)" radius={[4, 4, 0, 0]} maxBarSize={44} />
+                  <Bar dataKey="count" fill="var(--color-brand-500)" radius={[10, 10, 0, 0]} maxBarSize={48} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -172,7 +175,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-ink-900 mb-4">Lots gagnés</h3>
+          <h3 className="font-display text-lg font-semibold text-ink-900 mb-4">Lots gagnés</h3>
           <div className="h-56 flex items-center">
             {prizeBreakdown.every((p) => p.value === 0) ? (
               <EmptyState icon={Trophy} title="Aucun gain" description="Répartition disponible dès les premiers gains." />
@@ -201,7 +204,7 @@ export function Dashboard() {
 
         {/* À traiter */}
         <Card className="p-5 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-ink-900 mb-4 flex items-center gap-2">
+          <h3 className="font-display text-lg font-semibold text-ink-900 mb-4 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-[var(--warning)]" /> À traiter
           </h3>
           {hasNothingToHandle ? (

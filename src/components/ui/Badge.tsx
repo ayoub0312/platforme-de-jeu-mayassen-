@@ -48,7 +48,7 @@ const STATUS_LABELS: Record<BadgeStatus, string> = {
 export function Badge({ status = 'neutral', className = '', children, ...props }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${STATUS_CLASSES[status]} ${className}`}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${STATUS_CLASSES[status]} ${className}`}
       {...props}
     >
       {children ?? STATUS_LABELS[status]}

@@ -57,7 +57,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, gameMo
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="mb-6">
-        <h3 className="text-xl font-semibold text-ink-900 tracking-tight">{isDraw ? 'Participez au tirage' : 'Recevez vos lancers'}</h3>
+        <h3 className="text-2xl text-ink-900">{isDraw ? 'Participez au tirage' : 'Recevez vos lancers'}</h3>
         <p className="text-ink-700 text-[15px] mt-1.5 leading-relaxed">
           {isDraw
             ? 'Inscrivez-vous pour accéder au tirage au sort et tenter de remporter un lot.'
@@ -128,7 +128,7 @@ export function LeadCaptureModal({ campaignId, partnerId, referredByCode, gameMo
         <button
           type="submit"
           disabled={leadMutation.isPending}
-          className="w-full h-12 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white rounded-full font-semibold text-[15px] transition-colors cursor-pointer disabled:cursor-not-allowed"
+          className="btn-game w-full h-13 text-base"
         >
           {leadMutation.isPending ? (
             <>

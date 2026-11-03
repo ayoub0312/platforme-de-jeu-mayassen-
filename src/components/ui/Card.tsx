@@ -14,7 +14,7 @@ export function Card({ variant = 'default', hoverLift = false, className = '', s
   return (
     <div
       className={`rounded-[var(--radius-ds-md)] bg-surface border border-rule transition-colors duration-150 ${
-        hoverLift ? 'hover:border-rule-strong' : ''
+        hoverLift ? 'hover:-translate-y-0.5 hover:shadow-lg transition-[transform,box-shadow] duration-200' : ''
       } ${className}`}
       style={{ boxShadow: 'var(--shadow-premium-sm)', ...style }}
       {...props}

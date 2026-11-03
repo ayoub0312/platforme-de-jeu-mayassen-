@@ -35,7 +35,7 @@ export function ActiveGamesList({
   return (
     <div className="lg:col-span-5 min-w-0">
       <div className="flex items-baseline justify-between mb-4">
-        <h2 className="text-xl font-semibold tracking-tight text-ink-900">Jeux en cours</h2>
+        <h2 className="text-2xl text-ink-900">Jeux en cours</h2>
         <span className="text-[13px] text-ink-500 tabular-nums">
           {campaigns.length} jeu{campaigns.length > 1 ? 'x' : ''}
         </span>
@@ -59,8 +59,8 @@ export function ActiveGamesList({
                   type="button"
                   onClick={() => handleSwitchCampaign(c.id)}
                   aria-current={isActiveGame ? 'true' : undefined}
-                  className={`w-full text-left rounded-2xl border bg-surface p-5 transition-colors duration-150 cursor-pointer ${
-                    isActiveGame ? 'border-ink-900 shadow-[0_0_0_1px_var(--ink-900)]' : 'border-rule hover:border-rule-strong'
+                  className={`w-full text-left rounded-[22px] border-2 p-5 transition-[transform,background-color,border-color] duration-200 cursor-pointer hover:-translate-y-0.5 ${
+                    isActiveGame ? 'border-brand-500 bg-brand-50' : 'border-rule bg-surface hover:border-rule-strong'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -68,11 +68,11 @@ export function ActiveGamesList({
                       <p className="text-[13px] text-ink-500 truncate">
                         {c.partner?.name || 'Partenaire'} · jusqu’au {formatDate(c.endDate)}
                       </p>
-                      <h3 className="mt-1 text-base font-semibold tracking-tight text-ink-900 leading-snug line-clamp-2">{c.title}</h3>
+                      <h3 className="mt-1 text-lg text-ink-900 leading-snug line-clamp-2">{c.title}</h3>
                     </div>
                     <span
                       className={`shrink-0 inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                        isActiveGame ? 'bg-ink-900 text-paper' : 'text-ink-700 bg-paper-2 border border-rule'
+                        isActiveGame ? 'bg-brand-600 text-white' : 'text-ink-900 bg-ambre-300'
                       }`}
                     >
                       {isActiveGame ? <><Check className="h-3 w-3" aria-hidden="true" /> En cours</> : <>Jouer <ArrowRight className="h-3 w-3" aria-hidden="true" /></>}

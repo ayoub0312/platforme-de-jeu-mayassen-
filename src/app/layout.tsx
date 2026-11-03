@@ -1,17 +1,27 @@
 import "@/env";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { PageTransition } from "@/components/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
 
-// Design system (design.md) : une seule famille, Geist, pour les titres et le
-// corps ; Geist Mono pour les codes et références.
-const geist = Geist({
-  variable: "--font-geist",
+// Design system (design.md) : Clash Display pour les titres, Plus Jakarta Sans
+// (arrondie, chaleureuse) pour le texte, Geist Mono pour les codes.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   display: "swap",
+});
+
+const clashDisplay = localFont({
+  variable: "--font-clash-display",
+  display: "swap",
+  src: [
+    { path: "../fonts/ClashDisplay-600.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/ClashDisplay-700.woff2", weight: "700", style: "normal" },
+  ],
 });
 
 const geistMono = Geist_Mono({
@@ -54,7 +64,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${geist.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${clashDisplay.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-paper text-ink-900 flex flex-col">
         <Providers>

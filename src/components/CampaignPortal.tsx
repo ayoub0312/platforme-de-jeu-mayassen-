@@ -330,18 +330,18 @@ export function CampaignPortal({ initialCampaigns, partnerId, partnerName }: Cam
           }`}
         >
           <div className="w-full flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold tracking-tight text-ink-900">
+            <h2 className="text-2xl text-ink-900">
               {activeCampaign.gameMode === 'DRAW' ? 'Tirage au sort' : 'Roulette'}
             </h2>
           </div>
 
           {/* Main Card Container */}
-          <div className="w-full bg-surface border border-rule rounded-2xl overflow-hidden flex flex-col" style={{ boxShadow: 'var(--shadow-premium-sm)' }}>
+          <div className="w-full bg-surface rounded-[28px] overflow-hidden flex flex-col shadow-[0_0_0_2px_var(--rule),var(--shadow-premium-md)]">
             {/* Card Header for Authenticated Users */}
             {playerEmail && playerName && (
               <div className="px-5 sm:px-6 py-3.5 border-b border-rule flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-full bg-ink-900 flex items-center justify-center text-paper font-semibold text-[11px] uppercase shrink-0">
+                  <div className="h-9 w-9 rounded-full bg-lagon-400 flex items-center justify-center text-ink-900 font-bold text-xs uppercase shrink-0">
                     {playerName.slice(0, 2)}
                   </div>
                   <div className="min-w-0">

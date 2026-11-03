@@ -74,15 +74,16 @@ export function CampaignCard({
 
   return (
     <Card hoverLift className="flex flex-col overflow-hidden">
-      <div className="relative h-28 border-b border-rule bg-paper-2 overflow-hidden">
+      <div className={`relative h-28 overflow-hidden ${c.gameMode === 'ROULETTE' ? 'bg-brand-100' : 'bg-lagon-300'}`}>
         {c.imageData ? (
           <img src={`data:${c.imageMimeType || 'image/jpeg'};base64,${c.imageData}`} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="h-full w-full flex items-end p-4">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-500">
+            <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-ink-900 text-xs font-semibold text-white">
               <ModeIcon className="h-3.5 w-3.5" aria-hidden="true" />
               {c.gameMode === 'ROULETTE' ? 'Roulette' : 'Tirage au sort'}
             </span>
+            <ModeIcon className={`absolute -right-3 -bottom-5 h-28 w-28 ${c.gameMode === 'ROULETTE' ? 'text-brand-400' : 'text-lagon-600'}`} strokeWidth={1.25} aria-hidden="true" />
           </div>
         )}
         <div className="absolute top-3 left-3">
@@ -91,7 +92,7 @@ export function CampaignCard({
       </div>
 
       <div className="p-4 flex-1 flex flex-col">
-        <h4 className="font-semibold text-ink-900 text-[15px] leading-snug truncate" title={c.title}>{c.title}</h4>
+        <h4 className="font-display font-semibold text-ink-900 text-lg leading-snug truncate" title={c.title}>{c.title}</h4>
         <p className="text-[13px] text-ink-500 mt-0.5 truncate">
           {c.partner?.name || 'Campagne système'} · {formatDate(c.startDate)} – {formatDate(c.endDate)}
         </p>
@@ -115,8 +116,8 @@ export function CampaignCard({
                 type="button"
                 onClick={() => onSetGameMode(mode)}
                 aria-pressed={c.gameMode === mode}
-                className={`h-7 px-3 rounded-full text-xs font-medium transition-colors duration-150 cursor-pointer ${
-                  c.gameMode === mode ? 'bg-surface text-ink-900 shadow-[0_0_0_1px_var(--rule)]' : 'text-ink-500 hover:text-ink-900'
+                className={`h-7 px-3 rounded-full text-xs font-bold transition-colors duration-150 cursor-pointer ${
+                  c.gameMode === mode ? 'bg-brand-600 text-white' : 'text-ink-700 hover:text-ink-900'
                 }`}
               >
                 {mode === 'ROULETTE' ? 'Roulette' : 'Tirage'}

@@ -47,7 +47,7 @@ export function Tabs({ tabs, value, onChange, className = '' }: TabsProps) {
             onClick={() => onChange(tab.value)}
             onKeyDown={(e) => onKeyDown(e, index)}
             className={`relative isolate flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
-              selected ? 'text-ink-900' : 'text-ink-500 hover:text-ink-900'
+              selected ? 'text-brand-700 font-semibold' : 'text-ink-500 hover:text-ink-900'
             }`}
           >
             {selected && (
