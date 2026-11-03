@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Check, Copy, Gift, Plane } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Check, Copy, Gift } from 'lucide-react'
 
 interface HeroBannerProps {
   activeCampaign: any
@@ -73,46 +73,27 @@ export function HeroBanner({
 
   return (
     <section
-      className="mb-10 rounded-[28px] bg-surface relative w-full"
+      className="mb-10 rounded-[28px] bg-brand-500 overflow-hidden relative"
       style={{ boxShadow: 'var(--shadow-premium-md)' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
-      {/* Bandeau de la carte d'embarquement */}
-      <div className="relative flex items-center justify-between gap-4 rounded-t-[28px] bg-brand-500 px-6 sm:px-10 h-16 overflow-hidden">
-        <p className="font-display text-xl font-semibold text-ink-900">Carte d&apos;embarquement</p>
-        <p className="text-sm font-semibold text-ink-900 truncate">{partnerName}</p>
-        <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 800 64" preserveAspectRatio="none">
-          <path d="M 300 52 C 420 4, 560 4, 660 40" fill="none" stroke="var(--ink-900)" strokeOpacity="0.35" strokeWidth="2" strokeDasharray="2 8" strokeLinecap="round" />
-        </svg>
-        <Plane aria-hidden="true" className="pointer-events-none absolute left-[62%] top-3 h-6 w-6 rotate-45 text-ink-900/70 hidden sm:block" strokeWidth={1.75} />
-      </div>
-
-      <div className="grid lg:grid-cols-[minmax(0,1.3fr)_auto_minmax(0,0.9fr)]">
+      <div className="grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <div className="relative p-6 sm:p-10 flex flex-col min-w-0 text-ink-900">
-          <dl className="grid grid-cols-2 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 max-w-xl">
-            <div>
-              <dt className="text-xs text-ink-500">Compagnie</dt>
-              <dd className="font-display text-base font-semibold truncate">{partnerName}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-500">Embarquement jusqu&apos;au</dt>
-              <dd className="font-display text-base font-semibold">{formatDate(activeCampaign.endDate)}</dd>
-            </div>
-            <div className="hidden sm:block">
-              <dt className="text-xs text-ink-500">Type</dt>
-              <dd className="font-display text-base font-semibold">{isDraw ? 'Tirage au sort' : 'Roulette'}</dd>
-            </div>
-          </dl>
+          <span aria-hidden="true" className="pointer-events-none absolute top-6 right-8 h-3 w-3 rounded-full bg-ambre-400" />
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-8 right-16 h-3.5 w-3.5 rotate-45 rounded-[4px] bg-lagon-400" />
+          <p className="inline-flex w-fit items-center h-8 px-3.5 rounded-full bg-ink-900 text-white text-[13px] font-semibold">
+            {partnerName} · jusqu’au {formatDate(activeCampaign.endDate)}
+          </p>
 
-          <div className="mt-6 min-h-[9.5rem]" aria-live="polite">
+          <div className="mt-3 min-h-[9.5rem]" aria-live="polite">
             <h1 key={activeIndex} className="animate-fade-in text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] text-ink-900 [overflow-wrap:anywhere]">
               {slide.title}
             </h1>
             {slide.desc && (
-              <p className="mt-4 text-base sm:text-lg leading-relaxed text-ink-700 max-w-xl">{slide.desc}</p>
+              <p className="mt-4 text-base sm:text-lg leading-relaxed text-ink-900 font-medium max-w-xl">{slide.desc}</p>
             )}
           </div>
 
@@ -120,15 +101,15 @@ export function HeroBanner({
             <button
               type="button"
               onClick={goPlay}
-              className="btn-game h-13 px-7 text-base"
+              className="btn-game-pop h-13 px-7 text-base"
             >
-              {playerEmail ? (isDraw ? 'Voir le tirage' : 'Gagner des lancers') : 'Embarquer'}
+              {playerEmail ? (isDraw ? 'Voir le tirage' : 'Gagner des lancers') : 'Participer'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
             <a
               href="https://www.obooking.tn/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-13 items-center gap-1.5 px-5 rounded-full text-base font-bold text-ink-900 hover:bg-black/[0.05] transition-colors whitespace-nowrap"
+              className="inline-flex h-13 items-center gap-1.5 px-5 rounded-full text-base font-bold text-ink-900 hover:bg-white/30 transition-colors whitespace-nowrap"
             >
               Visiter Obooking <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </a>
@@ -146,21 +127,15 @@ export function HeroBanner({
                   onClick={() => setActiveIndex(i)}
                   className="h-6 px-1 flex items-center cursor-pointer"
                 >
-                  <span className={`block h-1.5 rounded-full transition-[width,background-color] duration-200 ${i === activeIndex ? 'w-7 bg-brand-600' : 'w-3 bg-rule-strong'}`} />
+                  <span className={`block h-1.5 rounded-full transition-[width,background-color] duration-200 ${i === activeIndex ? 'w-7 bg-ink-900' : 'w-3 bg-white/60'}`} />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Perforation + encoches */}
-        <div aria-hidden="true" className="relative h-0 lg:h-auto lg:w-0 mx-6 lg:mx-0 lg:my-6 border-t-2 lg:border-t-0 lg:border-l-2 border-dashed border-rule-strong">
-          <span className="absolute -left-9 -top-[11px] lg:left-[-12px] lg:-top-9 h-5 w-5 lg:h-6 lg:w-6 rounded-full bg-paper" />
-          <span className="absolute -right-9 -top-[11px] lg:left-[-12px] lg:right-auto lg:top-auto lg:-bottom-9 h-5 w-5 lg:h-6 lg:w-6 rounded-full bg-paper" />
-        </div>
-
         {realPrizes.length > 0 && (
-          <div className="m-3 lg:m-4 rounded-[22px] bg-ambre-300 p-6 sm:p-7 min-w-0">
+          <div className="bg-ambre-300 p-6 sm:p-8 min-w-0 lg:rounded-l-[28px]">
             <h2 className="text-2xl text-ink-900">À gagner</h2>
             <ul className="mt-4 space-y-3">
               {realPrizes.map((prize) => (
@@ -177,7 +152,7 @@ export function HeroBanner({
       </div>
 
       {(activeCampaign.promoTitle || activeCampaign.promoCode) && (
-        <div className="rounded-b-[28px] border-t-2 border-dashed border-rule-strong px-6 sm:px-10 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-surface px-6 sm:px-10 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[13px] text-ink-500">Offre du moment</p>
             {activeCampaign.promoTitle && (

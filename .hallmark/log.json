@@ -2,10 +2,10 @@
   {
     "date": "2026-11-03",
     "scope": "app",
-    "macrostructure": "Full-bleed video hero + departure board (signature) + boarding-pass grid + itinerary · navy side-rail (app) · split sky auth",
-    "theme": "Hum Aviation (adapté marque Obooking)",
+    "macrostructure": "Coral hero band + colorful card grid (public) · navy side-rail (app) · split auth",
+    "theme": "Hum (adapté marque Obooking)",
     "genre": "playful",
-    "enrichment": "Hero video + Tier-B hand-built SVG (sky, flight path, plane)",
+    "enrichment": "Tier-A CSS art (roue décorative)",
     "nav": "N1b (public) · side-rail (app)",
     "footer": "Ft2 inline single line",
     "brief": "Refonte ludique et colorée demandée après refus de la version modern-minimal"
